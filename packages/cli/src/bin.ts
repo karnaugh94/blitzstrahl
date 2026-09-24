@@ -2,22 +2,27 @@
 import { parseArgs } from 'node:util'
 import { build } from './build.js'
 import { dev } from './dev.js'
+import { exportPdf } from './export.js'
 
 const HELP = `blitzstrahl — Markdown in. A deck worth watching out.
 
 Usage:
   blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
   blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
+  blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
 
 Commands:
   dev     Live preview with reload on save (keeps your slide and step)
   build   Static site in dist/ (serve it over HTTP), or with --standalone,
           one .html file that opens straight from disk
+  export  PDF: one page per slide at its final step (--steps: every step)
 
 Options:
   --out, -o      build: output folder (default: dist/ next to the deck);
                  with --standalone, the file (default: <deck>.html next to it)
+                 export: the PDF (default: <deck>.pdf next to the deck)
   --standalone   build: everything in one self-contained .html file
+  --steps        export: a page for every build step (handouts)
   --force        Build even if the deck has errors
   --strict       Fail if any slide overflows the canvas (or it can't be checked)
   --port, -p     dev: server port
@@ -39,6 +44,7 @@ async function main(argv: string[]): Promise<number> {
       force: { type: 'boolean' },
       strict: { type: 'boolean' },
       standalone: { type: 'boolean' },
+      steps: { type: 'boolean' },
       port: { type: 'string', short: 'p' },
       host: { type: 'boolean' },
       open: { type: 'boolean' },
@@ -80,6 +86,20 @@ async function main(argv: string[]): Promise<number> {
         return 1
       }
       process.stdout.write(`built ${r.index}\n`)
+      return 0
+    }
+    case 'export': {
+      const opts: Parameters<typeof exportPdf>[1] = {}
+      if (values.out) opts.outFile = values.out
+      if (values.steps) opts.steps = true
+      if (values.force) opts.force = true
+      const r = await exportPdf(deck, opts)
+      for (const w of r.warnings) process.stderr.write(`blitzstrahl: ${w}\n`)
+      if (!r.ok) {
+        process.stderr.write(`blitzstrahl: ${r.error}\n`)
+        return 1
+      }
+      process.stdout.write(`exported ${r.file} (${r.pages} page${r.pages === 1 ? '' : 's'})\n`)
       return 0
     }
     case 'dev': {

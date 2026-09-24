@@ -7,7 +7,7 @@
  * `<div class="blitz-slot" data-slot>` children, `main` first.
  */
 export const layoutCss = /* css */ `
-.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-slide[data-blitz-measure], .blitz-thumb-canvas > .blitz-slide { display: grid; }
+.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-slide[data-blitz-measure], .blitz-thumb-canvas > .blitz-slide, .blitz-print > .blitz-slide { display: grid; }
 .blitz-slide {
   padding: var(--blitz-pad-y) var(--blitz-pad-x);
   grid-template: "main" minmax(0, 1fr) / minmax(0, 1fr);

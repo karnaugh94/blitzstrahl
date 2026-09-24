@@ -50,7 +50,7 @@ const embed: Renderer = {
     const box = doc.createElement('div')
     box.className = 'blitz-embed'
     el.append(box)
-    const done: RenderInstance = { update() {}, resize() {}, destroy: () => box.remove() }
+    const done = (ready: Promise<void>): RenderInstance => ({ update() {}, resize() {}, destroy: () => box.remove(), ready })
 
     if (doc.defaultView?.navigator.onLine === false) {
       if (spec.fallback) {
@@ -59,13 +59,13 @@ const embed: Renderer = {
         img.src = fallbackUrl(spec.fallback, ctx)
         img.alt = spec.title ?? `${host} (offline copy)`
         box.append(img)
-      } else {
-        const note = doc.createElement('p')
-        note.className = 'blitz-embed-offline'
-        note.textContent = `${host} needs a network connection`
-        box.append(note)
+        return done(img.decode().catch(() => {}))
       }
-      return done
+      const note = doc.createElement('p')
+      note.className = 'blitz-embed-offline'
+      note.textContent = `${host} needs a network connection`
+      box.append(note)
+      return done(Promise.resolve())
     }
 
     const frame = doc.createElement('iframe')
@@ -81,9 +81,18 @@ const embed: Renderer = {
       frame.style.transformOrigin = '0 0'
     }
     box.dataset.loading = host
-    frame.addEventListener('load', () => delete box.dataset.loading, { once: true })
+    const loaded = new Promise<void>((resolve) =>
+      frame.addEventListener(
+        'load',
+        () => {
+          delete box.dataset.loading
+          resolve()
+        },
+        { once: true },
+      ),
+    )
     box.append(frame)
-    return done
+    return done(loaded)
   },
 }
 

@@ -8,6 +8,7 @@ import { createServer, type Server } from 'node:http'
 import { extname, join, normalize, sep } from 'node:path'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
 import { describeOverflow, type Overflow } from '@blitzstrahl/runtime/overflow-report'
+import { launchBrowser } from './browser.js'
 
 export interface OverflowCheck {
   diagnostics: Diagnostic[]
@@ -73,25 +74,9 @@ async function serve(root: string): Promise<{ server: Server; url: string }> {
   return { server, url: `http://127.0.0.1:${addr.port}/` }
 }
 
-type Chromium = typeof import('playwright-core').chromium
-type Browser = Awaited<ReturnType<Chromium['launch']>>
-
-/** Playwright's own Chromium if installed, else an installed Chrome or Edge. */
-async function launch(chromium: Chromium): Promise<Browser | undefined> {
-  for (const opts of [{}, { channel: 'chrome' }, { channel: 'msedge' }]) {
-    try {
-      return await chromium.launch(opts)
-    } catch {
-      // try the next one
-    }
-  }
-  return undefined
-}
-
 /** `page` is the file to open inside `outDir` (default: its index.html). */
 export async function checkBuiltOverflow(outDir: string, deck: Deck, source?: string, page = ''): Promise<OverflowCheck> {
-  const { chromium } = await import('playwright-core')
-  const browser = await launch(chromium)
+  const browser = await launchBrowser()
   if (!browser) {
     return { diagnostics: [], skipped: 'no browser to measure slides with; install one with `npx playwright install chromium`' }
   }

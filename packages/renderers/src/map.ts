@@ -269,6 +269,7 @@ const map: Renderer = {
     // keeps the tiles under the map while it moves.
     chart.on('georoam', layTiles)
     chart.on('finished', layTiles)
+    const rendered = new Promise<void>((resolve) => chart.on('finished', () => resolve()))
     chart.setOption(option)
     layTiles()
 
@@ -282,8 +283,9 @@ const map: Renderer = {
         chart.dispose()
         el.replaceChildren()
       },
+      /** Rendered, and the tiles it shows have loaded (or failed). */
       get ready() {
-        return Promise.all(pending).then(() => undefined)
+        return rendered.then(() => Promise.all(pending)).then(() => undefined)
       },
     }
   },

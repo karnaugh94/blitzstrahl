@@ -7,6 +7,7 @@ export type { Renderer, RenderCtx, RenderInstance, RendererLoader, BlockData } f
 export type { PresenterMsg, TimerState, PageMode } from './presenter/protocol.js'
 export type { PresenterTransport } from './presenter/transport.js'
 export { describeOverflow, type Overflow } from './overflow-report.js'
+export type { PrintOptions, PrintResult } from './print.js'
 export * from './steps.js'
 
 /** What `start()` returns, in every mode: dev HMR swaps a rebuilt deck in through it. */

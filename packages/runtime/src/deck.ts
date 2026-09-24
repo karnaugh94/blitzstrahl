@@ -11,6 +11,8 @@ import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion,
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type TransitionEngine } from './transitions.js'
 import { LayerHost, gotoPrompt, help, overview } from './ui.js'
 import { DeckBridge } from './presenter/bridge.js'
+import { measureOverflow } from './overflow.js'
+import { describeOverflow, type Overflow } from './overflow-report.js'
 import { PROTOCOL, isEnvelope, type PageMode } from './presenter/protocol.js'
 
 export interface StartOptions {
@@ -23,6 +25,13 @@ export interface StartOptions {
    * `mirror-still` also shows every state without motion.
    */
   mode?: Exclude<PageMode, 'presenter'>
+  /**
+   * Dev server: check every slide for overflow on load and after each
+   * update, badge the current slide if it overflows, and outline the culprits.
+   */
+  dev?: boolean
+  /** Called with each dev overflow check's result (the dev server prints it). */
+  onOverflow?: (found: Overflow[]) => void
 }
 
 interface Stepped {
@@ -113,6 +122,49 @@ export class Deck implements NavTarget {
     this.goto(initial.slide, initial.step, { history: 'replace' })
     this.presenter = new DeckBridge(this.win, this)
     this.cleanups.push(() => this.presenter?.destroy())
+
+    if (options.dev) {
+      this.badge = this.doc.createElement('div')
+      this.badge.className = 'blitz-overflow-badge'
+      this.badge.setAttribute('role', 'status')
+      this.badge.hidden = true
+      this.doc.body.append(this.badge)
+      const badge = this.badge
+      this.cleanups.push(() => badge.remove())
+      this.onOverflow = options.onOverflow
+      void this.checkOverflow()
+    }
+  }
+
+  /** Slides that overflow the canvas, from the last check. */
+  overflows: Overflow[] = []
+  private badge: HTMLElement | undefined
+  private onOverflow: ((found: Overflow[]) => void) | undefined
+
+  /**
+   * Measure every slide for content off the canvas or clipped inside it
+   * (PLAN §7). `blitzstrahl build` runs this in a headless browser.
+   */
+  async checkOverflow(): Promise<Overflow[]> {
+    this.overflows = await measureOverflow(this.stage, this.payload.slides, this.payload.canvas, this.badge !== undefined)
+    this.showBadge()
+    this.onOverflow?.(this.overflows)
+    return this.overflows
+  }
+
+  private showBadge() {
+    const badge = this.badge
+    if (!badge) return
+    const found = this.overflows.find((o) => o.slide === this.pos?.slide)
+    badge.hidden = !found
+    if (!found) return
+    const list = this.doc.createElement('ul')
+    for (const line of describeOverflow(found)) {
+      const li = this.doc.createElement('li')
+      li.textContent = line
+      list.append(li)
+    }
+    badge.replaceChildren('This slide overflows', list)
   }
 
   /** Mirror mode: follow the parent window's `state` messages, and nothing else. */
@@ -243,6 +295,7 @@ export class Deck implements NavTarget {
     this.goto(slide, at?.step ?? 0, { history: 'replace' })
     // Don't replay entrance effects on every save: settle immediately.
     this.current()?.stepped.forEach((s) => s.running?.finish())
+    if (this.badge) void this.checkOverflow()
   }
 
   destroy(): void {
@@ -352,6 +405,7 @@ export class Deck implements NavTarget {
   }
 
   private enter(view: SlideView) {
+    queueMicrotask(() => this.showBadge())
     view.el.dataset.blitzCurrent = ''
     view.el.removeAttribute('aria-hidden')
     for (const s of view.stepped) delete s.phase

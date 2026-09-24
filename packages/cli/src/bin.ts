@@ -7,7 +7,7 @@ const HELP = `blitzstrahl — Markdown in. A deck worth watching out.
 
 Usage:
   blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
-  blitzstrahl build <deck.md> [--out dist] [--force]
+  blitzstrahl build <deck.md> [--out dist] [--force] [--strict]
 
 Commands:
   dev     Live preview with reload on save (keeps your slide and step)
@@ -16,6 +16,7 @@ Commands:
 Options:
   --out, -o   Output directory for build (default: dist/ next to the deck)
   --force     Build even if the deck has errors
+  --strict    Fail if any slide overflows the canvas (or it can't be checked)
   --port, -p  Dev server port
   --host      Listen on all addresses (present from another device)
   --open      Open the browser
@@ -29,6 +30,7 @@ async function main(argv: string[]): Promise<number> {
     options: {
       out: { type: 'string', short: 'o' },
       force: { type: 'boolean' },
+      strict: { type: 'boolean' },
       port: { type: 'string', short: 'p' },
       host: { type: 'boolean' },
       open: { type: 'boolean' },
@@ -50,9 +52,19 @@ async function main(argv: string[]): Promise<number> {
       const opts: Parameters<typeof build>[1] = {}
       if (values.out) opts.outDir = values.out
       if (values.force) opts.force = true
+      if (values.strict) opts.strict = true
       const r = await build(deck, opts)
-      if (!r.ok) {
+      if (!r.ok && !r.index) {
         process.stderr.write('blitzstrahl: build stopped because the deck has errors (use --force to build anyway)\n')
+        return 1
+      }
+      if (!r.ok) {
+        const n = new Set(r.overflow.map((d) => d.span.start.line)).size
+        process.stderr.write(
+          r.overflowSkipped
+            ? 'blitzstrahl: --strict needs the overflow check, which could not run\n'
+            : `blitzstrahl: --strict: ${n} slide${n === 1 ? '' : 's'} overflow${n === 1 ? 's' : ''} (written to ${r.outDir} anyway)\n`,
+        )
         return 1
       }
       process.stdout.write(`built ${r.index}\n`)

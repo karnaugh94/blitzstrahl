@@ -27,7 +27,18 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
   display: none;
   background-size: cover; background-position: center;
 }
-.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-thumb-canvas > .blitz-slide { display: block; }
+.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-slide[data-blitz-measure], .blitz-thumb-canvas > .blitz-slide { display: block; }
+
+/* Overflow detector (overflow.ts): slides are measured as hidden clones. */
+.blitz-measure { position: absolute; inset: 0; visibility: hidden; pointer-events: none; }
+[data-blitz-overflow] { outline: 3px dashed #ff4d6d !important; outline-offset: 2px; }
+.blitz-overflow-badge {
+  position: fixed; left: 12px; top: 12px; z-index: 45; max-width: min(560px, calc(100vw - 24px));
+  font: 600 13px/1.4 system-ui, sans-serif; color: #fff; background: #c2183f;
+  padding: 8px 12px; border-radius: 8px; box-shadow: 0 6px 24px rgba(0, 0, 0, .4); pointer-events: none;
+}
+.blitz-overflow-badge[hidden] { display: none; }
+.blitz-overflow-badge ul { margin: 4px 0 0; padding-left: 18px; font-weight: 400; }
 .blitz-slide[data-blitz-outgoing] { pointer-events: none; }
 
 /* Slide transitions (transitions.ts). The stage is snapshotted on its own,

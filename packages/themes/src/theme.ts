@@ -9,6 +9,11 @@ import { layoutCss } from './layouts.js'
  */
 export interface ThemeDefinition {
   name: string
+  /**
+   * Includes `code-foreground` and `code-token-*` (keyword, string,
+   * string-expression, function, constant, parameter, punctuation, comment,
+   * link) for syntax highlighting; without them, code is shown plain.
+   */
   tokens: Record<string, string>
   /**
    * Styles for slide content. Scope every rule to `.blitz-slide` or a

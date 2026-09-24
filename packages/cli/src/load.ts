@@ -1,11 +1,13 @@
 /**
- * Read a deck from disk: parse, check assets exist, inline data files.
+ * Read a deck from disk: parse, check assets exist, inline data files,
+ * highlight code.
  * The only place the CLI touches the deck's files.
  */
 import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { parseDeck, type Deck, type Diagnostic } from '@blitzstrahl/core'
+import { highlightDeck } from './highlight.js'
 
 export interface LoadedDeck {
   path: string
@@ -46,6 +48,7 @@ export async function loadDeck(path: string, displayName = path): Promise<Loaded
     }
     if (asset.kind === 'data' && !(asset.path in inline)) inline[asset.path] = await readFile(file, 'utf8')
   }
+  diagnostics.push(...(await highlightDeck(deck, source)))
   diagnostics.sort((a, b) => a.span.start.line - b.span.start.line || a.span.start.column - b.span.start.column)
   return { path: abs, dir, deck, source, diagnostics, inline, files }
 }

@@ -44,6 +44,17 @@ export const aurora = defineTheme({
     'chart-6': '#d7a6ff',
     'chart-7': '#f3e36b',
     'chart-8': '#97a2b9',
+    // Code highlighting (cli/highlight.ts reads these through shiki).
+    'code-foreground': '#e9edf5',
+    'code-token-keyword': '#c3a6ff',
+    'code-token-string': '#6ff0c0',
+    'code-token-string-expression': '#6ff0c0',
+    'code-token-function': '#8fd8ff',
+    'code-token-constant': '#ffb86b',
+    'code-token-parameter': '#ff9dbb',
+    'code-token-punctuation': '#97a2b9',
+    'code-token-comment': '#6f7a94',
+    'code-token-link': '#8fd8ff',
     'map-tiles': 'invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.35)',
   },
   css: /* css */ `
@@ -101,7 +112,7 @@ export const aurora = defineTheme({
   background: var(--blitz-surface); border: 1px solid var(--blitz-rule); border-radius: var(--blitz-radius);
   font-size: 22px; line-height: 1.5;
 }
-.blitz-slide pre code { background: none; padding: 0; font-size: 1em; }
+.blitz-slide pre code { background: none; padding: 0; font-size: 1em; color: var(--blitz-code-foreground); }
 
 .blitz-slide table { border-collapse: collapse; font-size: var(--blitz-text-small); font-variant-numeric: tabular-nums; }
 .blitz-slide th, .blitz-slide td { padding: 10px 22px; text-align: left; border-bottom: 1px solid var(--blitz-rule); }

@@ -531,8 +531,10 @@ Any other fence language is a **code block**, syntax-highlighted. Its info
 string may carry an attribute block too: ```` ```js {.big @2} ````. Code-reveal
 attributes (`lines=`, per-step line highlights) are reserved for **(M4)**.
 
-GFM tables are rendered by the table renderer and take `.sortable`, `.zebra`
-and `reveal=rows` through a standalone attribute block (§4.2).
+GFM tables take `.sortable`, `.zebra` and `reveal=rows` through a standalone
+attribute block (§4.2). A `.sortable` table is enhanced in place by the
+`table` renderer, but it stays an ordinary table in the page. See
+`docs/renderers/table.md`.
 
 ---
 

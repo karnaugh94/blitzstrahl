@@ -74,103 +74,33 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "Containers"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
             "tagName": "div",
             "properties": {
-              "dataBlitzStepIn": 2,
-              "dataBlitzAnim": 0,
               "className": [
-                "callout"
-              ]
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
             },
             "children": [
               {
                 "type": "element",
-                "tagName": "p",
+                "tagName": "h1",
                 "properties": {},
                 "children": [
                   {
                     "type": "text",
-                    "value": "Anything, including "
-                  },
-                  {
-                    "type": "element",
-                    "tagName": "strong",
-                    "properties": {},
-                    "children": [
-                      {
-                        "type": "text",
-                        "value": "markdown"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "text",
-                    "value": ":"
+                    "value": "Containers"
                   }
                 ]
               },
               {
                 "type": "element",
-                "tagName": "ul",
-                "properties": {},
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "\n"
-                  },
-                  {
-                    "type": "element",
-                    "tagName": "li",
-                    "properties": {},
-                    "children": [
-                      {
-                        "type": "text",
-                        "value": "lists"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "text",
-                    "value": "\n"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "div",
-            "properties": {
-              "className": [
-                "columns"
-              ]
-            },
-            "children": [
-              {
-                "type": "element",
                 "tagName": "div",
                 "properties": {
+                  "dataBlitzStepIn": 2,
+                  "dataBlitzAnim": 0,
                   "className": [
-                    "col"
+                    "callout"
                   ]
                 },
                 "children": [
@@ -181,7 +111,48 @@
                     "children": [
                       {
                         "type": "text",
-                        "value": "Left"
+                        "value": "Anything, including "
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "strong",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "markdown"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": ":"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "ul",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "li",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "lists"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
                       }
                     ]
                   }
@@ -192,197 +163,52 @@
                 "tagName": "div",
                 "properties": {
                   "className": [
-                    "col",
-                    "right"
+                    "columns"
                   ]
                 },
                 "children": [
                   {
                     "type": "element",
-                    "tagName": "p",
-                    "properties": {},
-                    "children": [
-                      {
-                        "type": "text",
-                        "value": "Right"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "div",
-            "properties": {
-              "className": [
-                "a",
-                "b"
-              ]
-            },
-            "children": [
-              {
-                "type": "element",
-                "tagName": "p",
-                "properties": {},
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "Anonymous"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "div",
-            "properties": {
-              "className": [
-                "callout"
-              ]
-            },
-            "children": []
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "div",
-            "properties": {
-              "className": [
-                "outer"
-              ]
-            },
-            "children": [
-              {
-                "type": "element",
-                "tagName": "div",
-                "properties": {
-                  "className": [
-                    "inner"
-                  ]
-                },
-                "children": [
-                  {
-                    "type": "element",
-                    "tagName": "p",
-                    "properties": {},
-                    "children": [
-                      {
-                        "type": "text",
-                        "value": "Same colon count: each bare fence closes the innermost container (Pandoc)."
-                      }
-                    ]
-                  }
-                ]
-              },
-              {
-                "type": "element",
-                "tagName": "p",
-                "properties": {},
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "Back in outer."
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "div",
-            "properties": {
-              "className": [
-                "Warning"
-              ]
-            },
-            "children": [
-              {
-                "type": "element",
-                "tagName": "p",
-                "properties": {},
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "Trailing colons after the name are allowed."
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "div",
-            "properties": {
-              "className": [
-                "long"
-              ]
-            },
-            "children": [
-              {
-                "type": "element",
-                "tagName": "p",
-                "properties": {},
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "A shorter closing fence still closes."
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "div",
-            "properties": {
-              "className": [
-                "example"
-              ]
-            },
-            "children": [
-              {
-                "type": "element",
-                "tagName": "pre",
-                "properties": {},
-                "children": [
-                  {
-                    "type": "element",
-                    "tagName": "code",
+                    "tagName": "div",
                     "properties": {
                       "className": [
-                        "language-markdown"
+                        "col"
                       ]
                     },
                     "children": [
                       {
-                        "type": "text",
-                        "value": "::: not-a-container-inside-code\n:::\n"
+                        "type": "element",
+                        "tagName": "p",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Left"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "properties": {
+                      "className": [
+                        "col",
+                        "right"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "p",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Right"
+                          }
+                        ]
                       }
                     ]
                   }
@@ -390,17 +216,182 @@
               },
               {
                 "type": "element",
-                "tagName": "pre",
-                "properties": {},
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "a",
+                    "b"
+                  ]
+                },
                 "children": [
                   {
                     "type": "element",
-                    "tagName": "code",
+                    "tagName": "p",
                     "properties": {},
                     "children": [
                       {
                         "type": "text",
-                        "value": ":::\n"
+                        "value": "Anonymous"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "callout"
+                  ]
+                },
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "outer"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "div",
+                    "properties": {
+                      "className": [
+                        "inner"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "p",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Same colon count: each bare fence closes the innermost container (Pandoc)."
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Back in outer."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "Warning"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Trailing colons after the name are allowed."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "long"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "A shorter closing fence still closes."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "example"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "pre",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "code",
+                        "properties": {
+                          "className": [
+                            "language-markdown"
+                          ]
+                        },
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "::: not-a-container-inside-code\n:::\n"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "pre",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "code",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": ":::\n"
+                          }
+                        ]
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Still inside example."
                       }
                     ]
                   }
@@ -413,39 +404,20 @@
                 "children": [
                   {
                     "type": "text",
-                    "value": "Still inside example."
+                    "value": ":::\nNot a container: bare fence opens nothing."
                   }
                 ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
+              },
               {
-                "type": "text",
-                "value": ":::\nNot a container: bare fence opens nothing."
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "::: not a container\ntext"
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "::: not a container\ntext"
+                  }
+                ]
               }
             ]
           }
@@ -489,18 +461,30 @@
             "tagName": "div",
             "properties": {
               "className": [
-                "open"
-              ]
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
             },
             "children": [
               {
                 "type": "element",
-                "tagName": "p",
-                "properties": {},
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "open"
+                  ]
+                },
                 "children": [
                   {
-                    "type": "text",
-                    "value": "Runs to the end of the slide."
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Runs to the end of the slide."
+                      }
+                    ]
                   }
                 ]
               }
@@ -536,12 +520,24 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "Next slide survives"
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Next slide survives"
+                  }
+                ]
               }
             ]
           }

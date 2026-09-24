@@ -48,7 +48,7 @@ export const RENDERERS: Readonly<Record<string, { body: RendererBody; since: str
 }
 
 /** Milestones implemented by this build. */
-export const SUPPORTED_MILESTONES = new Set(['M1'])
+export const SUPPORTED_MILESTONES = new Set(['M1', 'M2'])
 
 const DIRECTIONS = ['left', 'right', 'up', 'down'] as const
 
@@ -61,18 +61,24 @@ export const TRANSITIONS: ReadonlySet<TransitionName> = new Set<TransitionName>(
   ...DIRECTIONS.flatMap((d) => [`push-${d}`, `cover-${d}`, `uncover-${d}`] as const),
 ])
 
-/** syntax.md §10 */
-export const LAYOUTS = new Set([
-  'title',
-  'section',
-  'default',
-  'two-col',
-  'three-col',
-  'quote',
-  'stat-grid',
-  'full-bleed',
-  'image-left',
-  'image-right',
-  'code',
-  'end',
-])
+/**
+ * syntax.md §10: built-in layouts and their named slots. Content outside a
+ * named slot goes to the layout's main slot, which every layout has.
+ */
+export const LAYOUTS: Readonly<Record<string, readonly string[]>> = {
+  title: [],
+  section: [],
+  default: [],
+  'two-col': ['left', 'right'],
+  'three-col': ['left', 'middle', 'right'],
+  quote: [],
+  'stat-grid': [],
+  'full-bleed': [],
+  'image-left': ['image'],
+  'image-right': ['image'],
+  code: [],
+  end: [],
+}
+
+/** Every slot name of any layout: a top-level container with one of these names is a slot fill. */
+export const SLOT_NAMES: ReadonlySet<string> = new Set(Object.values(LAYOUTS).flat())

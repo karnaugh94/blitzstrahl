@@ -80,11 +80,12 @@ export function milliseconds(value: unknown, key: string, diags: Diagnostics, sp
   return n
 }
 
+/** An unknown layout falls back to `default`, so the slide still gets a working layout. */
 export function layoutName(value: unknown, diags: Diagnostics, span: SourceSpan | undefined): string {
   const s = String(value)
-  if (!LAYOUTS.has(s)) diags.warn('layout/unknown', `unknown layout \`${s}\``, span)
-  notYet('layouts', 'M2', diags, span)
-  return s
+  if (s in LAYOUTS) return s
+  diags.warn('layout/unknown', `unknown layout \`${s}\`; using \`default\` (built-in: ${Object.keys(LAYOUTS).join(', ')})`, span)
+  return 'default'
 }
 
 export function notYet(what: string, milestone: string, diags: Diagnostics, span: SourceSpan | undefined): void {

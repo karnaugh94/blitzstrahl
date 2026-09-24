@@ -42,12 +42,24 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "Opening"
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Opening"
+                  }
+                ]
               }
             ]
           }
@@ -83,12 +95,24 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "Frontmatter wins"
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Frontmatter wins"
+                  }
+                ]
               }
             ]
           }
@@ -124,12 +148,24 @@
         "content": [
           {
             "type": "element",
-            "tagName": "p",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "layout: not frontmatter because of the blank line"
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "layout: not frontmatter because of the blank line"
+                  }
+                ]
               }
             ]
           }
@@ -164,12 +200,24 @@
         "content": [
           {
             "type": "element",
-            "tagName": "p",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "bad: [unclosed"
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "bad: [unclosed"
+                  }
+                ]
               }
             ]
           }
@@ -204,12 +252,24 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "After invalid YAML"
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "After invalid YAML"
+                  }
+                ]
               }
             ]
           }
@@ -245,12 +305,24 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "Bad values"
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Bad values"
+                  }
+                ]
               }
             ]
           }
@@ -286,31 +358,39 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
+            "tagName": "div",
             "properties": {
               "className": [
-                "x"
-              ]
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
             },
             "children": [
               {
-                "type": "text",
-                "value": "Misplaced"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
+                "type": "element",
+                "tagName": "h1",
+                "properties": {
+                  "className": [
+                    "x"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Misplaced"
+                  }
+                ]
+              },
               {
-                "type": "text",
-                "value": "Paragraph"
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Paragraph"
+                  }
+                ]
               }
             ]
           }
@@ -362,22 +442,6 @@
         "end": {
           "line": 8,
           "column": 8
-        }
-      }
-    },
-    {
-      "severity": "warning",
-      "code": "not-yet-supported",
-      "message": "layouts not yet supported (arrives in M2); ignored for now",
-      "file": "frontmatter.md",
-      "span": {
-        "start": {
-          "line": 10,
-          "column": 1
-        },
-        "end": {
-          "line": 10,
-          "column": 7
         }
       }
     },

@@ -131,8 +131,6 @@ any level.
 > for you. To make slide 1 an ordinary slide, give it `layout: default` in its
 > frontmatter (§2.3).
 
-Layouts land in M2 (§10). Until then, slide 1 still records `title` as its
-layout in the IR, so decks written now look right once layouts arrive.
 
 ### 2.6 No vertical stacks
 
@@ -164,7 +162,7 @@ Unknown keys are warnings, not errors. Plugins may register their own keys
 | Key | Type | Meaning |
 |---|---|---|
 | `id` | slug | Overrides the derived slide id (§2.4) |
-| `layout` | layout name | **(M2)** Named layout (§10). Default `default`. **Slide 1 defaults to `title`** (§2.5) |
+| `layout` | layout name | Named layout (§10). Default `default`. **Slide 1 defaults to `title`** (§2.5) |
 | `transition` | transition | Transition used to *enter* this slide (§9) |
 | `transition-dur` | ms | Duration for that transition |
 | `background` | string | Image path/URL (covers the canvas), or any CSS `background` value |
@@ -335,7 +333,7 @@ The rules for opening and closing are Pandoc's
 | Name | Meaning |
 |---|---|
 | `notes` | Presenter notes (§7) |
-| *layout slot names* | **(M2)** Fill a named slot of the slide's layout (§10) |
+| *layout slot names* | Fill a named slot of the slide's layout (§10) |
 
 ---
 
@@ -560,17 +558,16 @@ and `reveal=rows` through a standalone attribute block (§4.2).
 
 ---
 
-## 10. Layouts (M2)
+## 10. Layouts
 
-Set with `layout:` in slide frontmatter. Without it, a slide uses `default`,
-except **slide 1, which uses `title`** (§2.5).
+Set with `layout:` in slide frontmatter, or `{layout=…}` on the slide's first
+heading (§3.2). Without it, a slide uses `default`, except **slide 1, which
+uses `title`** (§2.5). An unknown layout name is a warning, and the slide uses
+`default`.
 
-Built-in: `title`, `section`,
-`default`, `two-col`, `three-col`, `quote`, `stat-grid`, `full-bleed`,
-`image-left`, `image-right`, `code`, `end`.
-
-A layout declares **named slots**. A top-level container whose name matches a
-slot fills that slot. Everything else goes to the layout's default slot:
+A layout declares **named slots**. A **top-level** container whose name
+matches a slot fills that slot. Everything else goes to the layout's **main**
+slot:
 
 ```markdown
 ---
@@ -590,9 +587,35 @@ The argument.
 :::
 ```
 
-The slot names for each layout are documented with the layout. A container
-using a slot name the current layout doesn't have is a warning, and the
-container falls back to being an ordinary `<div>`.
+Here the heading goes to the main slot, which `two-col` places above the two
+columns.
+
+| Layout | Named slots | Main slot holds |
+|---|---|---|
+| `title` | — | Title, subtitle, byline; centred |
+| `section` | — | A section divider heading; centred |
+| `default` | — | Everything, top to bottom |
+| `two-col` | `left`, `right` | A heading spanning both columns |
+| `three-col` | `left`, `middle`, `right` | A heading spanning all three |
+| `quote` | — | A blockquote, set large; a paragraph after it is the attribution |
+| `stat-grid` | — | A heading, then each container (`::: stat`, say) becomes one stat: its first paragraph is the figure, the rest the caption |
+| `full-bleed` | — | The first image or render block covers the whole canvas; the rest is overlaid |
+| `image-left`, `image-right` | `image` | The text beside the image. The `image` slot fills its half edge to edge |
+| `code` | — | A heading and a code block that fills the slide |
+| `end` | — | Closing words; centred |
+
+- Slot containers take attributes like any container: `::: right {@2}`
+  brings the whole column in at step 2. Their name doesn't become a class.
+- Only top-level containers fill slots. A nested `::: left` (inside
+  `::: columns`, say) is an ordinary `<div class="left">`, with no warning.
+- A top-level container using a slot name the slide's layout doesn't have is a
+  warning, and the container stays an ordinary `<div>`. So is filling the
+  same slot twice: the second container stays a `<div>`.
+- Build steps number in document order, regardless of where a slot puts the
+  content.
+- Themes style the layouts. In the page, each slot is a
+  `<div class="blitz-slot" data-slot="…">`, and the main slot's name is
+  `main`; the slide carries `data-layout="…"`.
 
 ---
 

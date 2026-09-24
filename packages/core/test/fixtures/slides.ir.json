@@ -32,27 +32,35 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "First"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "First"
+                  }
+                ]
+              },
               {
-                "type": "text",
-                "value": "Text directly above a separator stays a paragraph"
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Text directly above a separator stays a paragraph"
+                  }
+                ]
               }
             ]
           }
@@ -87,62 +95,62 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
-              {
-                "type": "text",
-                "value": "Second"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "hr",
-            "properties": {},
-            "children": []
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "hr",
-            "properties": {},
-            "children": []
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "ul",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "\n"
-              },
               {
                 "type": "element",
-                "tagName": "li",
+                "tagName": "h1",
                 "properties": {},
                 "children": [
                   {
                     "type": "text",
-                    "value": "a list"
+                    "value": "Second"
                   }
                 ]
               },
               {
-                "type": "text",
-                "value": "\n"
+                "type": "element",
+                "tagName": "hr",
+                "properties": {},
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "hr",
+                "properties": {},
+                "children": []
+              },
+              {
+                "type": "element",
+                "tagName": "ul",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "li",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "a list"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
               }
             ]
           }
@@ -204,29 +212,37 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h2",
+            "tagName": "div",
             "properties": {
-              "id": "custom-id"
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
             },
             "children": [
               {
-                "type": "text",
-                "value": "Third"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "h1",
-            "properties": {},
-            "children": [
+                "type": "element",
+                "tagName": "h2",
+                "properties": {
+                  "id": "custom-id"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Third"
+                  }
+                ]
+              },
               {
-                "type": "text",
-                "value": "Heading two"
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Heading two"
+                  }
+                ]
               }
             ]
           }
@@ -261,12 +277,24 @@
         "content": [
           {
             "type": "element",
-            "tagName": "p",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "No heading here"
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "No heading here"
+                  }
+                ]
               }
             ]
           }
@@ -300,12 +328,24 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
             "children": [
               {
-                "type": "text",
-                "value": "First"
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "First"
+                  }
+                ]
               }
             ]
           }

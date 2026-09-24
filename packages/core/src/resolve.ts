@@ -1,10 +1,10 @@
 /**
- * Per-slide resolution: notes, first-heading shorthand, attribute keys,
- * effects and build steps (syntax.md §3.2, §4.3, §6), render blocks (§8),
- * assets, and finally mdast → hast.
+ * Per-slide resolution: notes, first-heading shorthand, layout slots (§10),
+ * attribute keys, effects and build steps (syntax.md §3.2, §4.3, §6), render
+ * blocks (§8), assets, and finally mdast → hast.
  */
 import type { Element, ElementContent, Root as HastRoot, RootContent as HastRootContent } from 'hast'
-import type { Code, Heading, Nodes, Parent, Root, RootContent } from 'mdast'
+import type { BlockContent, Code, DefinitionContent, Heading, Nodes, Parent, Root, RootContent } from 'mdast'
 import { toHast } from 'mdast-util-to-hast'
 import { toString } from 'mdast-util-to-string'
 import { parseDocument } from 'yaml'
@@ -14,7 +14,7 @@ import { assetKind, isExplicitRelative, isLocalRef, normalizeRelative } from './
 import { pointSpan, spanOf, type Diagnostics } from './diagnostics.js'
 import type { AnimSpec, AssetRef, HastNode, RenderBlock, SourceSpan, StepRange } from './ir.js'
 import { milliseconds, notYet } from './meta.js'
-import { ANIM_KEYS, EFFECTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RENDERERS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS } from './vocab.js'
+import { ANIM_KEYS, EFFECTS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RENDERERS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES } from './vocab.js'
 
 /** Deck-wide state threaded through every slide. */
 export interface DeckContext {
@@ -40,15 +40,21 @@ declare module 'mdast' {
   interface Data {
     /** Step assigned by a parent's `reveal=` (§6.4). */
     blitzReveal?: { range: StepRange; anim?: number }
+    /** Layout slot this top-level container fills (§10). */
+    blitzSlot?: string
   }
 }
 
+export type Shorthand = Record<string, { value: string; span: SourceSpan }>
+
 export interface ResolvedSlide {
   title?: string
+  /** Resolved layout name (§10). */
+  layout: string
   /** `#id` on the first heading, a slide-id candidate (§2.4). */
   headingId?: string
   /** Slide keys written on the first heading (§3.2). */
-  shorthand: Record<string, { value: string; span: SourceSpan }>
+  shorthand: Shorthand
   steps: number
   notes: HastNode[]
   content: HastNode[]
@@ -56,12 +62,21 @@ export interface ResolvedSlide {
   blocks: RenderBlock[]
 }
 
-export function resolveSlide(nodes: RootContent[], index: number, ctx: DeckContext): ResolvedSlide {
+/**
+ * `pickLayout` resolves the slide's layout once the first-heading shorthand
+ * is known, since `layout=` may be written there (§3.2).
+ */
+export function resolveSlide(
+  nodes: RootContent[],
+  index: number,
+  ctx: DeckContext,
+  pickLayout: (shorthand: Shorthand) => string,
+): ResolvedSlide {
   const { diags } = ctx
   const notesNodes = extractNotes(nodes, diags)
 
   const heading = findFirst(nodes, (n): n is Heading => n.type === 'heading')
-  const shorthand: ResolvedSlide['shorthand'] = {}
+  const shorthand: Shorthand = {}
   if (heading?.data?.blitz) {
     const { attrs, at } = heading.data.blitz
     attrs.pairs = attrs.pairs.filter((p) => {
@@ -70,6 +85,8 @@ export function resolveSlide(nodes: RootContent[], index: number, ctx: DeckConte
       return false
     })
   }
+  const layout = pickLayout(shorthand)
+  assignSlots(nodes, layout, diags)
 
   const anims: AnimSpec[] = []
   const blocks: RenderBlock[] = []
@@ -100,13 +117,15 @@ export function resolveSlide(nodes: RootContent[], index: number, ctx: DeckConte
   const resolveNode = (node: Nodes): StepRange | undefined => {
     const blitz: Attached | undefined = node.data?.blitz
     const reveal = node.data?.blitzReveal
+    const slot = node.data?.blitzSlot
+    const ownClasses = slot ? ['blitz-slot'] : node.type === 'blitzContainer' && node.name ? [node.name] : []
     if (!blitz && !reveal) {
-      if (node.type === 'blitzContainer' && node.name) setProps(node, { className: [node.name] })
+      setProps(node, slot ? { className: ownClasses, dataSlot: slot } : ownClasses.length ? { className: ownClasses } : {})
       return undefined
     }
 
-    const props: Record<string, unknown> = {}
-    const classes: string[] = node.type === 'blitzContainer' && node.name ? [node.name] : []
+    const props: Record<string, unknown> = slot ? { dataSlot: slot } : {}
+    const classes: string[] = [...ownClasses]
     let effect: string | undefined
     let range: StepRange | undefined
     let animIndex: number | undefined
@@ -262,10 +281,11 @@ export function resolveSlide(nodes: RootContent[], index: number, ctx: DeckConte
 
   const title = heading ? toString(heading).trim() : undefined
   const out: ResolvedSlide = {
+    layout,
     shorthand,
     steps: maxStep,
     notes: toHastContent(notesNodes, `s${index}-notes-`, []),
-    content: toHastContent(nodes, `s${index}-`, propTable),
+    content: toHastContent(slotted(nodes), `s${index}-`, propTable),
     anims,
     blocks,
   }
@@ -273,6 +293,45 @@ export function resolveSlide(nodes: RootContent[], index: number, ctx: DeckConte
   const headingId = heading?.data?.blitz?.attrs.id
   if (headingId) out.headingId = headingId
   return out
+}
+
+/**
+ * Mark top-level containers that fill a slot of `layout` (§10). A slot name
+ * the layout doesn't have, or a slot filled twice, leaves an ordinary `<div>`.
+ */
+function assignSlots(nodes: RootContent[], layout: string, diags: Diagnostics) {
+  const slots = LAYOUTS[layout] ?? []
+  const filled = new Set<string>()
+  for (const n of nodes) {
+    if (n.type !== 'blitzContainer' || !n.name || !SLOT_NAMES.has(n.name)) continue
+    const at = { start: n.position!.start, end: n.position!.start }
+    if (!slots.includes(n.name)) {
+      const has = slots.length ? `its slots are ${slots.map((x) => `\`${x}\``).join(', ')}` : 'it has no named slots'
+      diags.warn('layout/unknown-slot', `layout \`${layout}\` has no \`${n.name}\` slot (${has}); this is an ordinary container`, at)
+    } else if (filled.has(n.name)) {
+      diags.warn('layout/slot-twice', `slot \`${n.name}\` is already filled on this slide; this is an ordinary container`, at)
+    } else {
+      filled.add(n.name)
+      n.data = { ...n.data, blitzSlot: n.name }
+    }
+  }
+}
+
+/**
+ * Top-level content as slot elements: the main slot (everything not in a
+ * named slot) first, when non-empty, then named slots in document order.
+ */
+function slotted(nodes: RootContent[]): RootContent[] {
+  const main = nodes.filter((n) => !n.data?.blitzSlot)
+  const named = nodes.filter((n) => n.data?.blitzSlot)
+  if (!main.length) return named
+  const wrapper: RootContent = {
+    type: 'blitzContainer',
+    closed: true,
+    children: main as Array<BlockContent | DefinitionContent>,
+    data: { hName: 'div', hProperties: { className: ['blitz-slot'], dataSlot: 'main' } },
+  }
+  return [wrapper, ...named]
 }
 
 function fmtRange(r: StepRange): string {

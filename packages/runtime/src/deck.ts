@@ -9,6 +9,7 @@ import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
 import type { BlockData, RenderInstance, RendererLoader } from './renderer.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type TransitionEngine } from './transitions.js'
+import { LayerHost, gotoPrompt, help, overview } from './ui.js'
 
 export interface StartOptions {
   /** Lazy loaders per renderer name. The entry module wires these up. */
@@ -39,6 +40,7 @@ interface SlideView {
   blocks: BlockView[]
 }
 
+/** Called after every change of position or blackout. */
 export type ChangeListener = (pos: Position, deck: Deck) => void
 
 export class Deck implements NavTarget {
@@ -57,6 +59,10 @@ export class Deck implements NavTarget {
   /** Bumped whenever block instances are torn down, to drop stale async mounts. */
   private generation = 0
   readonly transitions: TransitionEngine
+  readonly layers: LayerHost
+  /** The audience sees black (`B`); navigation still works underneath. */
+  blackout = false
+  private readonly blackoutEl: HTMLElement
 
   constructor(payload: DeckPayload, options: StartOptions = {}) {
     this.doc = options.document ?? document
@@ -67,17 +73,17 @@ export class Deck implements NavTarget {
     this.live = this.doc.querySelector<HTMLElement>('.blitz-sr')
     this.reduced = this.win.matchMedia('(prefers-reduced-motion: reduce)')
     this.transitions = ViewTransitionEngine.supported(this.doc) ? new ViewTransitionEngine(this.doc) : new WaapiEngine()
+    this.layers = new LayerHost(this.doc)
+    this.blackoutEl = this.doc.createElement('div')
+    this.blackoutEl.className = 'blitz-blackout'
+    this.doc.body.append(this.blackoutEl)
     this.load(payload)
 
     this.cleanups.push(
-      bindKeyboard(this.win, this, (e) => {
-        if (e.key === 'f' || e.key === 'F') {
-          void this.toggleFullscreen()
-          return true
-        }
-        return false
-      }),
+      bindKeyboard(this.win, this, (e) => this.onKey(e)),
       bindPointer(this.viewport, this),
+      () => this.layers.close(),
+      () => this.blackoutEl.remove(),
     )
 
     const ro = new ResizeObserver(() => this.rescale())
@@ -166,7 +172,29 @@ export class Deck implements NavTarget {
         else this.win.history.replaceState(null, '', url)
       }
     }
-    for (const cb of this.listeners) cb(to, this)
+    this.emit()
+  }
+
+  setBlackout(on: boolean): void {
+    if (this.blackout === on) return
+    this.blackout = on
+    toggle(this.blackoutEl, 'blitzOn', on)
+    this.emit()
+  }
+
+  /** Open the slide overview (`Esc`). */
+  showOverview(): void {
+    const at = this.pos?.slide ?? 0
+    this.layers.open(
+      overview(this.doc, {
+        stage: this.stage,
+        slides: this.payload.slides,
+        canvas: this.payload.canvas,
+        current: at,
+        pick: (i) => this.goto(i, 0),
+        host: this.layers,
+      }),
+    )
   }
 
   /** Swap in a rebuilt deck (dev HMR), keeping the current slide and step. */
@@ -192,6 +220,39 @@ export class Deck implements NavTarget {
   }
 
   // --- internals ---------------------------------------------------------
+
+  private emit() {
+    if (this.pos) for (const cb of this.listeners) cb(this.pos, this)
+  }
+
+  /** The deck's own keys (PLAN §8), ahead of navigation. */
+  private onKey(e: KeyboardEvent): boolean {
+    if (this.layers.key(e)) return true
+    switch (e.key) {
+      case 'Escape':
+      case 'o':
+      case 'O':
+        this.showOverview()
+        return true
+      case 'b':
+      case 'B':
+      case '.':
+        this.setBlackout(!this.blackout)
+        return true
+      case 'g':
+      case 'G':
+        this.layers.open(gotoPrompt(this.doc, { slides: this.payload.slides, go: (i) => this.goto(i, 0), host: this.layers }))
+        return true
+      case '?':
+        this.layers.open(help(this.doc, this.layers))
+        return true
+      case 'f':
+      case 'F':
+        void this.toggleFullscreen()
+        return true
+    }
+    return false
+  }
 
   private current(): SlideView | undefined {
     return this.pos && this.views[this.pos.slide]

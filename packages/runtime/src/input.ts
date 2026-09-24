@@ -25,11 +25,19 @@ function hasSelection(doc: Document): boolean {
   return !!sel && !sel.isCollapsed && sel.toString().trim() !== ''
 }
 
-export function bindKeyboard(win: Window, nav: NavTarget, extra: (e: KeyboardEvent) => boolean = () => false): () => void {
+/**
+ * Navigation keys. `first` sees every key before navigation does (open
+ * overlays, the deck's own shortcuts) and returns true when it handled it.
+ */
+export function bindKeyboard(win: Window, nav: NavTarget, first: (e: KeyboardEvent) => boolean = () => false): () => void {
   const onKey = (e: KeyboardEvent) => {
     if (e.defaultPrevented || e.altKey || e.ctrlKey || e.metaKey) return
     const t = e.target
     if (t instanceof HTMLElement && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return
+    if (first(e)) {
+      e.preventDefault()
+      return
+    }
     let handled = true
     switch (e.key) {
       case 'ArrowRight':
@@ -54,7 +62,7 @@ export function bindKeyboard(win: Window, nav: NavTarget, extra: (e: KeyboardEve
         nav.last()
         break
       default:
-        handled = extra(e)
+        handled = false
     }
     if (handled) e.preventDefault()
   }

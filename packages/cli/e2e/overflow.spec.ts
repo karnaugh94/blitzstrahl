@@ -65,3 +65,25 @@ test('dev badges an overflowing slide and outlines the culprit, and clears when 
     await server.close()
   }
 })
+
+test.describe('BLITZSTRAHL_SKIP_OVERFLOW_CHECK', () => {
+  test.afterEach(() => {
+    delete process.env.BLITZSTRAHL_SKIP_OVERFLOW_CHECK
+  })
+
+  test('skips the check; --strict checks anyway', async () => {
+    process.env.BLITZSTRAHL_SKIP_OVERFLOW_CHECK = '1'
+    const skipped = await build(fixture, { outDir: out(), quiet: true })
+    expect(skipped.ok).toBe(true)
+    expect(skipped.overflow).toEqual([])
+    const strict = await build(fixture, { outDir: out(), quiet: true, strict: true })
+    expect(strict.ok).toBe(false)
+    expect(strict.overflow.length).toBeGreaterThan(0)
+  })
+
+  test('"0" or "false" leaves the check on', async () => {
+    process.env.BLITZSTRAHL_SKIP_OVERFLOW_CHECK = 'false'
+    const r = await build(fixture, { outDir: out(), quiet: true })
+    expect(r.overflow.length).toBeGreaterThan(0)
+  })
+})

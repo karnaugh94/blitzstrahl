@@ -155,6 +155,16 @@ for (const engine of ['view', 'waapi'] as const) {
       expect(await page.screenshot({ clip: band })).toEqual(idle)
     })
 
+    test('while blacked out, slides cut instead of transitioning', async ({ page }) => {
+      // A view transition paints above everything, the black screen included.
+      await open(page)
+      await page.keyboard.press('b')
+      await page.keyboard.press('ArrowRight')
+      expect(await page.evaluate(() => window.blitz!.transitions.running)).toBe(false)
+      expect(await slideAnims(page)).toEqual([])
+      expect(await current(page)).toEqual(['pushed'])
+    })
+
     test.describe('reduced motion', () => {
       test.use({ reducedMotion: 'reduce' })
 

@@ -34,5 +34,11 @@ The overflow check needs a Chromium-based browser: Playwright's Chromium
 one, `build` says the check was skipped, and `--strict` fails, because it
 can't vouch for the slides.
 
+To skip the check (no browser available, or you'd rather not), set
+`BLITZSTRAHL_SKIP_OVERFLOW_CHECK=1`. `build` then neither measures nor
+mentions overflow. `--strict` ignores the variable and checks anyway, since
+you asked for it explicitly on the command line. The `dev` badge isn't
+affected: it needs no extra browser.
+
 Hidden build steps still take up their space on the slide, so content that
 only overflows at a later step is caught too.

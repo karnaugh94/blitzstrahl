@@ -1,6 +1,8 @@
 node_modules/
 dist/
 examples/*/dist/
+examples/*/*.html
+examples/*/*.pdf
 *.tsbuildinfo
 .DS_Store
 *.log

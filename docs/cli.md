@@ -2,7 +2,7 @@
 
 ```
 blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
-blitzstrahl build <deck.md> [--out dist] [--force] [--strict]
+blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
 ```
 
 ## `dev`
@@ -18,8 +18,8 @@ dashed outline. The same overflow warnings print in the terminal at
 ## `build`
 
 Writes a static site to `dist/` next to the deck (or `--out`). Serve it over
-HTTP: module scripts don't run from `file://`. (A single-file build that
-does is on the way.)
+HTTP: module scripts don't run from `file://`. For a file you can simply
+open, use `--standalone` (below).
 
 - A deck with **errors** isn't built unless you pass `--force`: an error
   means blitzstrahl couldn't do what the deck says.
@@ -42,3 +42,31 @@ affected: it needs no extra browser.
 
 Hidden build steps still take up their space on the slide, so content that
 only overflows at a later step is caught too.
+
+## `build --standalone`
+
+Writes the whole deck as **one `.html` file** that opens straight from disk:
+double-click it, email it, put it on a USB stick. By default it's the deck's
+name with `.html`, next to the deck (`talk.md` → `talk.html`); `--out` picks
+another path.
+
+- Everything is inside: the runtime, the theme, your images (as data URIs),
+  your data files, the presenter view, and the code for only those
+  renderers the deck uses. A deck without charts or maps is about 70 kB.
+  One with a chart is about 650 kB, most of it the charting library.
+- The presenter view works from the file too (`P`, or open it with
+  `#presenter` on the end).
+- `build` prints the file's size, and warns when it's over 8 MB. Large
+  images are the usual cause.
+
+What still needs the network, and so won't work offline, even from a
+standalone file:
+
+- A map's street tiles. Your markers and regions are in the file and always
+  draw; `tiles: none` gives a map that needs nothing
+  (`docs/renderers/map.md`).
+- Embedded pages. `fallback:` shows an image instead when you're offline
+  (`docs/renderers/embed.md`).
+
+`build` notes both when the deck has them.
+

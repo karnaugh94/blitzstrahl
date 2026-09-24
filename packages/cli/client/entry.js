@@ -10,9 +10,9 @@ const deck = start({
 })
 
 if (import.meta.hot) {
-  import.meta.hot.on('blitz:update', ({ payload, stage, diagnostics }) => {
-    document.title = payload.title
-    deck.update(payload, stage)
+  import.meta.hot.on('blitz:update', ({ payload, stage, notes, diagnostics }) => {
+    if (!location.hash.startsWith('#presenter')) document.title = payload.title
+    deck.update(payload, stage, notes)
     report(diagnostics)
   })
   report(JSON.parse(document.getElementById('blitz-diagnostics')?.textContent || '[]'))

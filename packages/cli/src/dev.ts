@@ -7,7 +7,7 @@ import { createReadStream } from 'node:fs'
 import { dirname, extname, relative, resolve } from 'node:path'
 import { createServer, type Plugin, type ViteDevServer } from 'vite'
 import { toPayload } from '@blitzstrahl/core'
-import { renderPage, renderStage, resolveTheme } from './html.js'
+import { renderNotes, renderPage, renderStage, resolveTheme } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
 import { printDiagnostics, summary } from './report.js'
 import { ENTRY, cacheDir, servedDirs } from './vite.js'
@@ -75,6 +75,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             data: {
               payload: toPayload(loaded.deck, loaded.inline),
               stage: renderStage(loaded.deck, assetUrl),
+              notes: renderNotes(loaded.deck, assetUrl),
               diagnostics: loaded.diagnostics,
             },
           })

@@ -17,8 +17,8 @@ export function resolveTheme(name: string): { theme: Theme; warning?: string } {
   return { theme: themes.aurora!, warning: `unknown theme \`${name}\`; using aurora (third-party themes arrive in M5)` }
 }
 
-/** The `<section>`s, as HTML. Also what dev HMR swaps in. */
-export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
+/** Rewrites local image `src`s to the URLs the page serves them from. */
+function imageRewriter(deck: Deck, assetUrl: AssetUrl) {
   const byRef = new Map(deck.assets.map((a) => [a.ref, a.path]))
   const rewrite = (nodes: HastNode[]): ElementContent[] =>
     nodes.map((n) => {
@@ -30,6 +30,12 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
       }
       return el
     })
+  return { byRef, rewrite }
+}
+
+/** The `<section>`s, as HTML. Also what dev HMR swaps in. */
+export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
+  const { byRef, rewrite } = imageRewriter(deck, assetUrl)
 
   const sections: Element[] = deck.slides.map((slide) => {
     const style: string[] = []
@@ -56,6 +62,19 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
     }
   })
   return toHtml({ type: 'root', children: sections } as Root, { allowDangerousHtml: true })
+}
+
+/**
+ * Presenter notes (syntax.md §7), one `<div data-for="<slide id>">` per slide
+ * that has any: the inner HTML of the page's `<template id="blitz-notes">`.
+ * A template's content is inert, so the audience never sees it rendered.
+ */
+export function renderNotes(deck: Deck, assetUrl: AssetUrl): string {
+  const { rewrite } = imageRewriter(deck, assetUrl)
+  const divs: Element[] = deck.slides
+    .filter((s) => s.notes.length)
+    .map((s) => ({ type: 'element', tagName: 'div', properties: { dataFor: s.id }, children: rewrite(s.notes) }))
+  return toHtml({ type: 'root', children: divs } as Root, { allowDangerousHtml: true })
 }
 
 export interface PageOptions {
@@ -92,6 +111,7 @@ ${renderStage(o.deck, o.assetUrl)}
 </main>
 <div class="blitz-sr" aria-live="polite"></div>
 </div>
+<template id="blitz-notes">${renderNotes(o.deck, o.assetUrl)}</template>
 <script>
 if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', function () {
   var p = document.createElement('p')

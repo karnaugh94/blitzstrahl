@@ -26,7 +26,8 @@ Browsers use `Esc` to leave fullscreen, so while fullscreen, `O` is the
 reliable way to open the overview.
 
 While the screen is black you can still move through the deck: the audience
-sees the new position when you bring the screen back.
+sees the new position when you bring the screen back. Slides change without
+their transition while it's black.
 
 ## Presenter view
 

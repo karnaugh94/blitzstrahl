@@ -438,7 +438,9 @@ export class Deck implements NavTarget {
    * entered slide's, backward plays the left slide's mirrored.
    */
   private slideTransition(from: number, to: number) {
-    if (this.still) return undefined
+    // Nobody sees a transition under blackout, and a view transition would
+    // paint above the black screen (it's drawn in the top layer): cut instead.
+    if (this.still || this.blackout) return undefined
     const reverse = to < from
     const spec = this.payload.slides[reverse ? from : to]!.transition
     const m = slideMotion(spec.name)

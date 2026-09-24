@@ -17,8 +17,19 @@ export interface BuildOptions {
   quiet?: boolean
   /** Fail when a slide overflows, or when overflow can't be checked. */
   strict?: boolean
-  /** Measure the built slides for overflow in a headless browser (default true). */
+  /**
+   * Measure the built slides for overflow in a headless browser. Default:
+   * on, unless `BLITZSTRAHL_SKIP_OVERFLOW_CHECK` is set. `strict` always checks.
+   */
   overflowCheck?: boolean
+}
+
+/** Env var that turns the build-time overflow check off. */
+export const SKIP_OVERFLOW_ENV = 'BLITZSTRAHL_SKIP_OVERFLOW_CHECK'
+
+function envSkipsCheck(): boolean {
+  const v = process.env[SKIP_OVERFLOW_ENV]?.trim().toLowerCase()
+  return !!v && !['0', 'false', 'no', 'off'].includes(v)
 }
 
 export interface BuildResult {
@@ -94,7 +105,11 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   const index = join(outDir, 'index.html')
   await writeFile(index, html)
 
-  if (options.overflowCheck === false) return { ok: true, outDir, index, overflow: [] }
+  const wanted = options.strict || (options.overflowCheck ?? !envSkipsCheck())
+  if (!wanted) return { ok: true, outDir, index, overflow: [] }
+  if (options.strict && options.overflowCheck !== true && envSkipsCheck()) {
+    process.stderr.write(`blitzstrahl: --strict checks overflow even though ${SKIP_OVERFLOW_ENV} is set\n`)
+  }
   const check = await checkBuiltOverflow(outDir, loaded.deck, loaded.source)
   printDiagnostics(check.diagnostics)
   if (check.skipped) process.stderr.write(`blitzstrahl: overflow not checked: ${check.skipped}\n`)

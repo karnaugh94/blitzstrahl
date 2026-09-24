@@ -17,6 +17,10 @@ Options:
   --out, -o   Output directory for build (default: dist/ next to the deck)
   --force     Build even if the deck has errors
   --strict    Fail if any slide overflows the canvas (or it can't be checked)
+
+Environment:
+  BLITZSTRAHL_SKIP_OVERFLOW_CHECK=1   build: skip the overflow check (needs no
+                                      browser); --strict still checks
   --port, -p  Dev server port
   --host      Listen on all addresses (present from another device)
   --open      Open the browser

@@ -6,6 +6,7 @@ import { start } from '@blitzstrahl/runtime'
 const deck = start({
   renderers: {
     chart: () => import('@blitzstrahl/renderers/chart'),
+    embed: () => import('@blitzstrahl/renderers/embed'),
     table: () => import('@blitzstrahl/renderers/table'),
   },
   // Dev: badge overflowing slides and report them to the terminal.

@@ -75,7 +75,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             type: 'custom',
             event: 'blitz:update',
             data: {
-              payload: toPayload(loaded.deck, loaded.inline),
+              payload: toPayload(loaded.deck, loaded.inline, assetUrl),
               stage: renderStage(loaded.deck, assetUrl),
               notes: renderNotes(loaded.deck, assetUrl),
               diagnostics: loaded.diagnostics,

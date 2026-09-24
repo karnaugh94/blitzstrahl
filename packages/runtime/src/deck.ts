@@ -541,6 +541,7 @@ export class Deck implements NavTarget {
         token: (name) => this.win.getComputedStyle(b.el).getPropertyValue(name).trim(),
         reducedMotion: this.still,
         loadAsset: (path) => this.loadAsset(path),
+        assetUrl: (path) => new URL(this.payload.urls[path] ?? path, this.doc.baseURI).href,
       })
       if (gen !== this.generation) {
         instance.destroy()

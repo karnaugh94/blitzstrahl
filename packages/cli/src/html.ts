@@ -89,7 +89,7 @@ export interface PageOptions {
 }
 
 export function renderPage(o: PageOptions): string {
-  const payload = toPayload(o.deck, o.inline)
+  const payload = toPayload(o.deck, o.inline, o.assetUrl)
   const json = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c')
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
   return `<!doctype html>

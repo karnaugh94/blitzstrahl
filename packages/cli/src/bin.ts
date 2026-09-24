@@ -2,7 +2,9 @@
 import { parseArgs } from 'node:util'
 import { build } from './build.js'
 import { dev } from './dev.js'
+import { check } from './check.js'
 import { exportPdf } from './export.js'
+import { hasErrors, printDiagnostics, summary } from './report.js'
 
 const HELP = `blitzstrahl — Markdown in. A deck worth watching out.
 
@@ -10,12 +12,15 @@ Usage:
   blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
   blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
   blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
+  blitzstrahl check <deck.md> [--offline] [--strict]
 
 Commands:
   dev     Live preview with reload on save (keeps your slide and step)
   build   Static site in dist/ (serve it over HTTP), or with --standalone,
           one .html file that opens straight from disk
   export  PDF: one page per slide at its final step (--steps: every step)
+  check   Find problems before the talk: errors, missing files, broken
+          charts and maps, step gaps, overflow, embeds that refuse framing
 
 Options:
   --out, -o      build: output folder (default: dist/ next to the deck);
@@ -24,7 +29,9 @@ Options:
   --standalone   build: everything in one self-contained .html file
   --steps        export: a page for every build step (handouts)
   --force        Build even if the deck has errors
-  --strict       Fail if any slide overflows the canvas (or it can't be checked)
+  --strict       build: fail if any slide overflows the canvas (or it can't be
+                 checked); check: fail on warnings, not just errors
+  --offline      check: don't contact embedded sites
   --port, -p     dev: server port
   --host         dev: listen on all addresses (present from another device)
   --open         dev: open the browser
@@ -45,6 +52,7 @@ async function main(argv: string[]): Promise<number> {
       strict: { type: 'boolean' },
       standalone: { type: 'boolean' },
       steps: { type: 'boolean' },
+      offline: { type: 'boolean' },
       port: { type: 'string', short: 'p' },
       host: { type: 'boolean' },
       open: { type: 'boolean' },
@@ -101,6 +109,14 @@ async function main(argv: string[]): Promise<number> {
       }
       process.stdout.write(`exported ${r.file} (${r.pages} page${r.pages === 1 ? '' : 's'})\n`)
       return 0
+    }
+    case 'check': {
+      const r = await check(deck, values.offline ? { offline: true } : {})
+      printDiagnostics(r.diagnostics)
+      for (const s of r.skipped) process.stderr.write(`blitzstrahl: not checked: ${s}\n`)
+      const failed = hasErrors(r.diagnostics) || (!!values.strict && r.diagnostics.some((d) => d.severity === 'warning'))
+      process.stdout.write(`${deck}: ${r.diagnostics.length ? summary(r.diagnostics) : 'no problems found'}\n`)
+      return failed ? 1 : 0
     }
     case 'dev': {
       const opts: Parameters<typeof dev>[1] = {}

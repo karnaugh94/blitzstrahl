@@ -23,6 +23,10 @@
     "./map": {
       "types": "./dist/map.d.ts",
       "default": "./dist/map.js"
+    },
+    "./specs": {
+      "types": "./dist/specs.d.ts",
+      "default": "./dist/specs.js"
     }
   },
   "files": [

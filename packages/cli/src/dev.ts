@@ -1,0 +1,143 @@
+/**
+ * `blitzstrahl dev`: Vite dev server. Saving the markdown (or a data file it
+ * uses) pushes the rebuilt deck over HMR, and the runtime swaps it in while
+ * keeping the current slide and step (PLAN §7).
+ */
+import { createReadStream } from 'node:fs'
+import { dirname, extname, relative, resolve } from 'node:path'
+import { createServer, type Plugin, type ViteDevServer } from 'vite'
+import { toPayload } from '@blitzstrahl/core'
+import { renderPage, renderStage, resolveTheme } from './html.js'
+import { loadDeck, type LoadedDeck } from './load.js'
+import { printDiagnostics, summary } from './report.js'
+import { ENTRY, cacheDir, servedDirs } from './vite.js'
+
+export interface DevOptions {
+  port?: number
+  host?: string | boolean
+  open?: boolean
+}
+
+const ASSET_PREFIX = '/_blitz/asset/'
+const assetUrl = (path: string) => ASSET_PREFIX + encodeURIComponent(path)
+
+const TYPES: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.csv': 'text/csv; charset=utf-8',
+  '.tsv': 'text/tab-separated-values; charset=utf-8',
+  '.json': 'application/json',
+}
+
+export async function dev(deckPath: string, options: DevOptions = {}): Promise<ViteDevServer> {
+  const abs = resolve(deckPath)
+  const display = relative(process.cwd(), abs) || abs
+  const load = async () => {
+    const l = await loadDeck(abs, display)
+    printDiagnostics(l.diagnostics)
+    return l
+  }
+  let loaded: LoadedDeck = await load()
+
+  const plugin: Plugin = {
+    name: 'blitzstrahl:dev',
+    configureServer(server) {
+      const watched = () => new Set([abs, ...loaded.files.values()])
+      server.watcher.add([...watched()])
+
+      let timer: NodeJS.Timeout | undefined
+      const reload = () => {
+        clearTimeout(timer)
+        timer = setTimeout(async () => {
+          const before = loaded
+          try {
+            loaded = await load()
+          } catch (err) {
+            server.config.logger.error(`[blitzstrahl] ${(err as Error).message}`)
+            return
+          }
+          server.watcher.add([...watched()])
+          server.config.logger.info(`[blitzstrahl] ${display} rebuilt: ${summary(loaded.diagnostics)}`, { timestamp: true })
+          const m = loaded.deck.meta
+          const b = before.deck.meta
+          if (m.theme !== b.theme || m.lang !== b.lang) {
+            server.ws.send({ type: 'full-reload' })
+            return
+          }
+          server.ws.send({
+            type: 'custom',
+            event: 'blitz:update',
+            data: {
+              payload: toPayload(loaded.deck, loaded.inline),
+              stage: renderStage(loaded.deck, assetUrl),
+              diagnostics: loaded.diagnostics,
+            },
+          })
+        }, 30)
+      }
+      const onFile = (file: string) => {
+        if (watched().has(resolve(file))) reload()
+      }
+      server.watcher.on('change', onFile)
+      server.watcher.on('add', onFile)
+
+      server.middlewares.use(async (req, res, next) => {
+        const url = (req.url ?? '/').split('?')[0]!
+        if (url === '/' || url === '/index.html') {
+          const { theme } = resolveTheme(loaded.deck.meta.theme)
+          const page = renderPage({
+            deck: loaded.deck,
+            inline: loaded.inline,
+            theme,
+            assetUrl,
+            entry: '/@fs/' + ENTRY.replace(/^\//, ''),
+            diagnostics: loaded.diagnostics,
+          })
+          res.setHeader('content-type', 'text/html; charset=utf-8')
+          res.end(await server.transformIndexHtml(url, page))
+          return
+        }
+        if (url.startsWith(ASSET_PREFIX)) {
+          const file = loaded.files.get(decodeURIComponent(url.slice(ASSET_PREFIX.length)))
+          if (!file) {
+            res.statusCode = 404
+            res.end()
+            return
+          }
+          const stream = createReadStream(file)
+          stream.on('error', () => {
+            res.statusCode = 404
+            res.end()
+          })
+          res.setHeader('content-type', TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream')
+          stream.pipe(res)
+          return
+        }
+        next()
+      })
+    },
+  }
+
+  const server = await createServer({
+    configFile: false,
+    root: dirname(abs),
+    cacheDir: cacheDir(dirname(abs)),
+    publicDir: false,
+    appType: 'custom',
+    plugins: [plugin],
+    optimizeDeps: { entries: [ENTRY] },
+    server: {
+      ...(options.port !== undefined ? { port: options.port } : {}),
+      ...(options.host !== undefined ? { host: options.host } : {}),
+      open: options.open ?? false,
+      fs: { allow: [dirname(abs), ...servedDirs(), cacheDir(dirname(abs))] },
+    },
+  })
+  await server.listen()
+  return server
+}

@@ -10,10 +10,19 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "client"
   ],
   "dependencies": {
     "@blitzstrahl/core": "workspace:*",
-    "hast-util-to-html": "^9.0.5"
+    "@blitzstrahl/renderers": "workspace:*",
+    "@blitzstrahl/runtime": "workspace:*",
+    "@blitzstrahl/themes": "workspace:*",
+    "@types/hast": "^3.0.5",
+    "hast-util-to-html": "^9.0.5",
+    "vite": "^8.3.0"
+  },
+  "bin": {
+    "blitzstrahl": "./dist/bin.js"
   }
 }

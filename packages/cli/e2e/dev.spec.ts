@@ -36,3 +36,28 @@ test('saving the deck hot-swaps it and keeps slide and step', async ({ page }) =
   // Same page, not a reload.
   expect(await page.evaluate(() => (window as unknown as { marker?: number }).marker)).toBe(42)
 })
+
+test('the presenter view works under dev, and its notes hot-update', async ({ page }) => {
+  const dir = mkdtempSync(join(tmpdir(), 'blitz-dev-presenter-'))
+  const talk = join(dir, 'presenter.md')
+  copyFileSync(join(here, 'fixtures/presenter.md'), talk)
+  const presenting = await dev(talk, { port: 0 })
+  try {
+    const errors: string[] = []
+    page.on('pageerror', (e) => errors.push(String(e)))
+    await page.goto(presenting.resolvedUrls!.local[0]!)
+    await page.waitForFunction(() => window.blitz)
+    const [presenter] = await Promise.all([page.context().waitForEvent('page'), page.keyboard.press('p')])
+    presenter.on('pageerror', (e) => errors.push(`presenter: ${String(e)}`))
+    await expect(presenter.locator('.bp-status')).toHaveText('Connected')
+    await expect(presenter.locator('.bp-notes')).toContainText('Opening notes.')
+
+    writeFileSync(talk, readFileSync(talk, 'utf8').replace('Opening notes.', 'Opening notes, edited.'))
+    await expect(presenter.locator('.bp-notes')).toContainText('Opening notes, edited.')
+    await presenter.keyboard.press('ArrowRight')
+    await expect.poll(() => page.evaluate(() => window.blitz!.pos)).toEqual({ slide: 1, step: 0 })
+    expect(errors).toEqual([])
+  } finally {
+    await presenting.close()
+  }
+})

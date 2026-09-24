@@ -521,7 +521,7 @@ Each renderer's body schema is documented in `docs/renderers/`.
 
 | Renderer | Milestone | Body |
 |---|---|---|
-| `chart` | M1 (bar, line); M3 (rest) | YAML |
+| `chart` | M1 (bar, line); M3 (pie, scatter) | YAML |
 | `map` | M3 | YAML |
 | `embed` | M3 | YAML: `src`, optional `fallback` image |
 | `mermaid` | M4 | text |

@@ -49,6 +49,8 @@ const embed: Renderer = {
     const host = new URL(spec.src).host
     const box = doc.createElement('div')
     box.className = 'blitz-embed'
+    // PDF export prints this if the page doesn't load.
+    if (spec.fallback) box.dataset.fallback = fallbackUrl(spec.fallback, ctx)
     el.append(box)
     const done = (ready: Promise<void>): RenderInstance => ({ update() {}, resize() {}, destroy: () => box.remove(), ready })
 

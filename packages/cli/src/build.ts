@@ -42,6 +42,8 @@ function envSkipsCheck(): boolean {
 
 export interface BuildResult {
   ok: boolean
+  /** The deck's diagnostics (printed unless `report: false`), not counting overflow. */
+  diagnostics: Diagnostic[]
   outDir: string
   index?: string
   /** Overflow warnings found in the built slides. */
@@ -61,7 +63,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   const outFile = options.standalone ? resolve(options.outFile ?? join(loaded.dir, `${basename(loaded.path, extname(loaded.path))}.html`)) : undefined
   const outDir = outFile ? dirname(outFile) : resolve(options.outDir ?? join(loaded.dir, 'dist'))
   if (hasErrors(loaded.diagnostics) && !options.force) {
-    return { ok: false, outDir, overflow: [] }
+    return { ok: false, outDir, overflow: [], diagnostics: loaded.diagnostics }
   }
 
   if (outFile) {
@@ -166,7 +168,7 @@ async function checkOverflow(
 ): Promise<BuildResult> {
   const { outDir, index } = built
   const wanted = options.strict || (options.overflowCheck ?? !envSkipsCheck())
-  if (!wanted) return { ok: true, outDir, index, overflow: [] }
+  if (!wanted) return { ok: true, outDir, index, overflow: [], diagnostics: loaded.diagnostics }
   if (options.strict && options.overflowCheck !== true && envSkipsCheck()) {
     process.stderr.write(`blitzstrahl: --strict checks overflow even though ${SKIP_OVERFLOW_ENV} is set\n`)
   }
@@ -174,7 +176,7 @@ async function checkOverflow(
   printDiagnostics(check.diagnostics)
   if (check.skipped) process.stderr.write(`blitzstrahl: overflow not checked: ${check.skipped}\n`)
   const failed = !!options.strict && (check.diagnostics.length > 0 || check.skipped !== undefined)
-  const out: BuildResult = { ok: !failed, outDir, index, overflow: check.diagnostics }
+  const out: BuildResult = { ok: !failed, outDir, index, overflow: check.diagnostics, diagnostics: loaded.diagnostics }
   if (check.skipped) out.overflowSkipped = check.skipped
   return out
 }

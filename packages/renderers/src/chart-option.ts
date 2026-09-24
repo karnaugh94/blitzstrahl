@@ -163,12 +163,14 @@ function pieOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], base: 
         name: y,
         data,
         top,
-        radius: spec.donut ? ['46%', '74%'] : [0, '74%'],
+        // Labels need room beside the pie, especially in a narrow column.
+        radius: spec.donut ? [labels ? '38%' : '46%', labels ? '60%' : '74%'] : [0, labels ? '60%' : '74%'],
         center: ['50%', '52%'],
         startAngle: 90,
         padAngle: spec.donut ? 1.5 : 0,
         itemStyle: { borderRadius: spec.donut ? 6 : 0, borderWidth: spec.donut ? 0 : 2 },
-        label: { show: labels, formatter: '{b}  {d}%', fontSize: 18 },
+        // Whole percents, and never cut off: a narrow column still reads.
+        label: { show: labels, formatter: (p: { name: string; percent: number }) => `${p.name}  ${Math.round(p.percent)}%`, fontSize: 18, overflow: 'none' },
         labelLine: { show: labels, length: 14, length2: 18 },
         emphasis: { scaleSize: 6 },
       },

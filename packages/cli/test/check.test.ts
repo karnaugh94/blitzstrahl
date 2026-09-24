@@ -36,7 +36,7 @@ describe('check: classes', () => {
   })
 
   it('notes a class nothing styles, but not styled ones, <style> ones, or container names', () => {
-    const md = '<style>.mine { color: blue }</style>\n\n# S\n\nA {.callout}\n\nB {.mine}\n\nC {.nothing}\n\n::: stat\n42\n:::\n'
+    const md = '<style>.mine { color: blue }</style>\n\n# S\n\nA {.callout}\n\nB {.mine}\n\nC {.nothing}\n\n::: stat\n42\n:::\n\n| a |\n|---|\n| 1 |\n\n{.sortable}\n'
     expect(run(md)).toEqual([expect.objectContaining({ severity: 'info', code: 'class/unstyled', message: expect.stringContaining('`.nothing`') })])
   })
 })

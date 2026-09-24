@@ -27,7 +27,7 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
   display: none;
   background-size: cover; background-position: center;
 }
-.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing] { display: block; }
+.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-thumb-canvas > .blitz-slide { display: block; }
 .blitz-slide[data-blitz-outgoing] { pointer-events: none; }
 
 /* Slide transitions (transitions.ts). The stage is snapshotted on its own,
@@ -74,6 +74,74 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
 @media (prefers-reduced-motion: reduce) {
   .blitz-stage, .blitz-stage * { transition: none !important; animation: none !important; }
 }
+
+/* Overlays (ui.ts): outside the viewport, never scaled. */
+.blitz-blackout {
+  position: fixed; inset: 0; background: #000; z-index: 50;
+  opacity: 0; pointer-events: none; transition: opacity .25s ease;
+}
+.blitz-blackout[data-blitz-on] { opacity: 1; pointer-events: auto; cursor: none; }
+.blitz-layer {
+  position: fixed; z-index: 40; box-sizing: border-box;
+  font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: #e9edf5; color-scheme: dark;
+  --blitz-ui-accent: var(--blitz-accent, #6ff0c0);
+}
+.blitz-layer :focus-visible { outline: 2px solid var(--blitz-ui-accent); outline-offset: 2px; }
+.blitz-overview {
+  inset: 0; overflow-y: auto; padding: 32px;
+  background: rgba(5, 7, 14, .94); backdrop-filter: blur(6px);
+}
+.blitz-overview-grid {
+  display: grid; gap: 24px; max-width: 1600px; margin: 0 auto;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+.blitz-thumb {
+  all: unset; display: flex; flex-direction: column; gap: 8px; cursor: pointer;
+  border-radius: 10px; padding: 6px; min-width: 0;
+}
+.blitz-thumb[aria-selected="true"] { background: rgba(255, 255, 255, .08); }
+.blitz-thumb-frame {
+  position: relative; overflow: hidden; border-radius: 6px;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .12);
+}
+.blitz-thumb[aria-current="true"] .blitz-thumb-frame { box-shadow: 0 0 0 3px var(--blitz-ui-accent); }
+.blitz-thumb-canvas {
+  position: absolute; left: 0; top: 0; transform-origin: 0 0;
+  transform: scale(var(--blitz-thumb-scale, .2)); pointer-events: none;
+}
+.blitz-thumb-canvas > .blitz-slide { position: absolute; inset: 0; }
+.blitz-thumb-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #97a2b9; }
+.blitz-thumb-label b { color: #e9edf5; font-variant-numeric: tabular-nums; margin-right: 4px; }
+[data-blitz-placeholder]::before {
+  content: attr(data-blitz-placeholder); position: absolute; inset: 0;
+  display: grid; place-items: center; font: 600 28px/1 system-ui, sans-serif;
+  color: rgba(255, 255, 255, .45); border: 2px dashed rgba(255, 255, 255, .2); border-radius: 12px;
+}
+.blitz-dialog {
+  left: 50%; top: 18%; transform: translateX(-50%); width: min(560px, calc(100vw - 32px));
+  background: #121726; border: 1px solid rgba(255, 255, 255, .12); border-radius: 14px;
+  padding: 22px 26px; box-shadow: 0 30px 80px rgba(0, 0, 0, .6);
+}
+.blitz-dialog:focus { outline: none; }
+.blitz-dialog h2 { margin: 0 0 12px; font-size: 18px; }
+.blitz-dialog-close {
+  all: unset; position: absolute; right: 14px; top: 10px; font-size: 22px; cursor: pointer; color: #97a2b9;
+}
+.blitz-help table { border-collapse: collapse; width: 100%; }
+.blitz-help th { text-align: left; font-weight: 400; padding: 5px 16px 5px 0; white-space: nowrap; }
+.blitz-help td { color: #97a2b9; padding: 5px 0; }
+.blitz-help p { margin: 12px 0 0; color: #97a2b9; }
+.blitz-layer kbd {
+  font: 13px/1 ui-monospace, monospace; padding: 3px 6px; border-radius: 5px;
+  background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .15);
+}
+.blitz-goto label { display: block; font-weight: 600; margin-bottom: 10px; }
+.blitz-goto-input {
+  width: 100%; box-sizing: border-box; font: inherit; font-size: 20px; padding: 10px 12px;
+  background: #0b0f1b; color: inherit; border: 1px solid rgba(255, 255, 255, .18); border-radius: 8px;
+}
+.blitz-goto-hint { margin: 10px 0 0; min-height: 1.45em; color: #97a2b9; }
 
 .blitz-block-error {
   font: 14px/1.4 ui-monospace, monospace; color: #b00020; background: #fff0f0;

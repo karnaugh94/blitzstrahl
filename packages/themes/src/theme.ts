@@ -10,6 +10,11 @@ import { layoutCss } from './layouts.js'
 export interface ThemeDefinition {
   name: string
   tokens: Record<string, string>
+  /**
+   * Styles for slide content. Scope every rule to `.blitz-slide` or a
+   * `[data-layout]`: bare selectors like `h1` or `table` would also style
+   * the overlays and the presenter view.
+   */
   css: string
 }
 

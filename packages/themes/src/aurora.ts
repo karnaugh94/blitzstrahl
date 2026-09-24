@@ -1,6 +1,11 @@
 import { defineTheme } from './theme.js'
 
-/** aurora — dark, technical (PLAN §5). */
+/**
+ * aurora — dark, technical (PLAN §5).
+ *
+ * Every rule is scoped to `.blitz-slide` (or a `[data-layout]` slide), so
+ * the theme never styles the overlays or the presenter view.
+ */
 export const aurora = defineTheme({
   name: 'aurora',
   tokens: {
@@ -52,75 +57,75 @@ export const aurora = defineTheme({
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, h4 { margin: 0; line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; }
-h1 { font-size: var(--blitz-h1); }
-h2 { font-size: var(--blitz-h2); }
-h3 { font-size: var(--blitz-h3); color: var(--blitz-accent); letter-spacing: -0.01em; }
-h4 { font-size: var(--blitz-text); color: var(--blitz-fg-muted); text-transform: uppercase; letter-spacing: .08em; }
-h1 + *, h2 + * { margin-top: 4px; }
+.blitz-slide h1, .blitz-slide h2, .blitz-slide h3, .blitz-slide h4 { margin: 0; line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; }
+.blitz-slide h1 { font-size: var(--blitz-h1); }
+.blitz-slide h2 { font-size: var(--blitz-h2); }
+.blitz-slide h3 { font-size: var(--blitz-h3); color: var(--blitz-accent); letter-spacing: -0.01em; }
+.blitz-slide h4 { font-size: var(--blitz-text); color: var(--blitz-fg-muted); text-transform: uppercase; letter-spacing: .08em; }
+.blitz-slide h1 + *, .blitz-slide h2 + * { margin-top: 4px; }
 
-p { margin: 0; }
-strong { color: #fff; font-weight: 650; }
-em { color: var(--blitz-accent); font-style: normal; }
-a { color: var(--blitz-link); text-decoration: underline; text-decoration-thickness: .06em; text-underline-offset: .18em; }
-del { color: var(--blitz-fg-muted); }
-hr { border: 0; border-top: 2px solid var(--blitz-rule); width: 100%; margin: 4px 0; }
-img { max-width: 100%; max-height: 100%; border-radius: var(--blitz-radius); }
+.blitz-slide p { margin: 0; }
+.blitz-slide strong { color: #fff; font-weight: 650; }
+.blitz-slide em { color: var(--blitz-accent); font-style: normal; }
+.blitz-slide a { color: var(--blitz-link); text-decoration: underline; text-decoration-thickness: .06em; text-underline-offset: .18em; }
+.blitz-slide del { color: var(--blitz-fg-muted); }
+.blitz-slide hr { border: 0; border-top: 2px solid var(--blitz-rule); width: 100%; margin: 4px 0; }
+.blitz-slide img { max-width: 100%; max-height: 100%; border-radius: var(--blitz-radius); }
 
-ul, ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: .35em; }
-ul { list-style: none; padding-left: 1.1em; }
-ul > li { position: relative; }
-ul > li::before {
+.blitz-slide ul, .blitz-slide ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: .35em; }
+.blitz-slide ul { list-style: none; padding-left: 1.1em; }
+.blitz-slide ul > li { position: relative; }
+.blitz-slide ul > li::before {
   content: ""; position: absolute; left: -1.05em; top: .58em;
   width: .42em; height: .42em; border-radius: 2px; transform: rotate(45deg);
   background: linear-gradient(135deg, var(--blitz-accent), var(--blitz-accent-2));
 }
-ol > li::marker { color: var(--blitz-accent); font-weight: 700; font-variant-numeric: tabular-nums; }
-li > ul, li > ol { margin-top: .35em; font-size: .85em; }
-ul.contains-task-list > li::before { display: none; }
-ul.contains-task-list { padding-left: 0; }
+.blitz-slide ol > li::marker { color: var(--blitz-accent); font-weight: 700; font-variant-numeric: tabular-nums; }
+.blitz-slide li > ul, .blitz-slide li > ol { margin-top: .35em; font-size: .85em; }
+.blitz-slide ul.contains-task-list > li::before { display: none; }
+.blitz-slide ul.contains-task-list { padding-left: 0; }
 
-blockquote {
+.blitz-slide blockquote {
   margin: 0; padding: 8px 0 8px 32px; border-left: 4px solid var(--blitz-accent);
   font-size: 1.15em; line-height: 1.4; color: var(--blitz-fg);
 }
-blockquote p + p { margin-top: .5em; color: var(--blitz-fg-muted); font-size: .75em; }
+.blitz-slide blockquote p + p { margin-top: .5em; color: var(--blitz-fg-muted); font-size: .75em; }
 
-code {
+.blitz-slide code {
   font-family: var(--blitz-font-mono); font-size: .86em;
   background: var(--blitz-surface-2); border-radius: 6px; padding: .08em .35em;
 }
-pre {
+.blitz-slide pre {
   margin: 0; padding: 22px 26px; overflow: hidden;
   background: var(--blitz-surface); border: 1px solid var(--blitz-rule); border-radius: var(--blitz-radius);
   font-size: 22px; line-height: 1.5;
 }
-pre code { background: none; padding: 0; font-size: 1em; }
+.blitz-slide pre code { background: none; padding: 0; font-size: 1em; }
 
-table { border-collapse: collapse; font-size: var(--blitz-text-small); font-variant-numeric: tabular-nums; }
-th, td { padding: 10px 22px; text-align: left; border-bottom: 1px solid var(--blitz-rule); }
-th { color: var(--blitz-fg-muted); font-weight: 600; text-transform: uppercase; font-size: .8em; letter-spacing: .06em; }
-th[align="right"], td[align="right"] { text-align: right; }
-th[align="center"], td[align="center"] { text-align: center; }
-table.zebra tbody tr:nth-child(odd) { background: color-mix(in srgb, var(--blitz-surface-2) 70%, transparent); }
+.blitz-slide table { border-collapse: collapse; font-size: var(--blitz-text-small); font-variant-numeric: tabular-nums; }
+.blitz-slide th, .blitz-slide td { padding: 10px 22px; text-align: left; border-bottom: 1px solid var(--blitz-rule); }
+.blitz-slide th { color: var(--blitz-fg-muted); font-weight: 600; text-transform: uppercase; font-size: .8em; letter-spacing: .06em; }
+.blitz-slide th[align="right"], .blitz-slide td[align="right"] { text-align: right; }
+.blitz-slide th[align="center"], .blitz-slide td[align="center"] { text-align: center; }
+.blitz-slide table.zebra tbody tr:nth-child(odd) { background: color-mix(in srgb, var(--blitz-surface-2) 70%, transparent); }
 
-.callout {
+.blitz-slide .callout {
   padding: 22px 28px; border-radius: var(--blitz-radius);
   background: color-mix(in srgb, var(--blitz-accent) 9%, var(--blitz-surface));
   border: 1px solid color-mix(in srgb, var(--blitz-accent) 35%, transparent);
 }
-.columns { display: flex; gap: 48px; align-items: flex-start; }
-.columns > * { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--blitz-gap); }
-.muted { color: var(--blitz-fg-muted); }
-.accent { color: var(--blitz-accent); }
-.small { font-size: var(--blitz-text-small); }
-.big { font-size: 1.6em; }
-.center { text-align: center; align-self: center; }
+.blitz-slide .columns { display: flex; gap: 48px; align-items: flex-start; }
+.blitz-slide .columns > * { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--blitz-gap); }
+.blitz-slide .muted { color: var(--blitz-fg-muted); }
+.blitz-slide .accent { color: var(--blitz-accent); }
+.blitz-slide .small { font-size: var(--blitz-text-small); }
+.blitz-slide .big { font-size: 1.6em; }
+.blitz-slide .center { text-align: center; align-self: center; }
 
-[data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
-.footnotes { margin-top: auto; font-size: 16px; color: var(--blitz-fg-muted); }
-.footnotes h2 { display: none; }
-.footnotes ol { gap: 0; }
+.blitz-slide [data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
+.blitz-slide .footnotes { margin-top: auto; font-size: 16px; color: var(--blitz-fg-muted); }
+.blitz-slide .footnotes h2 { display: none; }
+.blitz-slide .footnotes ol { gap: 0; }
 
 /* Layouts (syntax.md §10). Geometry comes from layouts.ts; this is the look. */
 [data-layout="title"] h1, [data-layout="end"] h1 {

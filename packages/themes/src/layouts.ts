@@ -7,7 +7,7 @@
  * `<div class="blitz-slot" data-slot>` children, `main` first.
  */
 export const layoutCss = /* css */ `
-.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing] { display: grid; }
+.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-thumb-canvas > .blitz-slide { display: grid; }
 .blitz-slide {
   padding: var(--blitz-pad-y) var(--blitz-pad-x);
   grid-template: "main" minmax(0, 1fr) / minmax(0, 1fr);
@@ -25,7 +25,7 @@ export const layoutCss = /* css */ `
 .blitz-slot[data-slot="image"] { grid-area: image; }
 
 /* Render blocks in a column or beside an image fill the space left. */
-:is([data-slot="left"], [data-slot="middle"], [data-slot="right"], [data-slot="image"]) > [data-blitz-block] {
+.blitz-slide :is([data-slot="left"], [data-slot="middle"], [data-slot="right"], [data-slot="image"]) > [data-blitz-block] {
   flex: 1 1 0; height: auto; min-height: 200px;
 }
 

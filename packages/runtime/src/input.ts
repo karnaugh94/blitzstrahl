@@ -63,12 +63,16 @@ export function bindKeyboard(win: Window, nav: NavTarget, extra: (e: KeyboardEve
 }
 
 /**
- * Edge-click gutters and swipe, on one element. Gutter clicks are ignored
+ * Edge-click gutters and swipe, over one element. Gutter clicks are ignored
  * over interactive elements and while text is selected (CLAUDE.md: without
  * this, links, hoverable charts and sortable tables break).
+ *
+ * Listeners sit on the document: during a view transition the browser
+ * targets pointer events at `<html>`, and a click there must still count.
  */
 export function bindPointer(el: HTMLElement, nav: NavTarget): () => void {
   const doc = el.ownerDocument
+  const ours = (e: Event) => e.target === doc.documentElement || (e.target instanceof Node && el.contains(e.target))
   let start: { x: number; y: number; t: number; id: number } | undefined
   let swiped = false
 
@@ -82,14 +86,14 @@ export function bindPointer(el: HTMLElement, nav: NavTarget): () => void {
 
   const onMove = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return
-    const z = isInteractive(e.target) ? undefined : zone(e.clientX)
+    const z = !ours(e) || isInteractive(e.target) ? undefined : zone(e.clientX)
     if (z) el.dataset.blitzGutter = z
     else delete el.dataset.blitzGutter
   }
 
   const onDown = (e: PointerEvent) => {
     swiped = false
-    if (e.pointerType === 'mouse' || !e.isPrimary) return
+    if (e.pointerType === 'mouse' || !e.isPrimary || !ours(e)) return
     start = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId }
   }
 
@@ -117,7 +121,7 @@ export function bindPointer(el: HTMLElement, nav: NavTarget): () => void {
       swiped = false
       return
     }
-    if (e.button !== 0 || e.defaultPrevented || isInteractive(e.target) || hasSelection(doc)) return
+    if (!ours(e) || e.button !== 0 || e.defaultPrevented || isInteractive(e.target) || hasSelection(doc)) return
     const z = zone(e.clientX)
     if (z === 'left') nav.retreat()
     else if (z === 'right') nav.advance()
@@ -125,18 +129,18 @@ export function bindPointer(el: HTMLElement, nav: NavTarget): () => void {
 
   const onLeave = () => delete el.dataset.blitzGutter
 
-  el.addEventListener('pointermove', onMove)
-  el.addEventListener('pointerdown', onDown)
-  el.addEventListener('pointerup', onUp)
-  el.addEventListener('pointercancel', onCancel)
+  doc.addEventListener('pointermove', onMove)
+  doc.addEventListener('pointerdown', onDown)
+  doc.addEventListener('pointerup', onUp)
+  doc.addEventListener('pointercancel', onCancel)
   el.addEventListener('pointerleave', onLeave)
-  el.addEventListener('click', onClick)
+  doc.addEventListener('click', onClick)
   return () => {
-    el.removeEventListener('pointermove', onMove)
-    el.removeEventListener('pointerdown', onDown)
-    el.removeEventListener('pointerup', onUp)
-    el.removeEventListener('pointercancel', onCancel)
+    doc.removeEventListener('pointermove', onMove)
+    doc.removeEventListener('pointerdown', onDown)
+    doc.removeEventListener('pointerup', onUp)
+    doc.removeEventListener('pointercancel', onCancel)
     el.removeEventListener('pointerleave', onLeave)
-    el.removeEventListener('click', onClick)
+    doc.removeEventListener('click', onClick)
   }
 }

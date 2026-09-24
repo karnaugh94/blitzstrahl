@@ -1,0 +1,401 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "renderers.md",
+    "meta": {
+      "lang": "en",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1280,
+        "height": 720
+      },
+      "transition": {
+        "name": "fade"
+      },
+      "extra": {},
+      "title": "Charts"
+    },
+    "slides": [
+      {
+        "id": "charts",
+        "index": 0,
+        "layout": "title",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 2,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Charts"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "dataBlitzBlock": "chart-1",
+              "dataBlitzStepIn": 2,
+              "dataBlitzAnim": 0
+            },
+            "children": []
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "dataBlitzBlock": "chart-2"
+            },
+            "children": []
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "dataBlitzBlock": "chart-3"
+            },
+            "children": []
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "dataBlitzBlock": "map-4",
+              "dataBlitzStepIn": 1,
+              "dataBlitzAnim": 1
+            },
+            "children": []
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "dataBlitzBlock": "mermaid-5"
+            },
+            "children": []
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "pre",
+            "properties": {},
+            "children": [
+              {
+                "type": "element",
+                "tagName": "code",
+                "properties": {
+                  "className": [
+                    "language-yaml"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "type: bar\n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "element",
+                "tagName": "img",
+                "properties": {
+                  "src": "img/logo.png",
+                  "alt": "logo"
+                },
+                "children": []
+              },
+              {
+                "type": "text",
+                "value": " "
+              },
+              {
+                "type": "element",
+                "tagName": "img",
+                "properties": {
+                  "src": "https://example.com/x.png",
+                  "alt": "remote"
+                },
+                "children": []
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {},
+            "dur": 600
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [
+          {
+            "id": "chart-1",
+            "renderer": "chart",
+            "source": "type: bar\ndata: ./data/../sales.csv\nx: quarter\ny: revenue\nnote: not/a/path",
+            "spec": {
+              "type": "bar",
+              "data": "sales.csv",
+              "x": "quarter",
+              "y": "revenue",
+              "note": "not/a/path"
+            },
+            "span": {
+              "start": {
+                "line": 3,
+                "column": 1
+              },
+              "end": {
+                "line": 9,
+                "column": 4
+              }
+            },
+            "step": {
+              "in": 2
+            },
+            "anim": {
+              "effect": "fade",
+              "kind": "entrance",
+              "options": {},
+              "dur": 600
+            }
+          },
+          {
+            "id": "chart-2",
+            "renderer": "chart",
+            "source": "type: line\ndata:\n  - { quarter: Q1, revenue: 1 }\n  - { quarter: Q2, revenue: 3 }\nx: quarter\ny: revenue",
+            "spec": {
+              "type": "line",
+              "data": [
+                {
+                  "quarter": "Q1",
+                  "revenue": 1
+                },
+                {
+                  "quarter": "Q2",
+                  "revenue": 3
+                }
+              ],
+              "x": "quarter",
+              "y": "revenue"
+            },
+            "span": {
+              "start": {
+                "line": 11,
+                "column": 1
+              },
+              "end": {
+                "line": 18,
+                "column": 4
+              }
+            }
+          },
+          {
+            "id": "chart-3",
+            "renderer": "chart",
+            "source": "type: [unclosed",
+            "spec": null,
+            "span": {
+              "start": {
+                "line": 20,
+                "column": 1
+              },
+              "end": {
+                "line": 22,
+                "column": 4
+              }
+            }
+          },
+          {
+            "id": "map-4",
+            "renderer": "map",
+            "source": "center: [41.38, 2.17]",
+            "spec": {
+              "center": [
+                41.38,
+                2.17
+              ]
+            },
+            "span": {
+              "start": {
+                "line": 24,
+                "column": 1
+              },
+              "end": {
+                "line": 26,
+                "column": 4
+              }
+            },
+            "step": {
+              "in": 1
+            },
+            "anim": {
+              "effect": "fade",
+              "kind": "entrance",
+              "options": {}
+            }
+          },
+          {
+            "id": "mermaid-5",
+            "renderer": "mermaid",
+            "source": "graph TD; A-->B",
+            "spec": "graph TD; A-->B",
+            "span": {
+              "start": {
+                "line": 28,
+                "column": 1
+              },
+              "end": {
+                "line": 30,
+                "column": 4
+              }
+            }
+          }
+        ],
+        "span": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 37,
+            "column": 1
+          }
+        },
+        "title": "Charts"
+      }
+    ],
+    "assets": [
+      {
+        "ref": "./data/../sales.csv",
+        "path": "sales.csv",
+        "kind": "data",
+        "span": {
+          "start": {
+            "line": 3,
+            "column": 1
+          },
+          "end": {
+            "line": 9,
+            "column": 4
+          }
+        }
+      },
+      {
+        "ref": "img/logo.png",
+        "path": "img/logo.png",
+        "kind": "image",
+        "span": {
+          "start": {
+            "line": 36,
+            "column": 1
+          },
+          "end": {
+            "line": 36,
+            "column": 22
+          }
+        }
+      }
+    ]
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "renderer/yaml",
+      "message": "`chart` block is not valid YAML: Flow sequence in block collection must be sufficiently indented and end with a ]",
+      "file": "renderers.md",
+      "span": {
+        "start": {
+          "line": 21,
+          "column": 1
+        },
+        "end": {
+          "line": 21,
+          "column": 1
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "not-yet-supported",
+      "message": "the `map` renderer is not yet supported (arrives in M3); ignored for now",
+      "file": "renderers.md",
+      "span": {
+        "start": {
+          "line": 24,
+          "column": 1
+        },
+        "end": {
+          "line": 26,
+          "column": 4
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "not-yet-supported",
+      "message": "the `mermaid` renderer is not yet supported (arrives in M4); ignored for now",
+      "file": "renderers.md",
+      "span": {
+        "start": {
+          "line": 28,
+          "column": 1
+        },
+        "end": {
+          "line": 30,
+          "column": 4
+        }
+      }
+    }
+  ]
+}

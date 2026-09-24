@@ -82,10 +82,14 @@ background: ./hero.jpg
 
 The rule is exact so it can't be misread:
 
-1. The YAML block starts on the line directly after a separator.
+1. The YAML block starts on the line directly after a separator, and that
+   line looks like a mapping key (`name:` at the start of the line). Any other
+   first line is ordinary slide content.
 2. It runs up to the next separator.
 3. It must parse as a YAML **mapping**. If it doesn't, the block is ordinary
    slide content and a warning is emitted.
+4. The `---` that closes a slide frontmatter block starts that slide's
+   content. It never starts another frontmatter block.
 
 The closing `---` of the deck frontmatter counts as a separator. So the first
 slide takes frontmatter by the same rule, with a second YAML block immediately
@@ -205,8 +209,10 @@ Rules:
 
 - At most one `#id` and one `@step` per block. A second one is an error.
 - A repeated `key=` is a warning, and the last value wins.
+- An attribute block sits on one line.
 - A `{...}` whose contents contain **no** valid token is literal text. So
-  `{foo}` and `{}` in prose are left alone.
+  `{foo}` and `{}` in prose are left alone. A mistyped step such as `{@4-2}`
+  still counts as an attribute block and is reported as an error, not printed.
 - A `{...}` with **some** valid tokens and some invalid ones is an error
   pointing at the bad token, e.g. `{fade @1}` → "unknown token `fade`: did you
   mean `.fade`?". This catches typos instead of printing them on a slide.
@@ -222,6 +228,9 @@ Revenue grew [42%]{.pop @+} this year.   span
 ![chart](./q3.png){width=60%}            image
 `npm i`{.big}                            inline code
 ```
+
+Directly attached to anything else, such as plain text or `*emphasis*`, it is
+an error. Wrap the text in a span: `[*this*]{.accent}`.
 
 `[text]{...}` creates a span. The text may contain other inline markup:
 `[**42%**]{.pop}`. A `[text]` that matches a link reference definition is a
@@ -265,7 +274,7 @@ Keys fall into four groups:
 | Kind | Keys | Behaviour |
 |---|---|---|
 | Animation | `dur`, `delay`, `ease`, `reverse`, plus effect options (§6.3) | Consumed, drives the animation |
-| Structure | `reveal`, `key` **(M4)** | Consumed (§6.4, §9) |
+| Structure | `reveal`, `key` **(M4)**, `lines` **(M4)** | Consumed (§6.4, §8, §9) |
 | Slide shorthand | `transition`, `transition-dur`, `layout`, `background` | First heading only (§3.2) |
 | HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes |
 
@@ -290,7 +299,8 @@ open  = ":::" ":"* ws? name? ws? attrs? ws?     closes with at least as many col
 ```
 
 - `name` is optional. `::: {.a .b}` is a plain `<div>`. `::: callout` adds
-  `class="callout"`, like Pandoc's `::: callout` shorthand.
+  `class="callout"`, like Pandoc's `::: callout` shorthand. An opening fence
+  needs a name or an attribute block. A bare `:::` only ever closes a container.
 - Spaces are optional: `:::callout{@2}` and `::: callout {@2}` are equivalent.
 - Nest by using more colons on the outer container:
 
@@ -307,6 +317,7 @@ open  = ":::" ":"* ws? name? ws? attrs? ws?     closes with at least as many col
 
 - An unclosed container runs to the end of its slide and gets a warning. A
   container never spans a slide separator.
+- A bare `:::` that closes nothing is left as text, with a warning.
 
 **Reserved names** carry meaning rather than just becoming a class:
 
@@ -500,7 +511,8 @@ stack: region
 | `mermaid` | M4 | text |
 | `math` | M4 | text (TeX, display mode). Same as `$$…$$` (§12) |
 
-Any other fence language is a **code block**, syntax-highlighted. Code-reveal
+Any other fence language is a **code block**, syntax-highlighted. Its info
+string may carry an attribute block too: ```` ```js {.big @2} ````. Code-reveal
 attributes (`lines=`, per-step line highlights) are reserved for **(M4)**.
 
 GFM tables are rendered by the table renderer and take `.sortable`, `.zebra`

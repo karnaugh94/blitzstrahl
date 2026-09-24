@@ -1,0 +1,364 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "slides.md",
+    "meta": {
+      "lang": "en",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1280,
+        "height": 720
+      },
+      "transition": {
+        "name": "fade"
+      },
+      "extra": {},
+      "title": "First"
+    },
+    "slides": [
+      {
+        "id": "first",
+        "index": 0,
+        "layout": "title",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "First"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Text directly above a separator stays a paragraph"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 4,
+            "column": 1
+          },
+          "end": {
+            "line": 7,
+            "column": 50
+          }
+        },
+        "title": "First"
+      },
+      {
+        "id": "second",
+        "index": 1,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Second"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "hr",
+            "properties": {},
+            "children": []
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "hr",
+            "properties": {},
+            "children": []
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "ul",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "\n"
+              },
+              {
+                "type": "element",
+                "tagName": "li",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "a list"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "value": "\n"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 9,
+            "column": 1
+          },
+          "end": {
+            "line": 15,
+            "column": 9
+          }
+        },
+        "title": "Second"
+      },
+      {
+        "id": "slide-3",
+        "index": 2,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 17,
+            "column": 1
+          },
+          "end": {
+            "line": 17,
+            "column": 1
+          }
+        }
+      },
+      {
+        "id": "custom-id",
+        "index": 3,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h2",
+            "properties": {
+              "id": "custom-id"
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Third"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Heading two"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 19,
+            "column": 1
+          },
+          "end": {
+            "line": 21,
+            "column": 14
+          }
+        },
+        "title": "Third"
+      },
+      {
+        "id": "slide-5",
+        "index": 4,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "No heading here"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 23,
+            "column": 1
+          },
+          "end": {
+            "line": 23,
+            "column": 16
+          }
+        }
+      },
+      {
+        "id": "first-2",
+        "index": 5,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "First"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 25,
+            "column": 1
+          },
+          "end": {
+            "line": 26,
+            "column": 1
+          }
+        },
+        "title": "First"
+      }
+    ],
+    "assets": []
+  },
+  "diagnostics": [
+    {
+      "severity": "info",
+      "code": "slide/empty",
+      "message": "empty slide",
+      "file": "slides.md",
+      "span": {
+        "start": {
+          "line": 17,
+          "column": 1
+        },
+        "end": {
+          "line": 17,
+          "column": 1
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "slide/duplicate-id",
+      "message": "slide id `first` is already used; this slide gets `first-2`",
+      "file": "slides.md",
+      "span": {
+        "start": {
+          "line": 25,
+          "column": 1
+        },
+        "end": {
+          "line": 26,
+          "column": 1
+        }
+      }
+    }
+  ]
+}

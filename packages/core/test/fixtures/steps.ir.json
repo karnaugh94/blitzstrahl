@@ -1,0 +1,1180 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "steps.md",
+    "meta": {
+      "lang": "en",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1280,
+        "height": 720
+      },
+      "transition": {
+        "name": "fade"
+      },
+      "extra": {},
+      "title": "Plus and equals"
+    },
+    "slides": [
+      {
+        "id": "plus-and-equals",
+        "index": 0,
+        "layout": "title",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 5,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Plus and equals"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 1,
+              "dataBlitzAnim": 0
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Revenue"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "element",
+                "tagName": "span",
+                "properties": {
+                  "dataBlitzStepIn": 1,
+                  "dataBlitzAnim": 1
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "up 42%"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 2,
+              "dataBlitzAnim": 2
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Costs"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "element",
+                "tagName": "span",
+                "properties": {
+                  "dataBlitzStepIn": 2,
+                  "dataBlitzAnim": 3
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "down 8%"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 2,
+              "dataBlitzStepOut": 4,
+              "dataBlitzAnim": 4
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "After a range"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 3,
+              "dataBlitzAnim": 5
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Next"
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "pop",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "pop",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 14,
+            "column": 1
+          }
+        },
+        "title": "Plus and equals"
+      },
+      {
+        "id": "reveal",
+        "index": 1,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 7,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Reveal"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "ul",
+            "properties": {
+              "dataBlitzStepIn": 2,
+              "dataBlitzAnim": 0
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "\n"
+              },
+              {
+                "type": "element",
+                "tagName": "li",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Collect"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "value": "\n"
+              },
+              {
+                "type": "element",
+                "tagName": "li",
+                "properties": {
+                  "dataBlitzStepIn": 3,
+                  "dataBlitzAnim": 0
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Clean"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "value": "\n"
+              },
+              {
+                "type": "element",
+                "tagName": "li",
+                "properties": {
+                  "dataBlitzStepIn": 4,
+                  "dataBlitzAnim": 0
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Chart"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "value": "\n"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 5,
+              "dataBlitzAnim": 1
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Then"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 5,
+              "dataBlitzAnim": 2
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Same"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "table",
+            "properties": {
+              "dataBlitzStepIn": 6,
+              "dataBlitzAnim": 3
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "\n"
+              },
+              {
+                "type": "element",
+                "tagName": "thead",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "tr",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "th",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Q"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "th",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Revenue"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "value": "\n"
+              },
+              {
+                "type": "element",
+                "tagName": "tbody",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "tr",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "td",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Q1"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "td",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "1.2M"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "tr",
+                    "properties": {
+                      "dataBlitzStepIn": 7,
+                      "dataBlitzAnim": 3
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "td",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "Q2"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "td",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "1.9M"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "value": "\n"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Bad reveal"
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "fade-left",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 16,
+            "column": 1
+          },
+          "end": {
+            "line": 37,
+            "column": 1
+          }
+        },
+        "title": "Reveal"
+      },
+      {
+        "id": "effects",
+        "index": 2,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 4,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Effects"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 0,
+              "dataBlitzAnim": 0
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Plain entrance on entry"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 2,
+              "dataBlitzAnim": 1
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Emphasis"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "element",
+                "tagName": "span",
+                "properties": {
+                  "dataBlitzStepIn": 3,
+                  "dataBlitzAnim": 2
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "99"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 3,
+              "dataBlitzAnim": 3
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Typed"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 1,
+              "dataBlitzAnim": 4
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Two effects"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 1,
+              "dataBlitzAnim": 5
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Bad options"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Explicit zero"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 0,
+              "dataBlitzStepOut": 3,
+              "dataBlitzAnim": 6
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Exits"
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "pop",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "highlight",
+            "kind": "emphasis",
+            "options": {},
+            "dur": 200,
+            "delay": 50,
+            "ease": "in-out",
+            "reverse": true
+          },
+          {
+            "effect": "count-up",
+            "kind": "entrance",
+            "options": {
+              "from": "10"
+            }
+          },
+          {
+            "effect": "typewriter",
+            "kind": "entrance",
+            "options": {
+              "cps": "30"
+            }
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {
+              "cps": "0"
+            }
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 39,
+            "column": 1
+          },
+          "end": {
+            "line": 57,
+            "column": 1
+          }
+        },
+        "title": "Effects"
+      },
+      {
+        "id": "edge-cases",
+        "index": 3,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 3,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Edge cases"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Equals first"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 1,
+              "dataBlitzAnim": 0
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Gap"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 3,
+              "dataBlitzAnim": 1
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Gap"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "dataBlitzStepIn": 2,
+              "dataBlitzAnim": 2,
+              "className": [
+                "box"
+              ]
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 1,
+                  "dataBlitzAnim": 3
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Too early"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 3,
+                  "dataBlitzAnim": 4
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Fine"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Bad"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {
+              "dataBlitzStepIn": 1,
+              "dataBlitzAnim": 5
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Two steps"
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 59,
+            "column": 1
+          },
+          "end": {
+            "line": 77,
+            "column": 1
+          }
+        },
+        "title": "Edge cases"
+      }
+    ],
+    "assets": []
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "reveal/target",
+      "message": "`reveal=items` applies to a list",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 36,
+          "column": 12
+        },
+        "end": {
+          "line": 36,
+          "column": 13
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "effect/multiple",
+      "message": "second effect `.zoom`: at most one effect per element; nest spans to combine",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 50,
+          "column": 13
+        },
+        "end": {
+          "line": 50,
+          "column": 14
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/bad-value",
+      "message": "`dur` must be a duration in milliseconds",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 52,
+          "column": 20
+        },
+        "end": {
+          "line": 52,
+          "column": 21
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/bad-value",
+      "message": "unknown easing `wobbly`; use one of linear, in, out, in-out, out-expo, in-out-expo, out-back or a CSS easing function",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 52,
+          "column": 29
+        },
+        "end": {
+          "line": 52,
+          "column": 30
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/bad-value",
+      "message": "`reverse` must be `true` or `false`",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 52,
+          "column": 41
+        },
+        "end": {
+          "line": 52,
+          "column": 42
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/bad-value",
+      "message": "`cps` must be a positive number",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 52,
+          "column": 55
+        },
+        "end": {
+          "line": 52,
+          "column": 56
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "step/same-without-previous",
+      "message": "`@=` with no earlier annotated element on this slide means `@0`",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 62,
+          "column": 14
+        },
+        "end": {
+          "line": 62,
+          "column": 15
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "step/outside-parent",
+      "message": "steps @1 fall outside the enclosing element's @2",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 69,
+          "column": 11
+        },
+        "end": {
+          "line": 69,
+          "column": 12
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/bad-step",
+      "message": "invalid step range `@4-2`: ends before it starts",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 74,
+          "column": 6
+        },
+        "end": {
+          "line": 74,
+          "column": 7
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/duplicate-step",
+      "message": "second step `@2`: an element has at most one",
+      "file": "steps.md",
+      "span": {
+        "start": {
+          "line": 76,
+          "column": 15
+        },
+        "end": {
+          "line": 76,
+          "column": 16
+        }
+      }
+    }
+  ]
+}

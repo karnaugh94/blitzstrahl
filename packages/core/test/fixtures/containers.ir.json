@@ -1,0 +1,501 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "containers.md",
+    "meta": {
+      "lang": "en",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1280,
+        "height": 720
+      },
+      "transition": {
+        "name": "fade"
+      },
+      "extra": {},
+      "title": "Containers"
+    },
+    "slides": [
+      {
+        "id": "containers",
+        "index": 0,
+        "layout": "title",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 2,
+        "notes": [
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Remember the "
+              },
+              {
+                "type": "element",
+                "tagName": "strong",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Q3 dip"
+                  }
+                ]
+              },
+              {
+                "type": "text",
+                "value": "."
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Nested notes"
+              }
+            ]
+          }
+        ],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Containers"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "dataBlitzStepIn": 2,
+              "dataBlitzAnim": 0,
+              "className": [
+                "callout"
+              ]
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Anything, including "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "strong",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "markdown"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": ":"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "ul",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "li",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "lists"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "columns"
+              ]
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "col"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Left"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "col",
+                    "right"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Right"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "a",
+                "b"
+              ]
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Anonymous"
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "callout"
+              ]
+            },
+            "children": []
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": ":::"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": ":::\nNot a container: bare fence opens nothing."
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "::: not a container\ntext"
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 37,
+            "column": 1
+          }
+        },
+        "title": "Containers"
+      },
+      {
+        "id": "slide-2",
+        "index": 1,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "open"
+              ]
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Runs to the end of the slide."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 39,
+            "column": 1
+          },
+          "end": {
+            "line": 42,
+            "column": 1
+          }
+        }
+      },
+      {
+        "id": "next-slide-survives",
+        "index": 2,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Next slide survives"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 44,
+            "column": 1
+          },
+          "end": {
+            "line": 46,
+            "column": 1
+          }
+        },
+        "title": "Next slide survives"
+      }
+    ],
+    "assets": []
+  },
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "container/unclosed",
+      "message": "container `notes` is never closed; it ends at the end of its slide",
+      "file": "containers.md",
+      "span": {
+        "start": {
+          "line": 27,
+          "column": 1,
+          "offset": 219
+        },
+        "end": {
+          "line": 27,
+          "column": 1,
+          "offset": 219
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "notes/step",
+      "message": "build steps inside presenter notes are ignored",
+      "file": "containers.md",
+      "span": {
+        "start": {
+          "line": 28,
+          "column": 14
+        },
+        "end": {
+          "line": 28,
+          "column": 15
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "container/stray-fence",
+      "message": "closing `:::` with no open container (nested containers need more colons on the outer one)",
+      "file": "containers.md",
+      "span": {
+        "start": {
+          "line": 30,
+          "column": 1
+        },
+        "end": {
+          "line": 30,
+          "column": 4
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "container/stray-fence",
+      "message": "closing `:::` with no open container (nested containers need more colons on the outer one)",
+      "file": "containers.md",
+      "span": {
+        "start": {
+          "line": 32,
+          "column": 1
+        },
+        "end": {
+          "line": 33,
+          "column": 43
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "container/unclosed",
+      "message": "container `open` is never closed; it ends at the end of its slide",
+      "file": "containers.md",
+      "span": {
+        "start": {
+          "line": 40,
+          "column": 1,
+          "offset": 335
+        },
+        "end": {
+          "line": 40,
+          "column": 1,
+          "offset": 335
+        }
+      }
+    }
+  ]
+}

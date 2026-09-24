@@ -9,8 +9,11 @@
       "default": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "dependencies": {
-    "@blitzstrahl/core": "workspace:*"
+    "@blitzstrahl/core": "workspace:*",
+    "hast-util-to-html": "^9.0.5"
   }
 }

@@ -7,6 +7,9 @@ const deck = start({
   renderers: {
     chart: () => import('@blitzstrahl/renderers/chart'),
   },
+  // Dev: badge overflowing slides and report them to the terminal.
+  dev: !!import.meta.hot,
+  onOverflow: (found) => import.meta.hot?.send('blitz:overflow', found),
 })
 
 if (import.meta.hot) {

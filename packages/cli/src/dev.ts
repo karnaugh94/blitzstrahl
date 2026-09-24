@@ -7,8 +7,10 @@ import { createReadStream } from 'node:fs'
 import { dirname, extname, relative, resolve } from 'node:path'
 import { createServer, type Plugin, type ViteDevServer } from 'vite'
 import { toPayload } from '@blitzstrahl/core'
+import type { Overflow } from '@blitzstrahl/runtime/overflow-report'
 import { renderNotes, renderPage, renderStage, resolveTheme } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
+import { overflowDiagnostics } from './overflow.js'
 import { printDiagnostics, summary } from './report.js'
 import { ENTRY, cacheDir, servedDirs } from './vite.js'
 
@@ -86,6 +88,18 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
       }
       server.watcher.on('change', onFile)
       server.watcher.on('add', onFile)
+
+      // The browser measures overflow (it's the only place with layout) and
+      // reports back; print it here, at file:line:col, when it changes.
+      let lastOverflow = ''
+      server.ws.on('blitz:overflow', (found: Overflow[]) => {
+        const diags = overflowDiagnostics(loaded.deck, found, loaded.source)
+        const key = JSON.stringify(diags)
+        if (key === lastOverflow) return
+        lastOverflow = key
+        if (diags.length) printDiagnostics(diags)
+        else server.config.logger.info('[blitzstrahl] no slide overflows', { timestamp: true })
+      })
 
       server.middlewares.use(async (req, res, next) => {
         const url = (req.url ?? '/').split('?')[0]!

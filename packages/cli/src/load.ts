@@ -11,6 +11,8 @@ export interface LoadedDeck {
   path: string
   dir: string
   deck: Deck
+  /** The markdown, as read. */
+  source: string
   diagnostics: Diagnostic[]
   /** Data asset text by deck-relative path (payload `inline`). */
   inline: Record<string, string>
@@ -21,7 +23,8 @@ export interface LoadedDeck {
 export async function loadDeck(path: string, displayName = path): Promise<LoadedDeck> {
   const abs = resolve(path)
   const dir = dirname(abs)
-  const { deck, diagnostics } = parseDeck(await readFile(abs, 'utf8'), { file: displayName })
+  const source = await readFile(abs, 'utf8')
+  const { deck, diagnostics } = parseDeck(source, { file: displayName })
   const inline: Record<string, string> = {}
   const files = new Map<string, string>()
   const reported = new Set<string>()
@@ -44,5 +47,5 @@ export async function loadDeck(path: string, displayName = path): Promise<Loaded
     if (asset.kind === 'data' && !(asset.path in inline)) inline[asset.path] = await readFile(file, 'utf8')
   }
   diagnostics.sort((a, b) => a.span.start.line - b.span.start.line || a.span.start.column - b.span.start.column)
-  return { path: abs, dir, deck, diagnostics, inline, files }
+  return { path: abs, dir, deck, source, diagnostics, inline, files }
 }

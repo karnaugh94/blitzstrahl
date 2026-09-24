@@ -25,10 +25,13 @@ export async function serve(root: string): Promise<{ url: string; server: Server
   return { url: `http://127.0.0.1:${addr.port}/`, server }
 }
 
-/** Build a deck with the real CLI into a temp dir and serve it. */
+/**
+ * Build a deck with the real CLI into a temp dir and serve it. The overflow
+ * check (a second browser) is off unless a test asks for it.
+ */
 export async function buildAndServe(deck: string, options: BuildOptions = {}): Promise<{ url: string; server: Server; result: BuildResult }> {
   const outDir = mkdtempSync(join(tmpdir(), 'blitz-e2e-'))
-  const result = await build(deck, { outDir, quiet: true, ...options })
+  const result = await build(deck, { outDir, quiet: true, overflowCheck: false, ...options })
   if (!result.ok) throw new Error(`build of ${deck} failed`)
   return { ...(await serve(outDir)), result }
 }

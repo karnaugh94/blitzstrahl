@@ -18,7 +18,7 @@ let server: Server
 
 test.beforeAll(async () => {
   const outDir = mkdtempSync(join(tmpdir(), 'blitz-e2e-'))
-  const r = await build(join(here, 'fixtures/nav.md'), { outDir, quiet: true })
+  const r = await build(join(here, 'fixtures/nav.md'), { outDir, quiet: true, overflowCheck: false })
   expect(r.ok).toBe(true)
   ;({ url, server } = await serve(outDir))
 })

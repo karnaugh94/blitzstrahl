@@ -3,8 +3,10 @@ import { createHash } from 'node:crypto'
 import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, extname, join, relative, resolve } from 'node:path'
 import { build as viteBuild, type Rolldown } from 'vite'
+import type { Diagnostic } from '@blitzstrahl/core'
 import { renderPage, resolveTheme } from './html.js'
 import { loadDeck } from './load.js'
+import { checkBuiltOverflow } from './overflow.js'
 import { hasErrors, printDiagnostics } from './report.js'
 import { ENTRY, cacheDir } from './vite.js'
 
@@ -13,12 +15,20 @@ export interface BuildOptions {
   /** Build even when the deck has errors. */
   force?: boolean
   quiet?: boolean
+  /** Fail when a slide overflows, or when overflow can't be checked. */
+  strict?: boolean
+  /** Measure the built slides for overflow in a headless browser (default true). */
+  overflowCheck?: boolean
 }
 
 export interface BuildResult {
   ok: boolean
   outDir: string
   index?: string
+  /** Overflow warnings found in the built slides. */
+  overflow: Diagnostic[]
+  /** Set when the overflow check couldn't run. */
+  overflowSkipped?: string
 }
 
 export async function build(deckPath: string, options: BuildOptions = {}): Promise<BuildResult> {
@@ -30,7 +40,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   printDiagnostics(loaded.diagnostics)
   const outDir = resolve(options.outDir ?? join(loaded.dir, 'dist'))
   if (hasErrors(loaded.diagnostics) && !options.force) {
-    return { ok: false, outDir }
+    return { ok: false, outDir, overflow: [] }
   }
 
   const result = await viteBuild({
@@ -83,5 +93,13 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   })
   const index = join(outDir, 'index.html')
   await writeFile(index, html)
-  return { ok: true, outDir, index }
+
+  if (options.overflowCheck === false) return { ok: true, outDir, index, overflow: [] }
+  const check = await checkBuiltOverflow(outDir, loaded.deck, loaded.source)
+  printDiagnostics(check.diagnostics)
+  if (check.skipped) process.stderr.write(`blitzstrahl: overflow not checked: ${check.skipped}\n`)
+  const failed = !!options.strict && (check.diagnostics.length > 0 || check.skipped !== undefined)
+  const out: BuildResult = { ok: !failed, outDir, index, overflow: check.diagnostics }
+  if (check.skipped) out.overflowSkipped = check.skipped
+  return out
 }

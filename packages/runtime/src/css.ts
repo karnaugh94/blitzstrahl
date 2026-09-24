@@ -71,6 +71,19 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
 .blitz-embed[data-loading]::before { content: "Loading " attr(data-loading) "\\2026"; }
 .blitz-embed-fallback { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
 
+/* Maps (renderers/map.ts): tiles under the chart. Themes filter the tiles
+   with --blitz-map-tiles so a light basemap sits in a dark deck. */
+.blitz-map-tiles, .blitz-map-chart { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+.blitz-map-tiles { filter: var(--blitz-map-tiles, none); }
+.blitz-map-tiles > .blitz-tile {
+  position: absolute; max-width: none; max-height: none; border-radius: 0;
+  user-select: none; pointer-events: none;
+}
+.blitz-map-attribution {
+  position: absolute; right: 0; bottom: 0; padding: 2px 8px; border-top-left-radius: 6px;
+  font: 13px/1.5 system-ui, sans-serif; color: #333; background: rgba(255, 255, 255, .75);
+}
+
 /* Sortable tables (renderers/table.ts): header buttons that look like headers. */
 .blitz-sort {
   all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: .35em;

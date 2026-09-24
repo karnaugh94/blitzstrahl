@@ -3,4 +3,4 @@
  * (`@blitzstrahl/renderers/chart`) so it lands in its own chunk; this index
  * only names them.
  */
-export const BUILTIN_RENDERERS = ['chart', 'embed', 'table'] as const
+export const BUILTIN_RENDERERS = ['chart', 'embed', 'map', 'table'] as const

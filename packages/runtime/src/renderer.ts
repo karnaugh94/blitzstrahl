@@ -25,6 +25,11 @@ export interface RenderInstance {
   /** The canvas scale changed. */
   resize(): void
   destroy(): void
+  /**
+   * Resolves when the output is complete, e.g. a map's tiles have loaded.
+   * PDF export waits for it. Absent means complete once mounted.
+   */
+  readonly ready?: Promise<void>
 }
 
 export interface Renderer {

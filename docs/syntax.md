@@ -522,7 +522,7 @@ Each renderer's body schema is documented in `docs/renderers/`.
 | Renderer | Milestone | Body |
 |---|---|---|
 | `chart` | M1 (bar, line); M3 (pie, scatter) | YAML |
-| `map` | M3 | YAML |
+| `map` | M3 | YAML: `center`, `zoom`, `markers`, `regions`, `tiles`, … |
 | `embed` | M3 | YAML: `src`, optional `fallback` image, `zoom`, `title` |
 | `mermaid` | M4 | text |
 | `math` | M4 | text (TeX, display mode). Same as `$$…$$` (§12) |

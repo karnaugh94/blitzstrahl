@@ -88,7 +88,8 @@ async function launch(chromium: Chromium): Promise<Browser | undefined> {
   return undefined
 }
 
-export async function checkBuiltOverflow(outDir: string, deck: Deck, source?: string): Promise<OverflowCheck> {
+/** `page` is the file to open inside `outDir` (default: its index.html). */
+export async function checkBuiltOverflow(outDir: string, deck: Deck, source?: string, page = ''): Promise<OverflowCheck> {
   const { chromium } = await import('playwright-core')
   const browser = await launch(chromium)
   if (!browser) {
@@ -96,10 +97,10 @@ export async function checkBuiltOverflow(outDir: string, deck: Deck, source?: st
   }
   const { server, url } = await serve(outDir)
   try {
-    const page = await browser.newPage({ viewport: deck.meta.canvas, reducedMotion: 'reduce' })
-    await page.goto(url)
-    await page.waitForFunction(() => (globalThis as { blitz?: unknown }).blitz, undefined, { timeout: 15_000 })
-    const found = await page.evaluate(() => (globalThis as unknown as { blitz: { checkOverflow(): Promise<Overflow[]> } }).blitz.checkOverflow())
+    const tab = await browser.newPage({ viewport: deck.meta.canvas, reducedMotion: 'reduce' })
+    await tab.goto(url + encodeURIComponent(page))
+    await tab.waitForFunction(() => (globalThis as { blitz?: unknown }).blitz, undefined, { timeout: 15_000 })
+    const found = await tab.evaluate(() => (globalThis as unknown as { blitz: { checkOverflow(): Promise<Overflow[]> } }).blitz.checkOverflow())
     return { diagnostics: overflowDiagnostics(deck, found, source) }
   } finally {
     await browser.close()

@@ -82,11 +82,22 @@ export interface PageOptions {
   inline: Record<string, string>
   assetUrl: AssetUrl
   theme: Theme
-  /** `<script type="module" src>` of the entry. */
-  entry: string
+  /** The entry module: a URL (`<script type="module" src>`), or its code, inlined (standalone). */
+  entry: { src: string } | { code: string }
   /** Dev only: shown in the browser console. */
   diagnostics?: Diagnostic[]
 }
+
+/** A deck with external chunks can't run from a file (module scripts need HTTP); say so. */
+const FILE_WARNING = `<script>
+if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', function () {
+  var p = document.createElement('p')
+  p.style.cssText = 'position:fixed;inset:auto 16px 16px;margin:0;padding:12px 16px;font:15px/1.4 system-ui,sans-serif;background:#fff;color:#111;border-radius:8px;z-index:9'
+  p.textContent = 'This deck was built for a web server and can\\u2019t run from a file. Serve the folder over HTTP (for example: npx serve dist), build it with --standalone, or use blitzstrahl dev.'
+  document.body.appendChild(p)
+})
+</script>
+`
 
 export function renderPage(o: PageOptions): string {
   const payload = toPayload(o.deck, o.inline, o.assetUrl)
@@ -112,16 +123,10 @@ ${renderStage(o.deck, o.assetUrl)}
 <div class="blitz-sr" aria-live="polite"></div>
 </div>
 <template id="blitz-notes">${renderNotes(o.deck, o.assetUrl)}</template>
-<script>
-if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', function () {
-  var p = document.createElement('p')
-  p.style.cssText = 'position:fixed;inset:auto 16px 16px;margin:0;padding:12px 16px;font:15px/1.4 system-ui,sans-serif;background:#fff;color:#111;border-radius:8px;z-index:9'
-  p.textContent = 'This deck was built for a web server and can\u2019t run from a file. Serve the folder over HTTP (for example: npx serve dist), or use blitzstrahl dev.'
-  document.body.appendChild(p)
-})
-</script>
-<script type="application/json" id="blitz-payload">${json(payload)}</script>
-${o.diagnostics ? `<script type="application/json" id="blitz-diagnostics">${json(o.diagnostics)}</script>\n` : ''}<script type="module" src="${esc(o.entry)}"></script>
+${'src' in o.entry ? FILE_WARNING : ''}<script type="application/json" id="blitz-payload">${json(payload)}</script>
+${o.diagnostics ? `<script type="application/json" id="blitz-diagnostics">${json(o.diagnostics)}</script>\n` : ''}${
+    'src' in o.entry ? `<script type="module" src="${esc(o.entry.src)}"></script>` : `<script type="module">\n${o.entry.code}\n</script>`
+  }
 </body>
 </html>
 `

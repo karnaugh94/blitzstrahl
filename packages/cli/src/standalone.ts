@@ -1,0 +1,98 @@
+/**
+ * `blitzstrahl build --standalone` (PLAN §6): the whole deck in one `.html`
+ * that runs from `file://`. A module script can't fetch chunks from a file
+ * URL, so everything the page runs is one inline script: the runtime, the
+ * presenter view, and only the renderers this deck uses. Images become data
+ * URIs; data files are already inlined in the payload.
+ */
+import { readFile } from 'node:fs/promises'
+import { extname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { build as viteBuild, type Plugin, type Rolldown } from 'vite'
+import { BUILTIN_RENDERERS } from '@blitzstrahl/renderers'
+import type { Deck } from '@blitzstrahl/core'
+
+const ENTRY_ID = 'virtual:blitzstrahl-standalone'
+
+/** Absolute path of a module, resolved from this package (not the deck's folder). */
+const resolve = (spec: string) => fileURLToPath(import.meta.resolve(spec))
+
+/** Built-in renderers the deck actually uses. */
+export function usedRenderers(deck: Deck): string[] {
+  const used = new Set(deck.slides.flatMap((s) => s.blocks.map((b) => b.renderer)))
+  return BUILTIN_RENDERERS.filter((r) => used.has(r))
+}
+
+/** The entry: `start()` with each used renderer imported statically. */
+export function standaloneEntry(renderers: readonly string[]): string {
+  const lines = [`import { start } from ${JSON.stringify(resolve('@blitzstrahl/runtime'))}`]
+  renderers.forEach((r, i) => lines.push(`import r${i} from ${JSON.stringify(resolve(`@blitzstrahl/renderers/${r}`))}`))
+  const map = renderers.map((r, i) => `${JSON.stringify(r)}: async () => r${i}`).join(', ')
+  lines.push(`start({ renderers: { ${map} } })`)
+  return lines.join('\n') + '\n'
+}
+
+/** Bundle the entry into a single ES module, in memory. */
+export async function bundleStandalone(root: string, cacheDir: string, renderers: readonly string[], quiet = false): Promise<string> {
+  const entry = standaloneEntry(renderers)
+  const plugin: Plugin = {
+    name: 'blitzstrahl:standalone-entry',
+    resolveId: (id) => (id === ENTRY_ID ? `\0${ENTRY_ID}` : undefined),
+    load: (id) => (id === `\0${ENTRY_ID}` ? entry : undefined),
+  }
+  const result = await viteBuild({
+    configFile: false,
+    root,
+    cacheDir,
+    publicDir: false,
+    logLevel: quiet ? 'silent' : 'warn',
+    plugins: [plugin],
+    build: {
+      write: false,
+      target: 'es2022',
+      modulePreload: false,
+      chunkSizeWarningLimit: 4096,
+      rolldownOptions: { input: ENTRY_ID, output: { codeSplitting: false } },
+    },
+  })
+  const chunks = (Array.isArray(result) ? result : [result]) as Rolldown.RolldownOutput[]
+  const code = chunks.flatMap((o) => o.output).filter((c) => c.type === 'chunk')
+  if (code.length !== 1) throw new Error(`standalone bundle came out as ${code.length} chunks, not 1`)
+  return (code[0] as Rolldown.OutputChunk).code
+}
+
+/**
+ * Make script text safe to put between `<script>` tags. `</script` would end
+ * the element, and `<!--` changes how the HTML parser reads what follows.
+ * `\x3C` is `<` in a JS string, template literal or regex, which is the only
+ * place these sequences can occur in module code.
+ */
+export function inlineSafe(code: string): string {
+  return code.replace(/<(\/script|!--)/gi, '\\x3C$1')
+}
+
+const MIME: Record<string, string> = {
+  '.png': 'image/png',
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.gif': 'image/gif',
+  '.svg': 'image/svg+xml',
+  '.webp': 'image/webp',
+  '.avif': 'image/avif',
+  '.bmp': 'image/bmp',
+  '.ico': 'image/x-icon',
+  '.woff': 'font/woff',
+  '.woff2': 'font/woff2',
+  '.ttf': 'font/ttf',
+  '.otf': 'font/otf',
+}
+
+/** A local file as a `data:` URI, or undefined if it can't be read. */
+export async function dataUri(file: string): Promise<string | undefined> {
+  try {
+    const bytes = await readFile(file)
+    return `data:${MIME[extname(file).toLowerCase()] ?? 'application/octet-stream'};base64,${bytes.toString('base64')}`
+  } catch {
+    return undefined // reported as asset/missing
+  }
+}

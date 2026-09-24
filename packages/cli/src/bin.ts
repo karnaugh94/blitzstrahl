@@ -7,24 +7,27 @@ const HELP = `blitzstrahl — Markdown in. A deck worth watching out.
 
 Usage:
   blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
-  blitzstrahl build <deck.md> [--out dist] [--force] [--strict]
+  blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
 
 Commands:
   dev     Live preview with reload on save (keeps your slide and step)
-  build   Static site in dist/ (serve it over HTTP)
+  build   Static site in dist/ (serve it over HTTP), or with --standalone,
+          one .html file that opens straight from disk
 
 Options:
-  --out, -o   Output directory for build (default: dist/ next to the deck)
-  --force     Build even if the deck has errors
-  --strict    Fail if any slide overflows the canvas (or it can't be checked)
+  --out, -o      build: output folder (default: dist/ next to the deck);
+                 with --standalone, the file (default: <deck>.html next to it)
+  --standalone   build: everything in one self-contained .html file
+  --force        Build even if the deck has errors
+  --strict       Fail if any slide overflows the canvas (or it can't be checked)
+  --port, -p     dev: server port
+  --host         dev: listen on all addresses (present from another device)
+  --open         dev: open the browser
+  --help, -h     Show this help
 
 Environment:
   BLITZSTRAHL_SKIP_OVERFLOW_CHECK=1   build: skip the overflow check (needs no
                                       browser); --strict still checks
-  --port, -p  Dev server port
-  --host      Listen on all addresses (present from another device)
-  --open      Open the browser
-  --help, -h  Show this help
 `
 
 async function main(argv: string[]): Promise<number> {
@@ -35,6 +38,7 @@ async function main(argv: string[]): Promise<number> {
       out: { type: 'string', short: 'o' },
       force: { type: 'boolean' },
       strict: { type: 'boolean' },
+      standalone: { type: 'boolean' },
       port: { type: 'string', short: 'p' },
       host: { type: 'boolean' },
       open: { type: 'boolean' },
@@ -54,7 +58,11 @@ async function main(argv: string[]): Promise<number> {
   switch (command) {
     case 'build': {
       const opts: Parameters<typeof build>[1] = {}
-      if (values.out) opts.outDir = values.out
+      if (values.standalone) opts.standalone = true
+      if (values.out) {
+        if (values.standalone) opts.outFile = values.out
+        else opts.outDir = values.out
+      }
       if (values.force) opts.force = true
       if (values.strict) opts.strict = true
       const r = await build(deck, opts)

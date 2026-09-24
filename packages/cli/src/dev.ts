@@ -110,7 +110,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             inline: loaded.inline,
             theme,
             assetUrl,
-            entry: '/@fs/' + ENTRY.replace(/^\//, ''),
+            entry: { src: '/@fs/' + ENTRY.replace(/^\//, '') },
             diagnostics: loaded.diagnostics,
           })
           res.setHeader('content-type', 'text/html; charset=utf-8')

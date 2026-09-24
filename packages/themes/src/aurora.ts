@@ -41,7 +41,6 @@ export const aurora = defineTheme({
   },
   css: /* css */ `
 .blitz-slide {
-  padding: var(--blitz-pad-y) var(--blitz-pad-x);
   color: var(--blitz-fg);
   background-color: var(--blitz-bg);
   background-image:
@@ -50,10 +49,7 @@ export const aurora = defineTheme({
   font: 400 var(--blitz-text)/1.45 var(--blitz-font-sans);
   font-feature-settings: "ss01", "cv11";
   -webkit-font-smoothing: antialiased;
-  display: none; flex-direction: column; gap: var(--blitz-gap);
 }
-.blitz-slide[data-blitz-current] { display: flex; }
-.blitz-slide > * { margin: 0; }
 
 h1, h2, h3, h4 { margin: 0; line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; }
 h1 { font-size: var(--blitz-h1); }
@@ -125,14 +121,51 @@ table.zebra tbody tr:nth-child(odd) { background: color-mix(in srgb, var(--blitz
 .footnotes h2 { display: none; }
 .footnotes ol { gap: 0; }
 
-/* Slide 1 defaults to the title layout (syntax.md §2.5). */
-.blitz-slide[data-layout="title"] { justify-content: center; }
-.blitz-slide[data-layout="title"] h1 {
+/* Layouts (syntax.md §10). Geometry comes from layouts.ts; this is the look. */
+[data-layout="title"] h1, [data-layout="end"] h1 {
   font-size: var(--blitz-title); letter-spacing: -0.035em; width: fit-content;
   background: linear-gradient(100deg, #fff 30%, var(--blitz-accent) 75%, var(--blitz-accent-2));
   -webkit-background-clip: text; background-clip: text; color: transparent;
   padding-bottom: .08em;
 }
-.blitz-slide[data-layout="title"] h1 + p, .blitz-slide[data-layout="title"] h2 { color: var(--blitz-fg-muted); font-weight: 400; font-size: 34px; }
+[data-layout="title"] h1 + p, [data-layout="title"] h2,
+[data-layout="end"] h1 + p, [data-layout="end"] h2 { color: var(--blitz-fg-muted); font-weight: 400; font-size: 34px; }
+
+[data-layout="section"] h1, [data-layout="section"] h2 { font-size: 96px; letter-spacing: -0.04em; }
+[data-layout="section"] > [data-slot="main"]::before {
+  content: ""; width: 72px; height: 6px; border-radius: 3px; margin-bottom: 8px;
+  background: linear-gradient(90deg, var(--blitz-accent), var(--blitz-accent-2));
+}
+[data-layout="section"] p { color: var(--blitz-fg-muted); }
+
+[data-layout="two-col"] > [data-slot="main"], [data-layout="three-col"] > [data-slot="main"] { padding-bottom: 6px; }
+:is([data-layout="two-col"], [data-layout="three-col"]) > :is([data-slot="middle"], [data-slot="right"]) { position: relative; }
+:is([data-layout="two-col"], [data-layout="three-col"]) > :is([data-slot="middle"], [data-slot="right"])::before {
+  content: ""; position: absolute; left: -28px; top: 0; bottom: 0; width: 1px; background: var(--blitz-rule);
+}
+
+[data-layout="quote"] blockquote {
+  border: 0; padding: 0; font-size: 52px; line-height: 1.2; letter-spacing: -0.015em; font-weight: 500;
+}
+[data-layout="quote"] blockquote::before {
+  content: "\\201C"; display: block; height: .55em; font-size: 2.4em; line-height: 1;
+  color: var(--blitz-accent); font-weight: 700;
+}
+[data-layout="quote"] blockquote + p { color: var(--blitz-fg-muted); font-size: var(--blitz-text); }
+[data-layout="quote"] blockquote + p::before { content: "\\2014\\2002"; color: var(--blitz-accent); }
+
+[data-layout="stat-grid"] > [data-slot="main"] > div {
+  padding: 28px 30px; border-radius: var(--blitz-radius);
+  background: var(--blitz-surface); border: 1px solid var(--blitz-rule);
+}
+[data-layout="stat-grid"] > [data-slot="main"] > div > :first-child { color: var(--blitz-accent); font-variant-numeric: tabular-nums; }
+[data-layout="stat-grid"] > [data-slot="main"] > div > :not(:first-child) { color: var(--blitz-fg-muted); font-size: var(--blitz-text-small); }
+
+[data-layout="full-bleed"] > [data-slot="main"]::before {
+  content: ""; position: absolute; inset: 0; z-index: -1;
+  background: linear-gradient(to top, rgba(5, 7, 14, .85), rgba(5, 7, 14, .15) 60%, transparent);
+}
+
+[data-layout="code"] pre { font-size: 26px; }
 `,
 })

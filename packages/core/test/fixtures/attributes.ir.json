@@ -32,266 +32,43 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {
-              "id": "top",
-              "className": [
-                "accent"
-              ]
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Heading"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 1,
-              "dataBlitzAnim": 0
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Revenue grew year over year."
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "Revenue grew "
-              },
-              {
-                "type": "element",
-                "tagName": "span",
-                "properties": {
-                  "dataBlitzStepIn": 2,
-                  "dataBlitzAnim": 1
-                },
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "42%"
-                  }
-                ]
-              },
-              {
-                "type": "text",
-                "value": " this year.\n"
-              },
-              {
-                "type": "element",
-                "tagName": "a",
-                "properties": {
-                  "href": "https://example.com",
-                  "className": [
-                    "muted"
-                  ]
-                },
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "the docs"
-                  }
-                ]
-              },
-              {
-                "type": "text",
-                "value": " "
-              },
-              {
-                "type": "element",
-                "tagName": "img",
-                "properties": {
-                  "src": "./q3.png",
-                  "alt": "chart",
-                  "width": "60%"
-                },
-                "children": []
-              },
-              {
-                "type": "text",
-                "value": " "
-              },
-              {
-                "type": "element",
-                "tagName": "code",
-                "properties": {
-                  "className": [
-                    "big"
-                  ]
-                },
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "npm i"
-                  }
-                ]
-              },
-              {
-                "type": "text",
-                "value": "\n"
-              },
-              {
-                "type": "element",
-                "tagName": "span",
-                "properties": {
-                  "className": [
-                    "x"
-                  ]
-                },
-                "children": [
-                  {
-                    "type": "element",
-                    "tagName": "strong",
-                    "properties": {},
-                    "children": [
-                      {
-                        "type": "text",
-                        "value": "bold"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "text",
-                    "value": " span"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "Literal braces: {foo} and {} and {x, y} and {.escaped} stay."
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 1,
-              "dataBlitzAnim": 2
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Typos are errors:"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "word"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "ul",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "\n"
-              },
-              {
-                "type": "element",
-                "tagName": "li",
-                "properties": {
-                  "dataBlitzStepIn": 2,
-                  "dataBlitzAnim": 3
-                },
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "Point"
-                  }
-                ]
-              },
-              {
-                "type": "text",
-                "value": "\n"
-              },
-              {
-                "type": "element",
-                "tagName": "li",
-                "properties": {
-                  "data-foo": "bar",
-                  "aria-label": "An item"
-                },
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "Other"
-                  }
-                ]
-              },
-              {
-                "type": "text",
-                "value": "\n"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "blockquote",
+            "tagName": "div",
             "properties": {
               "className": [
-                "pull-quote",
-                "nothing-before-in-a-container-is-fine-here"
-              ]
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
             },
             "children": [
               {
-                "type": "text",
-                "value": "\n"
+                "type": "element",
+                "tagName": "h1",
+                "properties": {
+                  "id": "top",
+                  "className": [
+                    "accent"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Heading"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 1,
+                  "dataBlitzAnim": 0
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Revenue grew year over year."
+                  }
+                ]
               },
               {
                 "type": "element",
@@ -300,136 +77,323 @@
                 "children": [
                   {
                     "type": "text",
-                    "value": "quoted"
+                    "value": "Revenue grew "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "dataBlitzStepIn": 2,
+                      "dataBlitzAnim": 1
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "42%"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": " this year.\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "a",
+                    "properties": {
+                      "href": "https://example.com",
+                      "className": [
+                        "muted"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "the docs"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": " "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "img",
+                    "properties": {
+                      "src": "./q3.png",
+                      "alt": "chart",
+                      "width": "60%"
+                    },
+                    "children": []
+                  },
+                  {
+                    "type": "text",
+                    "value": " "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {
+                      "className": [
+                        "big"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "npm i"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "className": [
+                        "x"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "element",
+                        "tagName": "strong",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "bold"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": " span"
+                      }
+                    ]
                   }
                 ]
               },
               {
-                "type": "text",
-                "value": "\n"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "pre",
-            "properties": {
-              "dataBlitzStepIn": 2,
-              "dataBlitzAnim": 4,
-              "className": [
-                "code-attrs"
-              ]
-            },
-            "children": [
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Literal braces: {foo} and {} and {x, y} and {.escaped} stay."
+                  }
+                ]
+              },
               {
                 "type": "element",
-                "tagName": "code",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 1,
+                  "dataBlitzAnim": 2
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Typos are errors:"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "word"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "ul",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "li",
+                    "properties": {
+                      "dataBlitzStepIn": 2,
+                      "dataBlitzAnim": 3
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Point"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "li",
+                    "properties": {
+                      "data-foo": "bar",
+                      "aria-label": "An item"
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Other"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "blockquote",
                 "properties": {
                   "className": [
-                    "language-js"
+                    "pull-quote",
+                    "nothing-before-in-a-container-is-fine-here"
                   ]
                 },
                 "children": [
                   {
                     "type": "text",
-                    "value": "let x = 1\n"
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "quoted"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
                   }
                 ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "pre",
-            "properties": {},
-            "children": [
+              },
               {
                 "type": "element",
-                "tagName": "code",
+                "tagName": "pre",
+                "properties": {
+                  "dataBlitzStepIn": 2,
+                  "dataBlitzAnim": 4,
+                  "className": [
+                    "code-attrs"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {
+                      "className": [
+                        "language-js"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "let x = 1\n"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "pre",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {
+                      "className": [
+                        "language-js"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "let y = 2\n"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "a",
+                    "properties": {
+                      "href": "https://example.com",
+                      "className": [
+                        "x"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "ref"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "id": "dup",
+                  "style": "a: b",
+                  "title": "it's"
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Bad keys"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
                 "properties": {
                   "className": [
-                    "language-js"
+                    "b"
                   ]
                 },
                 "children": [
                   {
                     "type": "text",
-                    "value": "let y = 2\n"
+                    "value": "Twice "
                   }
                 ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
-              {
-                "type": "element",
-                "tagName": "a",
-                "properties": {
-                  "href": "https://example.com",
-                  "className": [
-                    "x"
-                  ]
-                },
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "ref"
-                  }
-                ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "id": "dup",
-              "style": "a: b",
-              "title": "it's"
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Bad keys"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "className": [
-                "b"
-              ]
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Twice "
               }
             ]
           }

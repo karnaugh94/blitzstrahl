@@ -129,6 +129,8 @@ Containers nest; the longer outer fence is only for readability.
 {.zebra reveal=rows @1}
 
 ---
+layout: end
+---
 
 # Thank you
 

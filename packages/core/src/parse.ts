@@ -37,9 +37,12 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
 
   const slides = split.slides.map((raw, index): Slide => {
     attachAttributes(raw.nodes, lines, diags)
-    const r = resolveSlide(raw.nodes, index, ctx)
     const fm = raw.frontmatter?.data ?? {}
     const fmSpan = (key: string) => keySpan(raw.frontmatter, key, raw.span)
+    const r = resolveSlide(raw.nodes, index, ctx, (shorthand) => {
+      const layout = 'layout' in fm ? { value: fm.layout, span: fmSpan('layout') } : shorthand.layout
+      return layout ? layoutName(layout.value, diags, layout.span) : index === 0 ? 'title' : 'default'
+    })
 
     const attrs: SlideAttrs = { class: [], extra: {} }
     for (const [key, value] of Object.entries(fm)) {
@@ -54,7 +57,6 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
     const setting = (key: string): { value: unknown; span: SourceSpan } | undefined =>
       key in fm ? { value: fm[key], span: fmSpan(key) } : r.shorthand[key]
 
-    const layout = setting('layout')
     const tName = setting('transition')
     const tDur = setting('transition-dur')
     const bg = setting('background')
@@ -85,7 +87,7 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
     const slide: Slide = {
       id,
       index,
-      layout: layout ? layoutName(layout.value, diags, layout.span) : index === 0 ? 'title' : 'default',
+      layout: r.layout,
       transition: mergeTransition(meta.transition, name, dur),
       attrs,
       steps: r.steps,

@@ -68,7 +68,10 @@ export interface Slide {
   /** Presenter notes (§7). Never rendered to the audience. */
   notes: HastNode[]
   /**
-   * Audience-facing content. Stepped elements carry `data-blitz-step-in` and
+   * Audience-facing content, as layout slots (§10): every top-level node is a
+   * `<div class="blitz-slot" data-slot="…">`. The `main` slot comes first
+   * (omitted when empty), then named slots in document order.
+   * Stepped elements carry `data-blitz-step-in` and
    * optionally `data-blitz-step-out` (last visible step, inclusive), plus
    * `data-blitz-anim` referencing `Slide.anims`. Render blocks appear as
    * `<div data-blitz-block="<RenderBlock.id>">` placeholders.

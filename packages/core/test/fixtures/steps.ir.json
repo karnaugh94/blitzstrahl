@@ -32,135 +32,123 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "Plus and equals"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
+            "tagName": "div",
             "properties": {
-              "dataBlitzStepIn": 1,
-              "dataBlitzAnim": 0
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
             },
             "children": [
               {
-                "type": "text",
-                "value": "Revenue"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Plus and equals"
+                  }
+                ]
+              },
               {
                 "type": "element",
-                "tagName": "span",
+                "tagName": "p",
                 "properties": {
                   "dataBlitzStepIn": 1,
-                  "dataBlitzAnim": 1
+                  "dataBlitzAnim": 0
                 },
                 "children": [
                   {
                     "type": "text",
-                    "value": "up 42%"
+                    "value": "Revenue"
                   }
                 ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 2,
-              "dataBlitzAnim": 2
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Costs"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
+              },
               {
                 "type": "element",
-                "tagName": "span",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "dataBlitzStepIn": 1,
+                      "dataBlitzAnim": 1
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "up 42%"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
                 "properties": {
                   "dataBlitzStepIn": 2,
-                  "dataBlitzAnim": 3
+                  "dataBlitzAnim": 2
                 },
                 "children": [
                   {
                     "type": "text",
-                    "value": "down 8%"
+                    "value": "Costs"
                   }
                 ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 2,
-              "dataBlitzStepOut": 4,
-              "dataBlitzAnim": 4
-            },
-            "children": [
+              },
               {
-                "type": "text",
-                "value": "After a range"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 3,
-              "dataBlitzAnim": 5
-            },
-            "children": [
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "dataBlitzStepIn": 2,
+                      "dataBlitzAnim": 3
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "down 8%"
+                      }
+                    ]
+                  }
+                ]
+              },
               {
-                "type": "text",
-                "value": "Next"
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 2,
+                  "dataBlitzStepOut": 4,
+                  "dataBlitzAnim": 4
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "After a range"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 3,
+                  "dataBlitzAnim": 5
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Next"
+                  }
+                ]
               }
             ]
           }
@@ -226,140 +214,32 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "Reveal"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "ul",
+            "tagName": "div",
             "properties": {
-              "dataBlitzStepIn": 2,
-              "dataBlitzAnim": 0
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
             },
             "children": [
               {
-                "type": "text",
-                "value": "\n"
-              },
-              {
                 "type": "element",
-                "tagName": "li",
+                "tagName": "h1",
                 "properties": {},
                 "children": [
                   {
                     "type": "text",
-                    "value": "Collect"
+                    "value": "Reveal"
                   }
                 ]
               },
               {
-                "type": "text",
-                "value": "\n"
-              },
-              {
                 "type": "element",
-                "tagName": "li",
+                "tagName": "ul",
                 "properties": {
-                  "dataBlitzStepIn": 3,
+                  "dataBlitzStepIn": 2,
                   "dataBlitzAnim": 0
                 },
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "Clean"
-                  }
-                ]
-              },
-              {
-                "type": "text",
-                "value": "\n"
-              },
-              {
-                "type": "element",
-                "tagName": "li",
-                "properties": {
-                  "dataBlitzStepIn": 4,
-                  "dataBlitzAnim": 0
-                },
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "Chart"
-                  }
-                ]
-              },
-              {
-                "type": "text",
-                "value": "\n"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 5,
-              "dataBlitzAnim": 1
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Then"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 5,
-              "dataBlitzAnim": 2
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Same"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "table",
-            "properties": {
-              "dataBlitzStepIn": 6,
-              "dataBlitzAnim": 3
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "\n"
-              },
-              {
-                "type": "element",
-                "tagName": "thead",
-                "properties": {},
                 "children": [
                   {
                     "type": "text",
@@ -367,102 +247,12 @@
                   },
                   {
                     "type": "element",
-                    "tagName": "tr",
+                    "tagName": "li",
                     "properties": {},
                     "children": [
                       {
                         "type": "text",
-                        "value": "\n"
-                      },
-                      {
-                        "type": "element",
-                        "tagName": "th",
-                        "properties": {},
-                        "children": [
-                          {
-                            "type": "text",
-                            "value": "Q"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "text",
-                        "value": "\n"
-                      },
-                      {
-                        "type": "element",
-                        "tagName": "th",
-                        "properties": {},
-                        "children": [
-                          {
-                            "type": "text",
-                            "value": "Revenue"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "text",
-                        "value": "\n"
-                      }
-                    ]
-                  },
-                  {
-                    "type": "text",
-                    "value": "\n"
-                  }
-                ]
-              },
-              {
-                "type": "text",
-                "value": "\n"
-              },
-              {
-                "type": "element",
-                "tagName": "tbody",
-                "properties": {},
-                "children": [
-                  {
-                    "type": "text",
-                    "value": "\n"
-                  },
-                  {
-                    "type": "element",
-                    "tagName": "tr",
-                    "properties": {},
-                    "children": [
-                      {
-                        "type": "text",
-                        "value": "\n"
-                      },
-                      {
-                        "type": "element",
-                        "tagName": "td",
-                        "properties": {},
-                        "children": [
-                          {
-                            "type": "text",
-                            "value": "Q1"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "text",
-                        "value": "\n"
-                      },
-                      {
-                        "type": "element",
-                        "tagName": "td",
-                        "properties": {},
-                        "children": [
-                          {
-                            "type": "text",
-                            "value": "1.2M"
-                          }
-                        ]
-                      },
-                      {
-                        "type": "text",
-                        "value": "\n"
+                        "value": "Collect"
                       }
                     ]
                   },
@@ -472,24 +262,189 @@
                   },
                   {
                     "type": "element",
-                    "tagName": "tr",
+                    "tagName": "li",
                     "properties": {
-                      "dataBlitzStepIn": 7,
-                      "dataBlitzAnim": 3
+                      "dataBlitzStepIn": 3,
+                      "dataBlitzAnim": 0
                     },
                     "children": [
                       {
                         "type": "text",
+                        "value": "Clean"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "li",
+                    "properties": {
+                      "dataBlitzStepIn": 4,
+                      "dataBlitzAnim": 0
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Chart"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 5,
+                  "dataBlitzAnim": 1
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Then"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 5,
+                  "dataBlitzAnim": 2
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Same"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "table",
+                "properties": {
+                  "dataBlitzStepIn": 6,
+                  "dataBlitzAnim": 3
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "thead",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
                         "value": "\n"
                       },
                       {
                         "type": "element",
-                        "tagName": "td",
+                        "tagName": "tr",
                         "properties": {},
                         "children": [
                           {
                             "type": "text",
-                            "value": "Q2"
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "th",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "Q"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "th",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "Revenue"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "tbody",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "tr",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "Q1"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "1.2M"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
                           }
                         ]
                       },
@@ -499,12 +454,45 @@
                       },
                       {
                         "type": "element",
-                        "tagName": "td",
-                        "properties": {},
+                        "tagName": "tr",
+                        "properties": {
+                          "dataBlitzStepIn": 7,
+                          "dataBlitzAnim": 3
+                        },
                         "children": [
                           {
                             "type": "text",
-                            "value": "1.9M"
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "Q2"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "1.9M"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
                           }
                         ]
                       },
@@ -521,23 +509,15 @@
                 ]
               },
               {
-                "type": "text",
-                "value": "\n"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "Bad reveal"
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Bad reveal"
+                  }
+                ]
               }
             ]
           }
@@ -593,161 +573,141 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "Effects"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
+            "tagName": "div",
             "properties": {
-              "dataBlitzStepIn": 0,
-              "dataBlitzAnim": 0
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
             },
-            "children": [
-              {
-                "type": "text",
-                "value": "Plain entrance on entry"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 2,
-              "dataBlitzAnim": 1
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Emphasis"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
             "children": [
               {
                 "type": "element",
-                "tagName": "span",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Effects"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
                 "properties": {
-                  "dataBlitzStepIn": 3,
-                  "dataBlitzAnim": 2
+                  "dataBlitzStepIn": 0,
+                  "dataBlitzAnim": 0
                 },
                 "children": [
                   {
                     "type": "text",
-                    "value": "99"
+                    "value": "Plain entrance on entry"
                   }
                 ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 3,
-              "dataBlitzAnim": 3
-            },
-            "children": [
+              },
               {
-                "type": "text",
-                "value": "Typed"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 1,
-              "dataBlitzAnim": 4
-            },
-            "children": [
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 2,
+                  "dataBlitzAnim": 1
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Emphasis"
+                  }
+                ]
+              },
               {
-                "type": "text",
-                "value": "Two effects"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 1,
-              "dataBlitzAnim": 5
-            },
-            "children": [
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "dataBlitzStepIn": 3,
+                      "dataBlitzAnim": 2
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "99"
+                      }
+                    ]
+                  }
+                ]
+              },
               {
-                "type": "text",
-                "value": "Bad options"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 3,
+                  "dataBlitzAnim": 3
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Typed"
+                  }
+                ]
+              },
               {
-                "type": "text",
-                "value": "Explicit zero"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 0,
-              "dataBlitzStepOut": 3,
-              "dataBlitzAnim": 6
-            },
-            "children": [
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 1,
+                  "dataBlitzAnim": 4
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Two effects"
+                  }
+                ]
+              },
               {
-                "type": "text",
-                "value": "Exits"
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 1,
+                  "dataBlitzAnim": 5
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Bad options"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Explicit zero"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 0,
+                  "dataBlitzStepOut": 3,
+                  "dataBlitzAnim": 6
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Exits"
+                  }
+                ]
               }
             ]
           }
@@ -828,92 +788,47 @@
         "content": [
           {
             "type": "element",
-            "tagName": "h1",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "Edge cases"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
-              {
-                "type": "text",
-                "value": "Equals first"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 1,
-              "dataBlitzAnim": 0
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Gap"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 3,
-              "dataBlitzAnim": 1
-            },
-            "children": [
-              {
-                "type": "text",
-                "value": "Gap"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
             "tagName": "div",
             "properties": {
-              "dataBlitzStepIn": 2,
-              "dataBlitzAnim": 2,
               "className": [
-                "box"
-              ]
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
             },
             "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Edge cases"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Equals first"
+                  }
+                ]
+              },
               {
                 "type": "element",
                 "tagName": "p",
                 "properties": {
                   "dataBlitzStepIn": 1,
-                  "dataBlitzAnim": 3
+                  "dataBlitzAnim": 0
                 },
                 "children": [
                   {
                     "type": "text",
-                    "value": "Too early"
+                    "value": "Gap"
                   }
                 ]
               },
@@ -922,47 +837,80 @@
                 "tagName": "p",
                 "properties": {
                   "dataBlitzStepIn": 3,
-                  "dataBlitzAnim": 4
+                  "dataBlitzAnim": 1
                 },
                 "children": [
                   {
                     "type": "text",
-                    "value": "Fine"
+                    "value": "Gap"
                   }
                 ]
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {},
-            "children": [
+              },
               {
-                "type": "text",
-                "value": "Bad"
-              }
-            ]
-          },
-          {
-            "type": "text",
-            "value": "\n"
-          },
-          {
-            "type": "element",
-            "tagName": "p",
-            "properties": {
-              "dataBlitzStepIn": 1,
-              "dataBlitzAnim": 5
-            },
-            "children": [
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "dataBlitzStepIn": 2,
+                  "dataBlitzAnim": 2,
+                  "className": [
+                    "box"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {
+                      "dataBlitzStepIn": 1,
+                      "dataBlitzAnim": 3
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Too early"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {
+                      "dataBlitzStepIn": 3,
+                      "dataBlitzAnim": 4
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Fine"
+                      }
+                    ]
+                  }
+                ]
+              },
               {
-                "type": "text",
-                "value": "Two steps"
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Bad"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 1,
+                  "dataBlitzAnim": 5
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Two steps"
+                  }
+                ]
               }
             ]
           }

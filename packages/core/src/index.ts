@@ -1,1 +1,4 @@
 export * from './ir.js'
+export { parseDeck, type ParseOptions, type ParseResult } from './parse.js'
+export { formatDiagnostic } from './diagnostics.js'
+export { isImageBackground } from './assets.js'

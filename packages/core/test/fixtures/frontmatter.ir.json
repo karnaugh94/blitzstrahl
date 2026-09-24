@@ -1,0 +1,481 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "frontmatter.md",
+    "meta": {
+      "lang": "de",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1920,
+        "height": 1080
+      },
+      "transition": {
+        "name": "push-left",
+        "dur": 300
+      },
+      "extra": {
+        "mystery": 1
+      },
+      "title": "Deck title",
+      "author": "Ada"
+    },
+    "slides": [
+      {
+        "id": "opening",
+        "index": 0,
+        "layout": "default",
+        "transition": {
+          "name": "zoom",
+          "dur": 300
+        },
+        "attrs": {
+          "class": [
+            "hero",
+            "dark"
+          ],
+          "extra": {},
+          "background": "./cover.jpg",
+          "style": "color: red"
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Opening"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 16,
+            "column": 1
+          },
+          "end": {
+            "line": 18,
+            "column": 1
+          }
+        },
+        "title": "Opening"
+      },
+      {
+        "id": "frontmatter-wins",
+        "index": 1,
+        "layout": "default",
+        "transition": {
+          "name": "cover-up",
+          "dur": 300
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Frontmatter wins"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 22,
+            "column": 1
+          },
+          "end": {
+            "line": 24,
+            "column": 1
+          }
+        },
+        "title": "Frontmatter wins"
+      },
+      {
+        "id": "slide-3",
+        "index": 2,
+        "layout": "default",
+        "transition": {
+          "name": "push-left",
+          "dur": 300
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "layout: not frontmatter because of the blank line"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 26,
+            "column": 1
+          },
+          "end": {
+            "line": 27,
+            "column": 50
+          }
+        }
+      },
+      {
+        "id": "slide-4",
+        "index": 3,
+        "layout": "default",
+        "transition": {
+          "name": "push-left",
+          "dur": 300
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "bad: [unclosed"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 29,
+            "column": 1
+          },
+          "end": {
+            "line": 29,
+            "column": 15
+          }
+        }
+      },
+      {
+        "id": "after-invalid-yaml",
+        "index": 4,
+        "layout": "default",
+        "transition": {
+          "name": "push-left",
+          "dur": 300
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "After invalid YAML"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 31,
+            "column": 1
+          },
+          "end": {
+            "line": 33,
+            "column": 1
+          }
+        },
+        "title": "After invalid YAML"
+      },
+      {
+        "id": "bad-values",
+        "index": 5,
+        "layout": "default",
+        "transition": {
+          "name": "push-left",
+          "dur": 300
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Bad values"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 38,
+            "column": 1
+          },
+          "end": {
+            "line": 40,
+            "column": 1
+          }
+        },
+        "title": "Bad values"
+      },
+      {
+        "id": "misplaced",
+        "index": 6,
+        "layout": "default",
+        "transition": {
+          "name": "push-left",
+          "dur": 300
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "h1",
+            "properties": {
+              "className": [
+                "x"
+              ]
+            },
+            "children": [
+              {
+                "type": "text",
+                "value": "Misplaced"
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "p",
+            "properties": {},
+            "children": [
+              {
+                "type": "text",
+                "value": "Paragraph"
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 42,
+            "column": 1
+          },
+          "end": {
+            "line": 46,
+            "column": 1
+          }
+        },
+        "title": "Misplaced"
+      }
+    ],
+    "assets": [
+      {
+        "ref": "./cover.jpg",
+        "path": "cover.jpg",
+        "kind": "image",
+        "span": {
+          "start": {
+            "line": 11,
+            "column": 1
+          },
+          "end": {
+            "line": 11,
+            "column": 11
+          }
+        }
+      }
+    ]
+  },
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "frontmatter/unknown-key",
+      "message": "unknown deck frontmatter key `mystery`",
+      "file": "frontmatter.md",
+      "span": {
+        "start": {
+          "line": 8,
+          "column": 1
+        },
+        "end": {
+          "line": 8,
+          "column": 8
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "not-yet-supported",
+      "message": "layouts not yet supported (arrives in M2); ignored for now",
+      "file": "frontmatter.md",
+      "span": {
+        "start": {
+          "line": 10,
+          "column": 1
+        },
+        "end": {
+          "line": 10,
+          "column": 7
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "slide/key-twice",
+      "message": "`background` is set in frontmatter and on the heading; frontmatter wins",
+      "file": "frontmatter.md",
+      "span": {
+        "start": {
+          "line": 17,
+          "column": 28
+        },
+        "end": {
+          "line": 17,
+          "column": 29
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "slide/key-twice",
+      "message": "`transition` is set in frontmatter and on the heading; frontmatter wins",
+      "file": "frontmatter.md",
+      "span": {
+        "start": {
+          "line": 23,
+          "column": 21
+        },
+        "end": {
+          "line": 23,
+          "column": 22
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "frontmatter/yaml",
+      "message": "slide frontmatter is not valid YAML: Flow sequence in block collection must be sufficiently indented and end with a ]",
+      "file": "frontmatter.md",
+      "span": {
+        "start": {
+          "line": 29,
+          "column": 1
+        },
+        "end": {
+          "line": 29,
+          "column": 1
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "transition/unknown",
+      "message": "unknown transition `sideways`",
+      "file": "frontmatter.md",
+      "span": {
+        "start": {
+          "line": 35,
+          "column": 1
+        },
+        "end": {
+          "line": 35,
+          "column": 11
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/bad-value",
+      "message": "`transition-dur` must be a duration in milliseconds",
+      "file": "frontmatter.md",
+      "span": {
+        "start": {
+          "line": 36,
+          "column": 1
+        },
+        "end": {
+          "line": 36,
+          "column": 15
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/slide-key",
+      "message": "`layout` is a slide setting: put it in slide frontmatter or on the slide's first heading",
+      "file": "frontmatter.md",
+      "span": {
+        "start": {
+          "line": 45,
+          "column": 12
+        },
+        "end": {
+          "line": 45,
+          "column": 13
+        }
+      }
+    }
+  ]
+}

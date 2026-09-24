@@ -99,7 +99,7 @@ Each item is its own step. [No manual numbering.]{.highlight @+}
 
 # Numbers that move
 
-::::: columns
+:::: columns
 ::: {.center}
 [1280]{.count-up .big @1}
 
@@ -110,10 +110,10 @@ logical pixels wide
 
 tall, scaled to any screen
 :::
-:::::
+::::
 
 ::: notes
-Nested containers take more colons on the outer one.
+Containers nest; the longer outer fence is only for readability.
 :::
 
 ---

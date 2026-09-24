@@ -259,12 +259,163 @@
           },
           {
             "type": "element",
-            "tagName": "p",
-            "properties": {},
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "outer"
+              ]
+            },
             "children": [
               {
-                "type": "text",
-                "value": ":::"
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "inner"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Same colon count: each bare fence closes the innermost container (Pandoc)."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Back in outer."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "Warning"
+              ]
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Trailing colons after the name are allowed."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "long"
+              ]
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "A shorter closing fence still closes."
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "example"
+              ]
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "pre",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {
+                      "className": [
+                        "language-markdown"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "::: not-a-container-inside-code\n:::\n"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "pre",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": ":::\n"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Still inside example."
+                  }
+                ]
               }
             ]
           },
@@ -313,7 +464,7 @@
             "column": 1
           },
           "end": {
-            "line": 37,
+            "line": 64,
             "column": 1
           }
         },
@@ -360,11 +511,11 @@
         "blocks": [],
         "span": {
           "start": {
-            "line": 39,
+            "line": 66,
             "column": 1
           },
           "end": {
-            "line": 42,
+            "line": 69,
             "column": 1
           }
         }
@@ -399,11 +550,11 @@
         "blocks": [],
         "span": {
           "start": {
-            "line": 44,
+            "line": 71,
             "column": 1
           },
           "end": {
-            "line": 46,
+            "line": 73,
             "column": 1
           }
         },
@@ -413,24 +564,6 @@
     "assets": []
   },
   "diagnostics": [
-    {
-      "severity": "warning",
-      "code": "container/unclosed",
-      "message": "container `notes` is never closed; it ends at the end of its slide",
-      "file": "containers.md",
-      "span": {
-        "start": {
-          "line": 27,
-          "column": 1,
-          "offset": 219
-        },
-        "end": {
-          "line": 27,
-          "column": 1,
-          "offset": 219
-        }
-      }
-    },
     {
       "severity": "warning",
       "code": "notes/step",
@@ -450,31 +583,15 @@
     {
       "severity": "warning",
       "code": "container/stray-fence",
-      "message": "closing `:::` with no open container (nested containers need more colons on the outer one)",
+      "message": "closing `:::` with no open container",
       "file": "containers.md",
       "span": {
         "start": {
-          "line": 30,
+          "line": 59,
           "column": 1
         },
         "end": {
-          "line": 30,
-          "column": 4
-        }
-      }
-    },
-    {
-      "severity": "warning",
-      "code": "container/stray-fence",
-      "message": "closing `:::` with no open container (nested containers need more colons on the outer one)",
-      "file": "containers.md",
-      "span": {
-        "start": {
-          "line": 32,
-          "column": 1
-        },
-        "end": {
-          "line": 33,
+          "line": 60,
           "column": 43
         }
       }
@@ -486,14 +603,14 @@
       "file": "containers.md",
       "span": {
         "start": {
-          "line": 40,
+          "line": 67,
           "column": 1,
-          "offset": 335
+          "offset": 695
         },
         "end": {
-          "line": 40,
+          "line": 67,
           "column": 1,
-          "offset": 335
+          "offset": 695
         }
       }
     }

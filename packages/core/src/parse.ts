@@ -131,7 +131,7 @@ function checkContainers(node: Root | Nodes, lines: string[], diags: Diagnostics
       })
     }
     if (c.type === 'paragraph' && /^ {0,3}:{3,}[ \t]*$/.test(lines[c.position!.start.line - 1] ?? '')) {
-      diags.warn('container/stray-fence', 'closing `:::` with no open container (nested containers need more colons on the outer one)', c)
+      diags.warn('container/stray-fence', 'closing `:::` with no open container', c)
     }
     checkContainers(c, lines, diags)
   }

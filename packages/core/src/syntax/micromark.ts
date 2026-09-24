@@ -51,8 +51,23 @@ const BACKSLASH = 92
 const QUOTE = 34
 const APOSTROPHE = 39
 
-/** Container info after the colons: `name? attrs?`, at least one of them. */
-export const CONTAINER_INFO = /^[ \t]*([A-Za-z_][A-Za-z0-9_-]*)?[ \t]*(\{.*\})?[ \t]*$/
+/**
+ * Container info after the colons: `name? attrs?`, at least one of them,
+ * optionally followed by more colons (Pandoc's `::: Warning ::::::`).
+ */
+export const CONTAINER_INFO = /^[ \t]*([A-Za-z_][A-Za-z0-9_-]*)?[ \t]*(\{.*\})?[ \t]*(?::{3,}[ \t]*)?$/
+
+/** An opening fence line: colons, then a valid `CONTAINER_INFO` with a name or attrs. */
+function isOpeningFence(line: string): boolean {
+  const m = /^ {0,3}:{3,}(.*)$/.exec(line)
+  if (!m) return false
+  const info = CONTAINER_INFO.exec(m[1]!)
+  if (!info || (!info[1] && !info[2])) return false
+  return !info[2] || parseAttrs(info[2].slice(1, -1)).valid > 0
+}
+
+const BARE_FENCE = /^ {0,3}:{3,}[ \t]*$/
+const CODE_FENCE = /^ {0,3}(`{3,}|~{3,})(.*)$/
 
 export function blitzSyntax(): Extension {
   return {
@@ -237,9 +252,16 @@ function tokenizeNonLazyLine(this: TokenizeContext, effects: Effects, ok: State,
 
 /**
  * `:::+ name? {attrs}?` … `:::+`. The body is a nested document, so it may
- * hold any block content. An inner container needs fewer colons than its
- * parent (§5). Unclosed containers run to the end of their parent here; the
- * slide splitter cuts them at the next separator.
+ * hold any block content.
+ *
+ * Closing follows Pandoc (§5): a bare fence always closes the *innermost*
+ * open container, whatever its colon count. The body is only parsed after
+ * this container ends, so to know which bare fence is ours we track, line by
+ * line, the openers of nested containers and fenced code blocks (whose
+ * contents never open or close anything).
+ *
+ * Unclosed containers run to the end of their parent here; the slide
+ * splitter cuts them at the next separator.
  */
 function tokenizeContainer(this: TokenizeContext, effects: Effects, ok: State, nok: State): State {
   const self = this
@@ -248,6 +270,12 @@ function tokenizeContainer(this: TokenizeContext, effects: Effects, ok: State, n
     tail && tail[1].type === 'linePrefix' ? tail[2].sliceSerialize(tail[1], true).length : 0
   let sizeOpen = 0
   let info = ''
+  /** Raw text of the content line being consumed. */
+  let line = ''
+  /** Nested containers opened in our body and not yet closed. */
+  let depth = 0
+  /** Open fenced code block in our body, if any. */
+  let codeFence: { char: string; size: number } | undefined
   let previous: Token | undefined
   const closingFence: Construct = { tokenize: tokenizeClosingFence, partial: true }
   return start
@@ -303,11 +331,26 @@ function tokenizeContainer(this: TokenizeContext, effects: Effects, ok: State, n
   }
 
   function lineStart(code: Code): State | undefined {
-    return effects.attempt(
-      closingFence,
-      afterContent,
-      initialSize ? factorySpace(effects, chunkStart, 'linePrefix', initialSize + 1) : chunkStart,
-    )(code)
+    const content = initialSize ? factorySpace(effects, chunkStart, 'linePrefix', initialSize + 1) : chunkStart
+    if (depth > 0 || codeFence) return content(code)
+    return effects.attempt(closingFence, afterContent, content)(code)
+  }
+
+  /** Update nesting state with a finished content line. */
+  function classify(text: string) {
+    if (codeFence) {
+      const close = new RegExp(`^ {0,3}\\${codeFence.char}{${codeFence.size},}[ \\t]*$`)
+      if (close.test(text)) codeFence = undefined
+      return
+    }
+    const code = CODE_FENCE.exec(text)
+    if (code && !(code[1]![0] === '`' && code[2]!.includes('`'))) {
+      codeFence = { char: code[1]![0]!, size: code[1]!.length }
+    } else if (BARE_FENCE.test(text)) {
+      if (depth > 0) depth--
+    } else if (isOpeningFence(text)) {
+      depth++
+    }
   }
 
   function chunkStart(code: Code): State | undefined {
@@ -325,8 +368,11 @@ function tokenizeContainer(this: TokenizeContext, effects: Effects, ok: State, n
       return afterContent(code)
     }
     if (markdownLineEnding(code)) {
+      classify(line)
+      line = ''
       return effects.check(nonLazyLine, nonLazyLineAfter, lineAfter)(code)
     }
+    line += codeToString(code)
     effects.consume(code)
     return contentContinue
   }
@@ -382,7 +428,7 @@ function tokenizeContainer(this: TokenizeContext, effects: Effects, ok: State, n
         size++
         return sequence
       }
-      if (size < sizeOpen) return nok(code)
+      if (size < 3) return nok(code)
       effects.exit('blitzContainerSequence')
       return factorySpace(effects, end, 'whitespace')(code)
     }

@@ -295,14 +295,24 @@ Anything, including **markdown**, lists, fences.
 ```
 
 ```
-open  = ":::" ":"* ws? name? ws? attrs? ws?     closes with at least as many colons
+open  = ":::" ":"* ws? name? ws? attrs? ws? (":::" ":"*)? ws?
+close = ":::" ":"* ws?
 ```
 
+The rules for opening and closing are Pandoc's
+([`fenced_divs`](https://pandoc.org/MANUAL.html#extension-fenced_divs)):
+
+- An opening fence **must** have a name or an attribute block. A fence with
+  neither is always a closing fence.
+- A closing fence closes the **innermost** open container. Its colon count
+  doesn't have to match the opening fence's.
 - `name` is optional. `::: {.a .b}` is a plain `<div>`. `::: callout` adds
-  `class="callout"`, like Pandoc's `::: callout` shorthand. An opening fence
-  needs a name or an attribute block. A bare `:::` only ever closes a container.
+  `class="callout"`, like Pandoc's `::: callout` shorthand. blitzstrahl also
+  accepts a name *and* an attribute block together: `::: callout {@2}`.
 - Spaces are optional: `:::callout{@2}` and `::: callout {@2}` are equivalent.
-- Nest by using more colons on the outer container:
+- An opening fence may end in more colons, as in Pandoc: `::: Warning ::::::`.
+- Containers nest. Using longer fences for outer containers is optional, but
+  easier to read:
 
   ```markdown
   :::: columns
@@ -315,6 +325,7 @@ open  = ":::" ":"* ws? name? ws? attrs? ws?     closes with at least as many col
   ::::
   ```
 
+- Fences inside a fenced code block are code, not containers.
 - An unclosed container runs to the end of its slide and gets a warning. A
   container never spans a slide separator.
 - A bare `:::` that closes nothing is left as text, with a warning.

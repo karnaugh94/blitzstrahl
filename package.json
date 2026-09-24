@@ -10,9 +10,13 @@
     "build": "tsc -b",
     "clean": "tsc -b --clean",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "dev": "node packages/cli/dist/bin.js dev",
+    "blitz": "node packages/cli/dist/bin.js"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "@types/node": "^24.13.6",
     "typescript": "7.0.2",
     "vitest": "5.0.1"

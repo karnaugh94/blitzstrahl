@@ -7,11 +7,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./chart": {
+      "types": "./dist/chart.d.ts",
+      "default": "./dist/chart.js"
     }
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@blitzstrahl/core": "workspace:*",
-    "@blitzstrahl/runtime": "workspace:*"
+    "@blitzstrahl/runtime": "workspace:*",
+    "echarts": "^6.1.0"
   }
 }

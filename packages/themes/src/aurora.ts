@@ -128,7 +128,7 @@ table.zebra tbody tr:nth-child(odd) { background: color-mix(in srgb, var(--blitz
 /* Slide 1 defaults to the title layout (syntax.md §2.5). */
 .blitz-slide[data-layout="title"] { justify-content: center; }
 .blitz-slide[data-layout="title"] h1 {
-  font-size: var(--blitz-title); letter-spacing: -0.035em;
+  font-size: var(--blitz-title); letter-spacing: -0.035em; width: fit-content;
   background: linear-gradient(100deg, #fff 30%, var(--blitz-accent) 75%, var(--blitz-accent-2));
   -webkit-background-clip: text; background-clip: text; color: transparent;
   padding-bottom: .08em;

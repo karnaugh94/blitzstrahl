@@ -414,6 +414,8 @@ each:
 | **Entrance** | `fade`, `fade-up`, `fade-down`, `fade-left`, `fade-right`, `pop`, `zoom`, `blur-in`, `slide-in-up`, `slide-in-down`, `slide-in-left`, `slide-in-right`, `draw`, `count-up`, `typewriter` | hidden | animates in | hidden |
 | **Emphasis** | `highlight`, `strike`, `dim-others` | visible, plain | effect applied | effect removed |
 
+- Directional names give the direction of motion: `fade-up` rises into
+  place, `slide-in-left` travels leftwards from the right.
 - An element with `@n` and **no** effect uses `fade`.
 - An entrance effect with **no** `@` plays on slide entry.
 - An emphasis effect with no `@` is applied from state 0.
@@ -502,6 +504,8 @@ stack: region
   paths is up to the renderer.
 - Renderer names take priority over code languages. To show a renderer's
   source *as code*, fence it under a different language (e.g. `yaml`).
+
+Each renderer's body schema is documented in `docs/renderers/`.
 
 | Renderer | Milestone | Body |
 |---|---|---|

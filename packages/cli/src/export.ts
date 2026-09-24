@@ -14,6 +14,7 @@ import { pathToFileURL } from 'node:url'
 import type { PrintResult } from '@blitzstrahl/runtime'
 import { NO_BROWSER, launchBrowser } from './browser.js'
 import { build } from './build.js'
+import { printDiagnostics } from './report.js'
 
 export interface ExportOptions {
   /** The PDF to write. Default: the deck's name with `.pdf`, next to it. */
@@ -41,13 +42,16 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
   const tmp = await mkdtemp(join(tmpdir(), 'blitz-export-'))
   try {
     const page = join(tmp, 'deck.html')
-    const built = await build(deck, { standalone: true, outFile: page, overflowCheck: false, quiet: true, force: options.force ?? false })
+    const built = await build(deck, { standalone: true, outFile: page, overflowCheck: false, quiet: true, report: false, force: options.force ?? false })
+    // The standalone file is only a means here: its notes about the network don't apply.
+    printDiagnostics(built.diagnostics.filter((d) => d.code !== 'standalone/network'))
     if (!built.ok) return { ok: false, error: 'the deck has errors (use --force to export anyway)', warnings: [] }
 
     const browser = await launchBrowser()
     if (!browser) return { ok: false, error: `can't export: ${NO_BROWSER}`, warnings: [] }
     try {
-      const tab = await browser.newPage({ reducedMotion: 'reduce' })
+      // 2x, for sharp screenshots of embedded pages; text and charts stay vector.
+      const tab = await browser.newPage({ reducedMotion: 'reduce', deviceScaleFactor: 2 })
       await tab.goto(pathToFileURL(page).href)
       await tab.waitForFunction(() => (globalThis as { blitz?: unknown }).blitz, undefined, { timeout: 15_000 })
       const canvas = await tab.evaluate(() => (globalThis as unknown as { blitz: { canvas: { width: number; height: number } } }).blitz.canvas)
@@ -56,8 +60,9 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
         (steps) => (globalThis as unknown as { blitz: { print(o: { steps: boolean }): Promise<PrintResult> } }).blitz.print({ steps }),
         options.steps ?? false,
       )
+      const frames = await pictureFrames(tab)
       await tab.pdf({ path: file, width: `${canvas.width}px`, height: `${canvas.height}px`, printBackground: true, preferCSSPageSize: true })
-      return { ok: true, file, pages: printed.pages, warnings: printed.warnings }
+      return { ok: true, file, pages: printed.pages, warnings: [...printed.warnings, ...frames] }
     } finally {
       await browser.close()
     }
@@ -65,3 +70,53 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
     await rm(tmp, { recursive: true, force: true })
   }
 }
+
+/** Time for an embedded page's own fade-ins after its network goes quiet. */
+const FRAME_SETTLE_MS = 600
+
+type Tab = Awaited<ReturnType<NonNullable<Awaited<ReturnType<typeof launchBrowser>>>['newPage']>>
+
+/**
+ * Chromium leaves cross-origin frames blank in a PDF (they render in another
+ * process), so each embedded page is swapped for a screenshot of itself
+ * before printing (PLAN §11's "build-time screenshot fallback"). A page that
+ * didn't load is swapped for its `fallback` image, if it has one.
+ */
+async function pictureFrames(tab: Tab): Promise<string[]> {
+  const warnings: string[] = []
+  for (const handle of await tab.locator('.blitz-print iframe').elementHandles()) {
+    // Chromium doesn't render cross-origin frames that are off screen, and
+    // pages keep drawing after their `load` event (a map fetches its tiles):
+    // bring each into view and let it settle, within reason.
+    await handle.scrollIntoViewIfNeeded()
+    await tab.waitForLoadState('networkidle', { timeout: 10_000 }).catch(() => {})
+    await tab.waitForTimeout(FRAME_SETTLE_MS)
+    const src = (await handle.getAttribute('src')) ?? 'an embedded page'
+    const frame = await handle.contentFrame()
+    if (!frame || frame.url().startsWith('chrome-error:')) {
+      const fallback = await handle.evaluate((f) => (f.closest('.blitz-embed') as unknown as { dataset: { fallback?: string } } | null)?.dataset.fallback)
+      if (fallback) await swapForImage(handle, fallback, 'blitz-embed-fallback')
+      warnings.push(fallback ? `${src} didn't load; the PDF shows its fallback image` : `${src} didn't load; its frame is blank in the PDF`)
+      continue
+    }
+    const png = await handle.screenshot({ type: 'png' })
+    await swapForImage(handle, `data:image/png;base64,${png.toString('base64')}`, 'blitz-embed-shot')
+  }
+  return warnings
+}
+
+async function swapForImage(handle: Awaited<ReturnType<Tab['$']>> & object, src: string, className: string) {
+  await handle.evaluate(
+    (f, [url, cls]) => {
+      const img = f.ownerDocument.createElement('img')
+      img.className = cls!
+      img.src = url!
+      img.alt = ''
+      img.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top;max-width:none;max-height:none;border-radius:0'
+      f.replaceWith(img)
+      return img.decode().catch(() => {})
+    },
+    [src, className],
+  )
+}
+

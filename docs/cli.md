@@ -88,6 +88,8 @@ Writes the deck as a **PDF**: `talk.md` → `talk.pdf` next to it, or
   without their entrance animations. A map's street tiles and embedded pages
   come from the network at export time. If one isn't ready within 15
   seconds, it's printed as it is and `export` says which.
+- Embedded pages appear as pictures of themselves: a browser won't print
+  another site's page inside a frame.
 - Presenter notes aren't included.
 - Like `build`, a deck with errors isn't exported unless you pass `--force`.
 

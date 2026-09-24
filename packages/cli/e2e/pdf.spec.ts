@@ -1,8 +1,8 @@
 /**
  * PDF export (PLAN §6): the runtime's print layout, and `exportPdf` end to end.
  */
-import { mkdtempSync, readFileSync } from 'node:fs'
-import type { Server } from 'node:http'
+import { copyFileSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { createServer, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -84,3 +84,34 @@ test('export writes a PDF: a page per slide, at the canvas size', async () => {
   // 1280×720 CSS px = 960×540 pt.
   expect(pdf).toMatch(/\/MediaBox\s*\[0 0 960 540\]/)
 })
+
+test('embedded pages are in the PDF as pictures; one that fails prints its fallback', async () => {
+  // Chromium prints cross-origin frames blank, so export photographs them.
+  const site = createServer((_, res) => {
+    res.setHeader('content-type', 'text/html')
+    res.end('<body style="background:#fc6;font:60px sans-serif">Framed</body>')
+  })
+  await new Promise<void>((r) => site.listen(0, '127.0.0.1', r))
+  const port = (site.address() as { port: number }).port
+  const dir = mkdtempSync(join(tmpdir(), 'blitz-pdf-embed-'))
+  copyFileSync(join(here, 'fixtures/shot.svg'), join(dir, 'shot.svg'))
+  const deck = join(dir, 'deck.md')
+  writeFileSync(
+    deck,
+    `# Live\n\n\`\`\`embed\nsrc: http://127.0.0.1:${port}/\n\`\`\`\n\n---\n\n# Down\n\n\`\`\`embed\nsrc: http://127.0.0.1:9/\nfallback: ./shot.svg\n\`\`\`\n`,
+  )
+  try {
+    const r = await exportPdf(deck, { quiet: true })
+    expect(r.ok).toBe(true)
+    expect(r.warnings).toEqual(['http://127.0.0.1:9/ didn\'t load; the PDF shows its fallback image'])
+    const images = (readFileSync(r.file!, 'latin1').match(/\/Subtype\s*\/Image/g) ?? []).length
+    expect(images).toBeGreaterThanOrEqual(2)
+  } finally {
+    site.close()
+  }
+
+  // A deck without embeds or images has no pictures at all: charts stay vector.
+  const plain = await exportPdf(join(here, 'fixtures/nav.md'), { outFile: join(dir, 'nav.pdf'), quiet: true })
+  expect((readFileSync(plain.file!, 'latin1').match(/\/Subtype\s*\/Image/g) ?? []).length).toBe(0)
+})
+

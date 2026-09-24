@@ -27,7 +27,9 @@ describe('chart spec', () => {
       { name: 'North', value: 9 },
       { name: 'South', value: 6 },
     ])
-    expect(pie!.radius).toEqual([0, '74%'])
+    expect(pie!.radius).toEqual([0, '60%'])
+    const bare = series(chartOption(validate({ type: 'pie', data: rows, x: 'region', y: 'revenue', labels: false }), rows, ctx))[0]!
+    expect(bare.radius).toEqual([0, '74%'])
     const ring = series(chartOption(validate({ type: 'pie', data: rows, x: 'region', y: 'revenue', donut: true }), rows, ctx))[0]!
     expect((ring.radius as string[])[0]).not.toBe(0)
   })

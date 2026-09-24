@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.DS_Store
+*.log
+.vite/
+test-results/
+playwright-report/
+CLAUDE.md
+docs/decisions.md
+docs/STATUS.md
+PLAN.md
+

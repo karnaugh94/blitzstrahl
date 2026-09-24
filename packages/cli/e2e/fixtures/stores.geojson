@@ -1,0 +1,5 @@
+{ "type": "FeatureCollection", "features": [
+  { "type": "Feature", "properties": { "name": "Gràcia" }, "geometry": { "type": "Point", "coordinates": [2.1564, 41.4036] } },
+  { "type": "Feature", "properties": { "name": "Born" }, "geometry": { "type": "Point", "coordinates": [2.1826, 41.3851] } },
+  { "type": "Feature", "properties": { "name": "Poblenou" }, "geometry": { "type": "Point", "coordinates": [2.1998, 41.4036] } }
+] }

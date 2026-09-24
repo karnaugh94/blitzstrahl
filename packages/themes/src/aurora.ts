@@ -44,6 +44,7 @@ export const aurora = defineTheme({
     'chart-6': '#d7a6ff',
     'chart-7': '#f3e36b',
     'chart-8': '#97a2b9',
+    'map-tiles': 'invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.35)',
   },
   css: /* css */ `
 .blitz-slide {
@@ -124,6 +125,7 @@ export const aurora = defineTheme({
 .blitz-slide .center { text-align: center; align-self: center; }
 
 .blitz-slide [data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
+.blitz-slide [data-blitz-block]:has(> .blitz-map-chart) { border-radius: var(--blitz-radius); box-shadow: 0 0 0 1px var(--blitz-rule); }
 .blitz-slide [data-blitz-block]:has(> .blitz-embed) {
   border-radius: var(--blitz-radius); background: var(--blitz-surface);
   box-shadow: 0 0 0 1px var(--blitz-rule), 0 24px 60px rgba(0, 0, 0, .35);

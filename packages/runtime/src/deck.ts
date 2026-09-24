@@ -10,11 +10,19 @@ import type { BlockData, RenderInstance, RendererLoader } from './renderer.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type TransitionEngine } from './transitions.js'
 import { LayerHost, gotoPrompt, help, overview } from './ui.js'
+import { DeckBridge } from './presenter/bridge.js'
+import { PROTOCOL, isEnvelope, type PageMode } from './presenter/protocol.js'
 
 export interface StartOptions {
   /** Lazy loaders per renderer name. The entry module wires these up. */
   renderers?: Record<string, RendererLoader>
   document?: Document
+  /**
+   * `audience` (default) is the deck itself. The mirrors are the presenter
+   * view's live previews: no input, no URL, driven by their parent window;
+   * `mirror-still` also shows every state without motion.
+   */
+  mode?: Exclude<PageMode, 'presenter'>
 }
 
 interface Stepped {
@@ -63,6 +71,9 @@ export class Deck implements NavTarget {
   /** The audience sees black (`B`); navigation still works underneath. */
   blackout = false
   private readonly blackoutEl: HTMLElement
+  readonly mode: NonNullable<StartOptions['mode']>
+  /** The presenter link (audience mode only). */
+  readonly presenter: DeckBridge | undefined
 
   constructor(payload: DeckPayload, options: StartOptions = {}) {
     this.doc = options.document ?? document
@@ -72,6 +83,7 @@ export class Deck implements NavTarget {
     this.stage = this.doc.querySelector<HTMLElement>('.blitz-stage')!
     this.live = this.doc.querySelector<HTMLElement>('.blitz-sr')
     this.reduced = this.win.matchMedia('(prefers-reduced-motion: reduce)')
+    this.mode = options.mode ?? 'audience'
     this.transitions = ViewTransitionEngine.supported(this.doc) ? new ViewTransitionEngine(this.doc) : new WaapiEngine()
     this.layers = new LayerHost(this.doc)
     this.blackoutEl = this.doc.createElement('div')
@@ -79,17 +91,17 @@ export class Deck implements NavTarget {
     this.doc.body.append(this.blackoutEl)
     this.load(payload)
 
-    this.cleanups.push(
-      bindKeyboard(this.win, this, (e) => this.onKey(e)),
-      bindPointer(this.viewport, this),
-      () => this.layers.close(),
-      () => this.blackoutEl.remove(),
-    )
-
     const ro = new ResizeObserver(() => this.rescale())
     ro.observe(this.viewport)
-    this.cleanups.push(() => ro.disconnect())
+    this.cleanups.push(() => ro.disconnect(), () => this.layers.close(), () => this.blackoutEl.remove())
 
+    if (this.mode !== 'audience') {
+      this.presenter = undefined
+      this.mirror()
+      return
+    }
+
+    this.cleanups.push(bindKeyboard(this.win, this, (e) => this.onKey(e)), bindPointer(this.viewport, this))
     const onHash = () => {
       const p = parseHash(this.win.location.hash, this.ids)
       if (p) this.goto(p.slide, p.step, { history: 'none' })
@@ -99,6 +111,26 @@ export class Deck implements NavTarget {
 
     const initial = parseHash(this.win.location.hash, this.ids) ?? { slide: 0, step: 0 }
     this.goto(initial.slide, initial.step, { history: 'replace' })
+    this.presenter = new DeckBridge(this.win, this)
+    this.cleanups.push(() => this.presenter?.destroy())
+  }
+
+  /** Mirror mode: follow the parent window's `state` messages, and nothing else. */
+  private mirror() {
+    const parent = this.win.parent
+    const onMessage = (e: MessageEvent) => {
+      if (e.source !== parent || !isEnvelope(e.data) || e.data.type !== 'state') return
+      this.goto(e.data.slide, e.data.step, { history: 'none' })
+    }
+    this.win.addEventListener('message', onMessage)
+    this.cleanups.push(() => this.win.removeEventListener('message', onMessage))
+    this.goto(0, 0, { history: 'none' })
+    if (parent !== this.win) parent.postMessage({ blitz: PROTOCOL, type: 'hello', role: 'mirror' }, this.win.location.protocol === 'file:' ? '*' : this.win.location.origin)
+  }
+
+  /** No motion: reduced-motion users, and the still mirror. */
+  private get still(): boolean {
+    return this.mode === 'mirror-still' || this.reduced.matches
   }
 
   get ids(): string[] {
@@ -164,7 +196,7 @@ export class Deck implements NavTarget {
       teardown()
     }
 
-    const history = opts.history ?? (from && from.slide === to.slide ? 'replace' : 'push')
+    const history = this.mode !== 'audience' ? 'none' : (opts.history ?? (from && from.slide === to.slide ? 'replace' : 'push'))
     if (history !== 'none') {
       const url = formatHash(to, this.ids)
       if (this.win.location.hash !== url) {
@@ -250,6 +282,10 @@ export class Deck implements NavTarget {
       case 'F':
         void this.toggleFullscreen()
         return true
+      case 'p':
+      case 'P':
+        this.presenter?.openPresenter()
+        return true
     }
     return false
   }
@@ -319,7 +355,7 @@ export class Deck implements NavTarget {
     view.el.dataset.blitzCurrent = ''
     view.el.removeAttribute('aria-hidden')
     for (const s of view.stepped) delete s.phase
-    if (this.live) {
+    if (this.live && this.mode === 'audience') {
       const i = this.views.indexOf(view)
       this.live.textContent = `${view.data.title ?? `Slide ${i + 1}`} (${i + 1} of ${this.views.length})`
     }
@@ -348,7 +384,7 @@ export class Deck implements NavTarget {
    * entered slide's, backward plays the left slide's mirrored.
    */
   private slideTransition(from: number, to: number) {
-    if (this.reduced.matches) return undefined
+    if (this.still) return undefined
     const reverse = to < from
     const spec = this.payload.slides[reverse ? from : to]!.transition
     const m = slideMotion(spec.name)
@@ -364,7 +400,7 @@ export class Deck implements NavTarget {
   }
 
   private apply(view: SlideView, step: number, m: Motion) {
-    const animate = !this.reduced.matches
+    const animate = !this.still
     const dimParents = new Set<HTMLElement>()
 
     for (const s of view.stepped) {
@@ -440,7 +476,7 @@ export class Deck implements NavTarget {
       const instance = await renderer.mount(b.el, b.data.spec, {
         block: b.data,
         token: (name) => this.win.getComputedStyle(b.el).getPropertyValue(name).trim(),
-        reducedMotion: this.reduced.matches,
+        reducedMotion: this.still,
         loadAsset: (path) => this.loadAsset(path),
       })
       if (gen !== this.generation) {

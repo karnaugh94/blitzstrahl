@@ -485,6 +485,9 @@ Remember to mention the Q3 dip. **Don't** read the chart aloud.
   Never rendered to the audience.
 - A slide may have several `notes` containers. They are concatenated in order.
 - Allowed anywhere in a slide, including inside other containers.
+- Notes travel inside the built page (in an inert `<template>`, so they're
+  never rendered to the audience). Anyone with the file or the URL can read
+  them in the page source, so keep secrets out of them.
 
 ---
 

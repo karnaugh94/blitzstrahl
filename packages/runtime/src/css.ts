@@ -27,7 +27,19 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
   display: none;
   background-size: cover; background-position: center;
 }
-.blitz-slide[data-blitz-current] { display: block; }
+.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing] { display: block; }
+.blitz-slide[data-blitz-outgoing] { pointer-events: none; }
+
+/* Slide transitions (transitions.ts). The stage is snapshotted on its own,
+   and its pseudo-elements are animated from script. */
+:root { view-transition-name: none; }
+.blitz-stage { view-transition-name: blitz-stage; }
+::view-transition-group(blitz-stage) { animation: none; }
+::view-transition-image-pair(blitz-stage) { overflow: clip; }
+::view-transition-old(blitz-stage), ::view-transition-new(blitz-stage) {
+  animation: none; mix-blend-mode: normal; height: 100%;
+}
+:root[data-blitz-vt-top="old"]::view-transition-old(blitz-stage) { z-index: 1; }
 .blitz-sr {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;

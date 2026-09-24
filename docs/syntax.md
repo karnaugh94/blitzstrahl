@@ -548,6 +548,11 @@ and `reveal=rows` through a standalone attribute block (§4.2).
 - A slide's `transition` controls how that slide is **entered**. Going backwards
   from slide *n* to slide *n − 1* plays slide *n*'s transition mirrored, so
   forwards and backwards feel like the same motion.
+- Jumps follow the same rule: jumping forward (`End`, the overview, `G`)
+  plays the destination slide's transition, and jumping back plays the
+  departed slide's, mirrored.
+- Without `transition-dur`, the theme's duration applies (its
+  `transition-dur` token; aurora uses 550 ms).
 - Resolution order: slide frontmatter → first-heading shorthand → deck
   `transition` → `fade`.
 - Under reduced motion, every transition is `none`.

@@ -1,5 +1,6 @@
 ---
 title: Navigation fixture
+transition: none
 ---
 
 # One

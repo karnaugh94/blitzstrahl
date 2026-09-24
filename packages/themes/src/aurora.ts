@@ -30,6 +30,7 @@ export const aurora = defineTheme({
     'gap': '26px',
     'radius': '12px',
     'block-height': '420px',
+    'transition-dur': '550ms',
     'chart-1': '#6ff0c0',
     'chart-2': '#8f9dff',
     'chart-3': '#ffb86b',

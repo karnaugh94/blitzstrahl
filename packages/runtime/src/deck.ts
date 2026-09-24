@@ -8,6 +8,7 @@ import { needsBox, playEntrance, playExit, type Played } from './effects.js'
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
 import type { BlockData, RenderInstance, RendererLoader } from './renderer.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
+import { ViewTransitionEngine, WaapiEngine, slideMotion, type TransitionEngine } from './transitions.js'
 
 export interface StartOptions {
   /** Lazy loaders per renderer name. The entry module wires these up. */
@@ -55,6 +56,7 @@ export class Deck implements NavTarget {
   private readonly reduced: MediaQueryList
   /** Bumped whenever block instances are torn down, to drop stale async mounts. */
   private generation = 0
+  readonly transitions: TransitionEngine
 
   constructor(payload: DeckPayload, options: StartOptions = {}) {
     this.doc = options.document ?? document
@@ -64,6 +66,7 @@ export class Deck implements NavTarget {
     this.stage = this.doc.querySelector<HTMLElement>('.blitz-stage')!
     this.live = this.doc.querySelector<HTMLElement>('.blitz-sr')
     this.reduced = this.win.matchMedia('(prefers-reduced-motion: reduce)')
+    this.transitions = ViewTransitionEngine.supported(this.doc) ? new ViewTransitionEngine(this.doc) : new WaapiEngine()
     this.load(payload)
 
     this.cleanups.push(
@@ -134,12 +137,26 @@ export class Deck implements NavTarget {
     const m = motion(from, to)
     if (m === 'none') return
 
-    if (from && from.slide !== to.slide) this.leave(this.views[from.slide]!)
+    // A transition still running is settled before anything else moves.
+    this.transitions.finish()
+    const changing = !from || from.slide !== to.slide
     const view = this.views[to.slide]!
-    if (!from || from.slide !== to.slide) this.enter(view)
+    const old = from && changing ? this.views[from.slide]! : undefined
+    let teardown = () => {}
+    const commit = () => {
+      if (old) teardown = this.leave(old)
+      if (changing) this.enter(view)
+      this.apply(view, to.step, m)
+      this.syncBlocks(view, to.step)
+    }
     this.pos = to
-    this.apply(view, to.step, m)
-    this.syncBlocks(view, to.step)
+    const t = old && from ? this.slideTransition(from.slide, to.slide) : undefined
+    if (t && old) {
+      this.transitions.run({ ...t, from: old.el, to: view.el, commit, done: () => teardown() })
+    } else {
+      commit()
+      teardown()
+    }
 
     const history = opts.history ?? (from && from.slide === to.slide ? 'replace' : 'push')
     if (history !== 'none') {
@@ -154,9 +171,10 @@ export class Deck implements NavTarget {
 
   /** Swap in a rebuilt deck (dev HMR), keeping the current slide and step. */
   update(payload: DeckPayload, stageHtml: string): void {
+    this.transitions.finish()
     const at = this.pos
     const id = at ? this.ids[at.slide] : undefined
-    if (at) this.leave(this.views[at.slide]!)
+    if (at) this.leave(this.views[at.slide]!)()
     this.stage.innerHTML = stageHtml
     this.load(payload)
     this.pos = undefined
@@ -168,7 +186,8 @@ export class Deck implements NavTarget {
   }
 
   destroy(): void {
-    if (this.pos) this.leave(this.views[this.pos.slide]!)
+    this.transitions.finish()
+    if (this.pos) this.leave(this.views[this.pos.slide]!)()
     this.cleanups.forEach((c) => c())
   }
 
@@ -245,16 +264,42 @@ export class Deck implements NavTarget {
     }
   }
 
-  private leave(view: SlideView) {
+  /**
+   * Mark a slide as left. Returns the teardown of its renderers, which a
+   * transition may delay until the slide is out of sight.
+   */
+  private leave(view: SlideView): () => void {
     delete view.el.dataset.blitzCurrent
     view.el.setAttribute('aria-hidden', 'true')
     for (const s of view.stepped) s.running?.finish()
     this.generation++
-    for (const b of view.blocks) {
-      b.instance?.destroy()
+    const instances = view.blocks.map((b) => {
+      const i = b.instance
       delete b.instance
       b.loading = false
-    }
+      return i
+    })
+    return () => instances.forEach((i) => i?.destroy())
+  }
+
+  /**
+   * The transition between two slides (syntax.md §9): forward uses the
+   * entered slide's, backward plays the left slide's mirrored.
+   */
+  private slideTransition(from: number, to: number) {
+    if (this.reduced.matches) return undefined
+    const reverse = to < from
+    const spec = this.payload.slides[reverse ? from : to]!.transition
+    const m = slideMotion(spec.name)
+    if (!m) return undefined
+    return { motion: m, reverse, dur: spec.dur ?? this.defaultTransitionDur(), easing: TRANSITION_EASE }
+  }
+
+  private defaultTransitionDur(): number {
+    const v = this.win.getComputedStyle(this.stage).getPropertyValue('--blitz-transition-dur').trim()
+    const n = parseFloat(v)
+    if (!Number.isFinite(n)) return DEFAULT_TRANSITION_DUR
+    return v.endsWith('ms') ? n : v.endsWith('s') ? n * 1000 : n
   }
 
   private apply(view: SlideView, step: number, m: Motion) {
@@ -372,6 +417,10 @@ export class Deck implements NavTarget {
     }
   }
 }
+
+const DEFAULT_TRANSITION_DUR = 500
+/** Symmetric, so a mirrored transition feels like the same motion. */
+const TRANSITION_EASE = 'cubic-bezier(.65, 0, .35, 1)'
 
 function toggle(el: HTMLElement, key: string, on: boolean) {
   if (on) el.dataset[key] = ''

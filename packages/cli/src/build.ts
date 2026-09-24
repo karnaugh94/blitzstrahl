@@ -21,6 +21,8 @@ export interface BuildOptions {
   /** Build even when the deck has errors. */
   force?: boolean
   quiet?: boolean
+  /** Print the deck's diagnostics (default true). `check` reports them itself. */
+  report?: boolean
   /** Fail when a slide overflows, or when overflow can't be checked. */
   strict?: boolean
   /**
@@ -55,7 +57,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     loaded.diagnostics.push({ severity: 'warning', code: 'theme/unknown', message: warning, file: loaded.deck.source, span: { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } } })
   }
   if (options.standalone) loaded.diagnostics.push(...networkNotes(loaded.deck))
-  printDiagnostics(loaded.diagnostics)
+  if (options.report !== false) printDiagnostics(loaded.diagnostics)
   const outFile = options.standalone ? resolve(options.outFile ?? join(loaded.dir, `${basename(loaded.path, extname(loaded.path))}.html`)) : undefined
   const outDir = outFile ? dirname(outFile) : resolve(options.outDir ?? join(loaded.dir, 'dist'))
   if (hasErrors(loaded.diagnostics) && !options.force) {

@@ -445,8 +445,10 @@ Options:
 
 Custom effects register as CSS `@keyframes blitz-<name>` or through the plugin
 API **(M5)**. Using an unknown effect-looking class is not an error, since it
-could be an ordinary CSS class, but `check` lists classes that are neither a
-known effect nor used by the theme.
+could be an ordinary CSS class, but `check` lists classes (written as `.name`
+in an attribute block) that are neither a known effect nor styled by the theme
+or a `<style>` in the deck, and suggests the effect you probably meant.
+Container names (`::: stat`) aren't listed: they often group without styling.
 
 ### 6.4 `reveal`: one step per child
 

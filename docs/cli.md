@@ -4,6 +4,7 @@
 blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
 blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
 blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
+blitzstrahl check <deck.md> [--offline] [--strict]
 ```
 
 ## `dev`
@@ -91,4 +92,26 @@ Writes the deck as a **PDF**: `talk.md` → `talk.pdf` next to it, or
 - Like `build`, a deck with errors isn't exported unless you pass `--force`.
 
 `export` needs a Chromium-based browser, just like the overflow check.
+
+## `check`
+
+Finds what would go wrong **before** you're in front of a room, and points
+at each problem as `deck.md:line:col`:
+
+| Finds | Level |
+|---|---|
+| Everything `build` reports: syntax errors, unknown keys, missing images and data files | as in `build` |
+| Charts, maps and embeds that would fail: an unknown key, a column that isn't in the data, latitude and longitude swapped | error |
+| Step gaps: a press that changes nothing (`@1`, `@3`, but no `@2`) | warning |
+| A class that's close to an effect name but isn't one (`.fade-in`: did you mean `.fade`?) | warning |
+| A class that nothing styles, so it does nothing | info |
+| Slides that overflow the canvas, or clip inside a box | warning |
+| Embedded sites that refuse to be framed (`X-Frame-Options`, CSP `frame-ancestors`), are missing, or don't answer | warning |
+
+- The exit code is 1 when there are errors. With `--strict`, warnings
+  count too, which suits CI.
+- Embedded sites are asked over the network, once each (a `HEAD`
+  request). `--offline` skips that.
+- The overflow part needs a Chromium-based browser, like `build`'s. Without
+  one, `check` says it was skipped.
 

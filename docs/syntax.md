@@ -531,6 +531,15 @@ Any other fence language is a **code block**, syntax-highlighted. Its info
 string may carry an attribute block too: ```` ```js {.big @2} ````. Code-reveal
 attributes (`lines=`, per-step line highlights) are reserved for **(M4)**.
 
+- Highlighting happens when the deck is built, with
+  [shiki](https://shiki.style) and the same grammars as VS Code, so the page
+  ships coloured text and no highlighter.
+- The language is the fence's first word (`ts`, `python`, `sh`, …; the usual
+  aliases work). `text`, or no language at all, means plain code. A language
+  shiki doesn't know is a warning, and the block is shown as plain code.
+- Colours come from the theme's `code-*` tokens, so code
+  matches the deck.
+
 GFM tables take `.sortable`, `.zebra` and `reveal=rows` through a standalone
 attribute block (§4.2). A `.sortable` table is enhanced in place by the
 `table` renderer, but it stays an ordinary table in the page. See

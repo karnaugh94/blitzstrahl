@@ -21,6 +21,7 @@
     "@types/hast": "^3.0.5",
     "hast-util-to-html": "^9.0.5",
     "playwright-core": "1.63.0",
+    "shiki": "^4.4.3",
     "vite": "^8.3.0"
   },
   "bin": {

@@ -29,6 +29,16 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
 }
 .blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-slide[data-blitz-measure], .blitz-thumb-canvas > .blitz-slide { display: block; }
 
+/* Print layout (print.ts): while it exists, it's the whole page. */
+html[data-blitz-printing], html[data-blitz-printing] body { height: auto; overflow: visible; background: none; }
+html[data-blitz-printing] body > :not(.blitz-print) { display: none !important; }
+.blitz-print > .blitz-slide {
+  display: block; position: relative; inset: auto; overflow: hidden;
+  width: var(--blitz-canvas-w); height: var(--blitz-canvas-h);
+  break-after: page; break-inside: avoid;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+
 /* Overflow detector (overflow.ts): slides are measured as hidden clones. */
 .blitz-measure { position: absolute; inset: 0; visibility: hidden; pointer-events: none; }
 [data-blitz-overflow] { outline: 3px dashed #ff4d6d !important; outline-offset: 2px; }

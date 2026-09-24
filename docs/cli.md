@@ -3,6 +3,7 @@
 ```
 blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
 blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
+blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
 ```
 
 ## `dev`
@@ -69,4 +70,25 @@ standalone file:
   (`docs/renderers/embed.md`).
 
 `build` notes both when the deck has them.
+
+## `export`
+
+Writes the deck as a **PDF**: `talk.md` → `talk.pdf` next to it, or
+`--out` to choose.
+
+- One page per slide, showing the slide at its **final step**, with
+  everything revealed.
+- `--steps` gives a page for **every step** instead: the slide as it looks
+  on arrival, then after each press. Good for handouts, or for sharing a
+  talk that builds up an argument.
+- Pages are the canvas size (1280×720 unless the deck sets `canvas`), text
+  stays selectable text, and charts are vector graphics.
+- Charts, maps and embeds are drawn in full before the page is printed,
+  without their entrance animations. A map's street tiles and embedded pages
+  come from the network at export time. If one isn't ready within 15
+  seconds, it's printed as it is and `export` says which.
+- Presenter notes aren't included.
+- Like `build`, a deck with errors isn't exported unless you pass `--force`.
+
+`export` needs a Chromium-based browser, just like the overflow check.
 

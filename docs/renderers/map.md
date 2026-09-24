@@ -60,5 +60,5 @@ change the slide. Leaving the slide and coming back resets the view.
   under the [OSM tile usage policy](https://operations.osmfoundation.org/policies/tiles/).
   A talk is light use. For anything heavier (a deck on a busy website, say),
   set `tiles` to a provider you have an account with.
-- Tiles are raster images, so a PDF includes them as they looked when
-  exported.
+- In a PDF (`blitzstrahl export`), markers and regions stay vector
+  graphics, and the tiles are images, as they loaded at export time.

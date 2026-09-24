@@ -49,4 +49,5 @@ Be ready for these before you're in front of a room.
 - **A clicked frame keeps the keyboard.** When you click into an embedded
   page, your key presses (and a clicker's) go to that page, not the deck.
   Click the slide outside the frame to take them back.
-- In a PDF, the frame is printed as it looks when the slide is exported.
+- In a PDF (`blitzstrahl export`), the frame shows the page as it loaded at
+  export time. `fallback` isn't used there unless the computer is offline.

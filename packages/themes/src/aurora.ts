@@ -153,6 +153,11 @@ export const aurora = defineTheme({
   -webkit-background-clip: text; background-clip: text; color: transparent;
   padding-bottom: .08em;
 }
+/* Chromium's PDF output draws the edge of a text-clipped gradient's box
+   around the text; print the title solid instead. */
+@media print {
+  [data-layout="title"] h1, [data-layout="end"] h1 { background: none; color: #fff; }
+}
 [data-layout="title"] h1 + p, [data-layout="title"] h2,
 [data-layout="end"] h1 + p, [data-layout="end"] h2 { color: var(--blitz-fg-muted); font-weight: 400; font-size: 34px; }
 

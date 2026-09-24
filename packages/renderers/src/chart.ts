@@ -75,11 +75,13 @@ const chart: Renderer = {
     const spec = validate(raw)
     const option = await buildOption(spec, ctx)
     const instance = echarts.init(el, themeName(ctx), { renderer: 'svg' })
+    const ready = new Promise<void>((resolve) => instance.on('finished', () => resolve()))
     instance.setOption(option)
     return {
       update() {},
       resize: () => instance.resize(),
       destroy: () => instance.dispose(),
+      ready,
     }
   },
 }

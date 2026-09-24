@@ -6,7 +6,8 @@
 import type { AnimSpec, DeckPayload, EffectKind, PayloadSlide, StepRange } from '@blitzstrahl/core'
 import { needsBox, playEntrance, playExit, type Played } from './effects.js'
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
-import type { BlockData, RenderInstance, RendererLoader } from './renderer.js'
+import type { BlockData, RenderCtx, RenderInstance, Renderer, RendererLoader } from './renderer.js'
+import { buildPrint, type PrintOptions, type PrintResult } from './print.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type TransitionEngine } from './transitions.js'
 import { LayerHost, gotoPrompt, help, overview } from './ui.js'
@@ -197,6 +198,11 @@ export class Deck implements NavTarget {
     return this.payload.slides.map((s) => s.steps)
   }
 
+  /** The logical canvas size (syntax.md §3.1). */
+  get canvas(): { width: number; height: number } {
+    return this.payload.canvas
+  }
+
   get slideCount(): number {
     return this.views.length
   }
@@ -285,6 +291,36 @@ export class Deck implements NavTarget {
     )
   }
 
+  private printed: { remove(): void } | undefined
+
+  /**
+   * Lay the deck out for printing (PDF export, PLAN §6): every slide as a
+   * page at its final step, or every step as a page. Resolves when all of
+   * it has loaded. The deck stays hidden behind the pages afterwards.
+   */
+  async print(options: PrintOptions = {}): Promise<PrintResult> {
+    this.transitions.finish()
+    this.layers.close()
+    this.setBlackout(false)
+    this.printed?.remove()
+    const built = await buildPrint(
+      {
+        doc: this.doc,
+        sections: this.views.map((v) => v.el),
+        slides: this.payload.slides,
+        canvas: this.payload.canvas,
+        mount: async (el, block, step) => {
+          const instance = await (await this.renderer(block.renderer)).mount(el, block.spec, this.renderCtx(el, block, true))
+          instance.update(step)
+          return instance
+        },
+      },
+      options,
+    )
+    this.printed = built
+    return built.result
+  }
+
   /** Swap in a rebuilt deck (dev HMR), keeping the current slide and step. */
   update(payload: DeckPayload, stageHtml: string): void {
     this.transitions.finish()
@@ -303,6 +339,7 @@ export class Deck implements NavTarget {
   }
 
   destroy(): void {
+    this.printed?.remove()
     this.transitions.finish()
     if (this.pos) this.leave(this.views[this.pos.slide]!)()
     this.cleanups.forEach((c) => c())
@@ -527,22 +564,13 @@ export class Deck implements NavTarget {
   private async mount(b: BlockView, step: number) {
     const gen = this.generation
     b.loading = true
-    const loader = this.renderers[b.data.renderer]
     try {
-      if (!loader) throw new Error(`No \`${b.data.renderer}\` renderer in this build.`)
-      const mod = await loader()
-      const renderer = 'default' in mod ? mod.default : mod
+      const renderer = await this.renderer(b.data.renderer)
       if (gen !== this.generation) return
       b.error?.remove()
       delete b.error
       if (!b.enhance) b.el.replaceChildren()
-      const instance = await renderer.mount(b.el, b.data.spec, {
-        block: b.data,
-        token: (name) => this.win.getComputedStyle(b.el).getPropertyValue(name).trim(),
-        reducedMotion: this.still,
-        loadAsset: (path) => this.loadAsset(path),
-        assetUrl: (path) => new URL(this.payload.urls[path] ?? path, this.doc.baseURI).href,
-      })
+      const instance = await renderer.mount(b.el, b.data.spec, this.renderCtx(b.el, b.data, this.still))
       if (gen !== this.generation) {
         instance.destroy()
         return
@@ -561,6 +589,23 @@ export class Deck implements NavTarget {
       console.error(`[blitzstrahl] ${b.data.id}:`, err)
     } finally {
       b.loading = false
+    }
+  }
+
+  private async renderer(name: string): Promise<Renderer> {
+    const loader = this.renderers[name]
+    if (!loader) throw new Error(`No \`${name}\` renderer in this build.`)
+    const mod = await loader()
+    return 'default' in mod ? mod.default : mod
+  }
+
+  private renderCtx(el: HTMLElement, block: BlockData, still: boolean): RenderCtx {
+    return {
+      block,
+      token: (name) => this.win.getComputedStyle(el).getPropertyValue(name).trim(),
+      reducedMotion: still,
+      loadAsset: (path) => this.loadAsset(path),
+      assetUrl: (path) => new URL(this.payload.urls[path] ?? path, this.doc.baseURI).href,
     }
   }
 

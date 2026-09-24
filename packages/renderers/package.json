@@ -11,6 +11,10 @@
     "./chart": {
       "types": "./dist/chart.d.ts",
       "default": "./dist/chart.js"
+    },
+    "./table": {
+      "types": "./dist/table.d.ts",
+      "default": "./dist/table.js"
     }
   },
   "files": [

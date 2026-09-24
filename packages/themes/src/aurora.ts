@@ -107,6 +107,7 @@ export const aurora = defineTheme({
 .blitz-slide th { color: var(--blitz-fg-muted); font-weight: 600; text-transform: uppercase; font-size: .8em; letter-spacing: .06em; }
 .blitz-slide th[align="right"], .blitz-slide td[align="right"] { text-align: right; }
 .blitz-slide th[align="center"], .blitz-slide td[align="center"] { text-align: center; }
+.blitz-slide th[aria-sort] { color: var(--blitz-accent); }
 .blitz-slide table.zebra tbody tr:nth-child(odd) { background: color-mix(in srgb, var(--blitz-surface-2) 70%, transparent); }
 
 .blitz-slide .callout {

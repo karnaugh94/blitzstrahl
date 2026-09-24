@@ -46,8 +46,12 @@ interface Stepped {
 interface BlockView {
   el: HTMLElement
   data: BlockData
+  /** The element is authored HTML the renderer enhances, not a placeholder to fill. */
+  enhance: boolean
   instance?: RenderInstance
   loading?: boolean
+  /** The last mount's error message, if it failed. */
+  error?: HTMLElement
 }
 
 interface SlideView {
@@ -379,14 +383,15 @@ export class Deck implements NavTarget {
     }
     const blocks: BlockView[] = []
     for (const b of data.blocks) {
-      const node = el.querySelector<HTMLElement>(`[data-blitz-block="${CSS.escape(b.id)}"]`)
+      const id = CSS.escape(b.id)
+      const node = el.querySelector<HTMLElement>(`[data-blitz-block="${id}"], [data-blitz-enhance="${id}"]`)
       if (!node) continue
       node.dataset.blitzInteractive = ''
       for (const dim of ['width', 'height'] as const) {
         const v = node.getAttribute(dim)
         if (v) node.style[dim] = /^\d+$/.test(v) ? `${v}px` : v
       }
-      blocks.push({ el: node, data: b })
+      blocks.push({ el: node, data: b, enhance: node.dataset.blitzEnhance !== undefined })
     }
     return { el, data, stepped, blocks }
   }
@@ -528,7 +533,9 @@ export class Deck implements NavTarget {
       const mod = await loader()
       const renderer = 'default' in mod ? mod.default : mod
       if (gen !== this.generation) return
-      b.el.replaceChildren()
+      b.error?.remove()
+      delete b.error
+      if (!b.enhance) b.el.replaceChildren()
       const instance = await renderer.mount(b.el, b.data.spec, {
         block: b.data,
         token: (name) => this.win.getComputedStyle(b.el).getPropertyValue(name).trim(),
@@ -546,7 +553,10 @@ export class Deck implements NavTarget {
       const box = this.doc.createElement('div')
       box.className = 'blitz-block-error'
       box.textContent = `${b.data.renderer}: ${err instanceof Error ? err.message : String(err)}`
-      b.el.replaceChildren(box)
+      b.error?.remove()
+      b.error = box
+      if (b.enhance) b.el.before(box)
+      else b.el.replaceChildren(box)
       console.error(`[blitzstrahl] ${b.data.id}:`, err)
     } finally {
       b.loading = false

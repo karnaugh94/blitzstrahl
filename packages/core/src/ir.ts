@@ -74,7 +74,9 @@ export interface Slide {
    * Stepped elements carry `data-blitz-step-in` and
    * optionally `data-blitz-step-out` (last visible step, inclusive), plus
    * `data-blitz-anim` referencing `Slide.anims`. Render blocks appear as
-   * `<div data-blitz-block="<RenderBlock.id>">` placeholders.
+   * `<div data-blitz-block="<RenderBlock.id>">` placeholders, which the
+   * renderer fills, except blocks that enhance authored HTML (a sortable
+   * `<table>`): that element carries `data-blitz-enhance="<RenderBlock.id>"`.
    */
   content: HastNode[]
   /** Animation specs referenced from `content` by index. */
@@ -137,9 +139,9 @@ export interface AnimSpec {
 export interface RenderBlock {
   /** Deck-unique id, matching the `data-blitz-block` placeholder. */
   id: string
-  /** Renderer name: 'chart' | 'map' | 'embed' | 'mermaid' | 'math' | plugin names. */
+  /** Renderer name: 'chart' | 'map' | 'embed' | 'table' | 'mermaid' | 'math' | plugin names. */
   renderer: string
-  /** Fence body exactly as written. */
+  /** Fence body exactly as written; empty for blocks that enhance authored HTML. */
   source: string
   /**
    * Parsed body. For YAML-bodied renderers this is the parsed value with

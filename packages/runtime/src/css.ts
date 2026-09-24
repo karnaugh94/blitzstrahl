@@ -60,6 +60,19 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
 [data-blitz-box] { display: inline-block; }
 [data-blitz-block] { position: relative; }
 
+/* Sortable tables (renderers/table.ts): header buttons that look like headers. */
+.blitz-sort {
+  all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: .35em;
+  font: inherit; color: inherit; letter-spacing: inherit; text-transform: inherit;
+}
+.blitz-sort:focus-visible { outline: 2px solid var(--blitz-accent, currentColor); outline-offset: 3px; border-radius: 3px; }
+.blitz-sort::after {
+  content: ""; width: .5em; height: .5em; opacity: .35; flex: none;
+  background: currentColor; clip-path: polygon(50% 0, 100% 40%, 0 40%, 50% 0, 50% 100%, 100% 60%, 0 60%, 50% 100%);
+}
+th[aria-sort="ascending"] > .blitz-sort::after { opacity: 1; clip-path: polygon(50% 15%, 100% 75%, 0 75%); }
+th[aria-sort="descending"] > .blitz-sort::after { opacity: 1; clip-path: polygon(0 25%, 100% 25%, 50% 85%); }
+
 [data-blitz-fx="highlight"], [data-blitz-fx="strike"] {
   background-repeat: no-repeat;
   background-size: 0% 100%;

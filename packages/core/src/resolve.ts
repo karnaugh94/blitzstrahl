@@ -240,6 +240,15 @@ export function resolveSlide(
       }
     }
 
+    // A sortable table stays authored HTML; the `table` renderer enhances it (§8).
+    if (node.type === 'table' && classes.includes('sortable')) {
+      const block: RenderBlock = { id: `table-${++ctx.blockCount}`, renderer: 'table', source: '', spec: { sortable: true }, span: spanOf(node.position) }
+      if (range) block.step = range
+      if (animIndex !== undefined) block.anim = anims[animIndex]!
+      blocks.push(block)
+      props.dataBlitzEnhance = block.id
+    }
+
     if (classes.length) props.className = classes
     setProps(node, props)
     return range && anims[animIndex ?? -1]?.kind !== 'emphasis' ? range : undefined

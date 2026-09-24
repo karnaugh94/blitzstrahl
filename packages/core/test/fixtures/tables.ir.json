@@ -1,0 +1,488 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "tables.md",
+    "meta": {
+      "lang": "en",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1280,
+        "height": 720
+      },
+      "transition": {
+        "name": "fade"
+      },
+      "extra": {},
+      "title": "Tables"
+    },
+    "slides": [
+      {
+        "id": "tables",
+        "index": 0,
+        "layout": "title",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 2,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Tables"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "table",
+                "properties": {
+                  "dataBlitzStepIn": 1,
+                  "dataBlitzAnim": 0,
+                  "dataBlitzEnhance": "table-1",
+                  "className": [
+                    "sortable",
+                    "zebra"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "thead",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "tr",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "th",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "City"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "th",
+                            "properties": {
+                              "align": "right"
+                            },
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "Stores"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "tbody",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "tr",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "Barcelona"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {
+                              "align": "right"
+                            },
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "12"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "tr",
+                        "properties": {
+                          "dataBlitzStepIn": 2,
+                          "dataBlitzAnim": 0
+                        },
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "Lisbon"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {
+                              "align": "right"
+                            },
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "7"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "fade-left",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [
+          {
+            "id": "table-1",
+            "renderer": "table",
+            "source": "",
+            "spec": {
+              "sortable": true
+            },
+            "span": {
+              "start": {
+                "line": 3,
+                "column": 1
+              },
+              "end": {
+                "line": 6,
+                "column": 15
+              }
+            },
+            "step": {
+              "in": 1
+            },
+            "anim": {
+              "effect": "fade-left",
+              "kind": "entrance",
+              "options": {}
+            }
+          }
+        ],
+        "span": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 9,
+            "column": 1
+          }
+        },
+        "title": "Tables"
+      },
+      {
+        "id": "plain",
+        "index": 1,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Plain"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "table",
+                "properties": {
+                  "className": [
+                    "zebra"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "thead",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "tr",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "th",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "A"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "th",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "B"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "tbody",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "tr",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "1"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "2"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 11,
+            "column": 1
+          },
+          "end": {
+            "line": 19,
+            "column": 1
+          }
+        },
+        "title": "Plain"
+      }
+    ],
+    "assets": []
+  },
+  "diagnostics": []
+}

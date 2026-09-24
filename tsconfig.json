@@ -1,0 +1,10 @@
+{
+  "files": [],
+  "references": [
+    { "path": "packages/core" },
+    { "path": "packages/runtime" },
+    { "path": "packages/renderers" },
+    { "path": "packages/themes" },
+    { "path": "packages/cli" }
+  ]
+}

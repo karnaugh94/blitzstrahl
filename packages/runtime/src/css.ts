@@ -60,6 +60,17 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
 [data-blitz-box] { display: inline-block; }
 [data-blitz-block] { position: relative; }
 
+/* Embeds (renderers/embed.ts). */
+.blitz-embed { position: absolute; inset: 0; overflow: hidden; border-radius: inherit; }
+.blitz-embed iframe { display: block; width: 100%; height: 100%; border: 0; }
+.blitz-embed:not([data-loading]) iframe { background: #fff; }
+.blitz-embed[data-loading]::before, .blitz-embed-offline {
+  position: absolute; inset: 0; margin: 0; display: grid; place-items: center;
+  font-size: 20px; opacity: .6;
+}
+.blitz-embed[data-loading]::before { content: "Loading " attr(data-loading) "\\2026"; }
+.blitz-embed-fallback { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+
 /* Sortable tables (renderers/table.ts): header buttons that look like headers. */
 .blitz-sort {
   all: unset; cursor: pointer; display: inline-flex; align-items: center; gap: .35em;

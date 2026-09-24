@@ -15,6 +15,8 @@ export interface RenderCtx {
   reducedMotion: boolean
   /** Text of a deck-relative asset (inlined by the build, else fetched). */
   loadAsset(path: string): Promise<string>
+  /** The URL the page serves a deck-relative asset (an image) from. */
+  assetUrl(path: string): string
 }
 
 export interface RenderInstance {

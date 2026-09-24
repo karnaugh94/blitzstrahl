@@ -523,7 +523,7 @@ Each renderer's body schema is documented in `docs/renderers/`.
 |---|---|---|
 | `chart` | M1 (bar, line); M3 (pie, scatter) | YAML |
 | `map` | M3 | YAML |
-| `embed` | M3 | YAML: `src`, optional `fallback` image |
+| `embed` | M3 | YAML: `src`, optional `fallback` image, `zoom`, `title` |
 | `mermaid` | M4 | text |
 | `math` | M4 | text (TeX, display mode). Same as `$$…$$` (§12) |
 

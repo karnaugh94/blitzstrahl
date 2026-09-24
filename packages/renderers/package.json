@@ -15,6 +15,10 @@
     "./table": {
       "types": "./dist/table.d.ts",
       "default": "./dist/table.js"
+    },
+    "./embed": {
+      "types": "./dist/embed.d.ts",
+      "default": "./dist/embed.js"
     }
   },
   "files": [

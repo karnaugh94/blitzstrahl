@@ -352,22 +352,6 @@
     {
       "severity": "warning",
       "code": "not-yet-supported",
-      "message": "the `map` renderer is not yet supported (arrives in M3); ignored for now",
-      "file": "renderers.md",
-      "span": {
-        "start": {
-          "line": 24,
-          "column": 1
-        },
-        "end": {
-          "line": 26,
-          "column": 4
-        }
-      }
-    },
-    {
-      "severity": "warning",
-      "code": "not-yet-supported",
       "message": "the `mermaid` renderer is not yet supported (arrives in M4); ignored for now",
       "file": "renderers.md",
       "span": {

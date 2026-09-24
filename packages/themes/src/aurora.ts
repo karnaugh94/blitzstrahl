@@ -124,6 +124,11 @@ export const aurora = defineTheme({
 .blitz-slide .center { text-align: center; align-self: center; }
 
 .blitz-slide [data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
+.blitz-slide [data-blitz-block]:has(> .blitz-embed) {
+  border-radius: var(--blitz-radius); background: var(--blitz-surface);
+  box-shadow: 0 0 0 1px var(--blitz-rule), 0 24px 60px rgba(0, 0, 0, .35);
+}
+.blitz-slide .blitz-embed-fallback { border-radius: 0; max-width: none; max-height: none; }
 .blitz-slide .footnotes { margin-top: auto; font-size: 16px; color: var(--blitz-fg-muted); }
 .blitz-slide .footnotes h2 { display: none; }
 .blitz-slide .footnotes ol { gap: 0; }

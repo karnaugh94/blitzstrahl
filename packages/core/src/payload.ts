@@ -24,9 +24,14 @@ export interface DeckPayload {
    * them. The runtime fetches anything missing from here.
    */
   inline: Record<string, string>
+  /**
+   * Page URL of every other local asset (images), keyed by deck-relative
+   * path, for renderers that show one (an embed's fallback, say).
+   */
+  urls: Record<string, string>
 }
 
-export function toPayload(deck: Deck, inline: Record<string, string> = {}): DeckPayload {
+export function toPayload(deck: Deck, inline: Record<string, string> = {}, assetUrl: (path: string) => string = (p) => p): DeckPayload {
   return {
     title: deck.meta.title,
     lang: deck.meta.lang,
@@ -43,5 +48,6 @@ export function toPayload(deck: Deck, inline: Record<string, string> = {}): Deck
       return slide
     }),
     inline,
+    urls: Object.fromEntries(deck.assets.filter((a) => a.kind !== 'data').map((a) => [a.path, assetUrl(a.path)])),
   }
 }

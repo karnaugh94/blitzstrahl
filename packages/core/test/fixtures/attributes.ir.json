@@ -12,6 +12,7 @@
       "transition": {
         "name": "fade"
       },
+      "plugins": [],
       "extra": {},
       "title": "Heading"
     },

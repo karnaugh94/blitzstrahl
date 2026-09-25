@@ -4,18 +4,12 @@
  */
 import type { Element, ElementContent, Root } from 'hast'
 import { toHtml } from 'hast-util-to-html'
-import { isImageBackground, toPayload, type Deck, type Diagnostic, type HastNode } from '@blitzstrahl/core'
+import { isImageBackground, toPayload, type Deck, type Diagnostic, type HastNode, type PayloadPlugins } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
-import { themes, type Theme } from '@blitzstrahl/themes'
+import type { Theme } from '@blitzstrahl/themes'
 
 /** Maps a deck-relative asset path to the URL the page should use. */
 export type AssetUrl = (path: string) => string
-
-export function resolveTheme(name: string): { theme: Theme; warning?: string } {
-  const theme = themes[name]
-  if (theme) return { theme }
-  return { theme: themes.aurora!, warning: `unknown theme \`${name}\`; using aurora (third-party themes arrive in M5)` }
-}
 
 /** Rewrites local image `src`s to the URLs the page serves them from. */
 function imageRewriter(deck: Deck, assetUrl: AssetUrl) {
@@ -86,8 +80,10 @@ export interface PageOptions {
   entry: { src: string } | { code: string }
   /** Dev only: shown in the browser console. */
   diagnostics?: Diagnostic[]
-  /** More CSS after the theme's: KaTeX's, when the deck has math. */
+  /** More CSS after the theme's: theme fonts, plugin effects, KaTeX's when the deck has math. */
   css?: string
+  /** What plugins add to the payload. */
+  plugins?: PayloadPlugins
 }
 
 /** A deck with external chunks can't run from a file (module scripts need HTTP); say so. */
@@ -102,7 +98,7 @@ if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded',
 `
 
 export function renderPage(o: PageOptions): string {
-  const payload = toPayload(o.deck, o.inline, o.assetUrl)
+  const payload = toPayload(o.deck, o.inline, o.assetUrl, o.plugins)
   const json = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c')
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
   return `<!doctype html>

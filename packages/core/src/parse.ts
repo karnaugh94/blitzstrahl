@@ -8,15 +8,20 @@ import { SLIDE_KEYS, layoutName, mergeTransition, milliseconds, resolveDeckMeta,
 import { resolveSlide, type DeckContext } from './resolve.js'
 import { keySpan, splitSlides } from './split.js'
 import { parseMarkdown } from './syntax/index.js'
+import { EFFECTS, RENDERERS, type Extensions } from './vocab.js'
 
 export interface ParseOptions {
   /** Path of the markdown file, used in diagnostics and `Deck.source`. */
   file?: string
+  /** Renderers, effects and frontmatter keys added by plugins. */
+  extensions?: Extensions
 }
 
 export interface ParseResult {
   deck: Deck
   diagnostics: Diagnostic[]
+  /** Where each deck frontmatter key is written, e.g. `plugins`, for diagnostics about its value. */
+  keySpans: Record<string, SourceSpan>
 }
 
 /** Markdown → Deck IR. Pure: no I/O, never throws on bad input. */
@@ -31,8 +36,16 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
   checkContainers(root, lines, diags)
 
   const split = splitSlides(root, lines, diags)
-  const meta = resolveDeckMeta(split.deckFrontmatter, diags)
-  const ctx: DeckContext = { diags, ids: new Set(), assets: [], blockCount: 0 }
+  const ext = options.extensions ?? {}
+  const meta = resolveDeckMeta(split.deckFrontmatter, diags, ext.keys)
+  const ctx: DeckContext = {
+    diags,
+    ids: new Set(),
+    assets: [],
+    blockCount: 0,
+    renderers: { ...RENDERERS, ...ext.renderers },
+    effects: { ...EFFECTS, ...ext.effects },
+  }
   const slideIds = new Set<string>()
 
   const slides = split.slides.map((raw, index): Slide => {
@@ -111,7 +124,7 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
     assets: ctx.assets,
   }
   diags.list.sort((a, b) => a.span.start.line - b.span.start.line || a.span.start.column - b.span.start.column)
-  return { deck, diagnostics: diags.list }
+  return { deck, diagnostics: diags.list, keySpans: split.deckFrontmatter?.keys ?? {} }
 }
 
 /** HTML comments are dropped from the output (syntax.md §1). */

@@ -7,6 +7,18 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./plugin": {
+      "types": "./dist/plugin.d.ts",
+      "default": "./dist/plugin.js"
+    },
+    "./theme": {
+      "types": "./dist/theme.d.ts",
+      "default": "./dist/theme.js"
+    },
+    "./renderer": {
+      "types": "./dist/renderer.d.ts",
+      "default": "./dist/renderer.js"
     }
   },
   "files": [
@@ -20,6 +32,7 @@
     "@blitzstrahl/themes": "workspace:*",
     "@types/hast": "^3.0.5",
     "hast-util-to-html": "^9.0.5",
+    "import-meta-resolve": "^4.2.0",
     "katex": "^0.18.9",
     "playwright-core": "1.63.0",
     "shiki": "^4.4.3",

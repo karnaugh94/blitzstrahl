@@ -4,7 +4,8 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, dirname, extname, join, relative, resolve } from 'node:path'
 import { build as viteBuild, type Rolldown } from 'vite'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
-import { renderPage, resolveTheme } from './html.js'
+import { fontCss } from './extend.js'
+import { renderPage } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
 import { hasMath, mathCss, mathFont } from './math.js'
 import { checkBuiltOverflow } from './overflow.js'
@@ -55,10 +56,8 @@ export interface BuildResult {
 
 export async function build(deckPath: string, options: BuildOptions = {}): Promise<BuildResult> {
   const loaded = await loadDeck(deckPath, relative(process.cwd(), resolve(deckPath)) || deckPath)
-  const { theme, warning } = resolveTheme(loaded.deck.meta.theme)
-  if (warning) {
-    loaded.diagnostics.push({ severity: 'warning', code: 'theme/unknown', message: warning, file: loaded.deck.source, span: { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } } })
-  }
+  const { theme } = loaded.extras
+  const renderers = usedRenderers(loaded.deck, loaded.extras.renderers)
   if (options.standalone) loaded.diagnostics.push(...networkNotes(loaded.deck))
   if (options.report !== false) printDiagnostics(loaded.diagnostics)
   const outFile = options.standalone ? resolve(options.outFile ?? join(loaded.dir, `${basename(loaded.path, extname(loaded.path))}.html`)) : undefined
@@ -68,7 +67,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   }
 
   if (outFile) {
-    const code = await bundleStandalone(loaded.dir, cacheDir(loaded.dir), usedRenderers(loaded.deck), options.quiet)
+    const code = await bundleStandalone(loaded.dir, cacheDir(loaded.dir), renderers, options.quiet)
     const uris = new Map<string, string>()
     for (const asset of loaded.deck.assets) {
       const file = loaded.files.get(asset.path)
@@ -76,8 +75,12 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
       const uri = await dataUri(file)
       if (uri) uris.set(asset.path, uri)
     }
-    const css = hasMath(loaded.deck) ? await mathCss(async (file) => (await dataUri(mathFont(file)))!, loaded.deck) : undefined
-    const html = renderPage({ deck: loaded.deck, inline: loaded.inline, theme, entry: { code: inlineSafe(code) }, assetUrl: (p) => uris.get(p) ?? p, ...(css ? { css } : {}) })
+    const css = [
+      await fontCss(loaded.extras.fonts, async (file) => (await dataUri(file))!),
+      loaded.css,
+      hasMath(loaded.deck) ? await mathCss(async (file) => (await dataUri(mathFont(file)))!, loaded.deck) : '',
+    ].join('\n')
+    const html = renderPage({ deck: loaded.deck, inline: loaded.inline, theme, entry: { code: inlineSafe(code) }, assetUrl: (p) => uris.get(p) ?? p, css, plugins: loaded.plugins })
     await mkdir(outDir, { recursive: true })
     await writeFile(outFile, html)
     const size = Buffer.byteLength(html)
@@ -94,7 +97,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     cacheDir: cacheDir(loaded.dir),
     publicDir: false,
     logLevel: options.quiet ? 'silent' : 'warn',
-    plugins: [virtualEntry(STATIC_ENTRY, staticEntry(usedRenderers(loaded.deck)))],
+    plugins: [virtualEntry(STATIC_ENTRY, staticEntry(renderers))],
     build: {
       outDir,
       emptyOutDir: true,
@@ -123,20 +126,18 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     } catch {
       continue // reported as asset/missing
     }
-    const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 8)
-    const ext = extname(src)
-    const name = `assets/${basename(src, ext)}-${hash}${ext}`
-    await copyFile(src, join(outDir, name))
-    urls.set(asset.path, name)
+    urls.set(asset.path, await copyHashed(src, outDir, 'assets', bytes))
   }
 
-  let css: string | undefined
+  const css = [await fontCss(loaded.extras.fonts, (file) => copyHashed(file, outDir, 'assets/fonts')), loaded.css]
   if (hasMath(loaded.deck)) {
     await mkdir(join(outDir, 'assets', 'katex'), { recursive: true })
-    css = await mathCss(async (file) => {
-      await copyFile(mathFont(file), join(outDir, 'assets', 'katex', file))
-      return `assets/katex/${file}`
-    })
+    css.push(
+      await mathCss(async (file) => {
+        await copyFile(mathFont(file), join(outDir, 'assets', 'katex', file))
+        return `assets/katex/${file}`
+      }),
+    )
   }
   const html = renderPage({
     deck: loaded.deck,
@@ -144,7 +145,8 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     theme,
     entry: { src: `./${entry.fileName}` },
     assetUrl: (p) => urls.get(p) ?? p,
-    ...(css ? { css } : {}),
+    css: css.join('\n'),
+    plugins: loaded.plugins,
   })
   const index = join(outDir, 'index.html')
   await writeFile(index, html)
@@ -152,6 +154,17 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
 }
 
 const STATIC_ENTRY = 'virtual:blitzstrahl-deck'
+
+/** Copy `src` into `outDir/folder`, content-hashed like the chunks; returns its page-relative URL. */
+async function copyHashed(src: string, outDir: string, folder: string, bytes?: Buffer): Promise<string> {
+  bytes ??= await readFile(src)
+  const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 8)
+  const ext = extname(src)
+  const name = `${folder}/${basename(src, ext)}-${hash}${ext}`
+  await mkdir(join(outDir, folder), { recursive: true })
+  await writeFile(join(outDir, name), bytes)
+  return name
+}
 
 /** A standalone file that's bigger than this gets a warning. */
 export const STANDALONE_WARN_BYTES = 8 * 1024 * 1024

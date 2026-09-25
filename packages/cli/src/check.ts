@@ -12,8 +12,7 @@ import type { Deck, Diagnostic, HastNode, SourceSpan } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
 import { mermaidProblem, specProblem } from '@blitzstrahl/renderers/specs'
 import { build } from './build.js'
-import { resolveTheme } from './html.js'
-import { loadDeck, type LoadedDeck } from './load.js'
+import { deckStyles, loadDeck, type LoadedDeck } from './load.js'
 import { checkBuiltOverflow } from './overflow.js'
 
 export interface CheckOptions {
@@ -35,15 +34,15 @@ export async function check(deckPath: string, options: CheckOptions = {}): Promi
   const abs = resolve(deckPath)
   const loaded = await loadDeck(abs, relative(process.cwd(), abs) || abs)
   const { deck } = loaded
-  const { theme, warning } = resolveTheme(deck.meta.theme)
+  const { theme } = loaded.extras
   const found: Diagnostic[] = [...loaded.diagnostics]
   const skipped: string[] = []
   const add = (severity: Diagnostic['severity'], code: string, message: string, span: SourceSpan) =>
     found.push({ severity, code, message, file: deck.source, span })
-  if (warning) add('warning', 'theme/unknown', warning, point(1))
 
   // Render blocks, checked against their data the way the renderer would.
   for (const block of deck.slides.flatMap((s) => s.blocks)) {
+    if (Object.hasOwn(loaded.extras.renderers, block.renderer)) continue // checked when loaded
     const problem = block.renderer === 'mermaid' ? await mermaidProblem(block.spec) : specProblem(block.renderer, block.spec, (p) => loaded.inline[p])
     if (problem) add('error', `renderer/${block.renderer}`, `\`${block.renderer}\` block: ${problem}`, block.span)
   }
@@ -54,7 +53,7 @@ export async function check(deckPath: string, options: CheckOptions = {}): Promi
     }
   }
 
-  found.push(...unusedClasses(deck, loaded.source, theme.stylesheet + runtimeCss))
+  found.push(...unusedClasses(deck, loaded.source, theme.stylesheet + runtimeCss + loaded.css))
 
   if (!options.offline) found.push(...(await probeEmbeds(deck, options.timeout ?? 8000)))
   else if (deck.slides.some((s) => s.blocks.some((b) => b.renderer === 'embed'))) skipped.push('embedded sites (--offline)')
@@ -142,7 +141,7 @@ function classesIn(nodes: HastNode[], out = new Set<string>()): Set<string> {
  * (syntax.md §6.3). Close to an effect name → warning; otherwise info.
  */
 export function unusedClasses(deck: Deck, source: string, css: string): Diagnostic[] {
-  const styles = [...source.matchAll(/<style[^>]*>([\s\S]*?)<\/style>/gi)].map((m) => m[1]).join('\n')
+  const styles = deckStyles(source)
   const styled = new Set([...(css + '\n' + styles).matchAll(/\.(-?[_a-zA-Z][\w-]*)/g)].map((m) => m[1]!))
   const used = new Set<string>()
   for (const s of deck.slides) classesIn(s.content, used)

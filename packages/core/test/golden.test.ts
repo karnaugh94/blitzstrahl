@@ -15,8 +15,8 @@ const dir = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
 describe('golden: markdown → IR', () => {
   for (const name of readdirSync(dir).filter((f) => f.endsWith('.md'))) {
     it(name, async () => {
-      const result = parseDeck(readFileSync(join(dir, name), 'utf8'), { file: name })
-      await expect(JSON.stringify(result, null, 2) + '\n').toMatchFileSnapshot(
+      const { deck, diagnostics } = parseDeck(readFileSync(join(dir, name), 'utf8'), { file: name })
+      await expect(JSON.stringify({ deck, diagnostics }, null, 2) + '\n').toMatchFileSnapshot(
         join(dir, name.replace(/\.md$/, '.ir.json')),
       )
     })

@@ -44,7 +44,9 @@ export interface DeckMeta {
   theme: string
   canvas: { width: number; height: number }
   transition: TransitionSpec
-  /** Unknown frontmatter keys, kept for plugins. */
+  /** Plugin module specifiers, as written (docs/plugins.md §1). */
+  plugins: string[]
+  /** Frontmatter keys that aren't built in, including those plugins register. */
   extra: Record<string, unknown>
 }
 

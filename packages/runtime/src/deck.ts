@@ -4,7 +4,7 @@
  * renderers (PLAN §3).
  */
 import type { AnimSpec, DeckPayload, EffectKind, PayloadSlide, StepRange } from '@blitzstrahl/core'
-import { needsBox, playEntrance, playExit, type Played } from './effects.js'
+import { needsBox, playEntrance, playExit, registerEffects, type CustomEffect, type Played } from './effects.js'
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
 import type { BlockData, RenderCtx, RenderInstance, Renderer, RendererLoader } from './renderer.js'
 import { buildPrint, type PrintOptions, type PrintResult } from './print.js'
@@ -475,6 +475,7 @@ export class Deck implements NavTarget {
 
   private load(payload: DeckPayload) {
     this.payload = payload
+    registerEffects(payload.effects as Record<string, CustomEffect> | undefined)
     const { width, height } = payload.canvas
     this.stage.style.setProperty('--blitz-canvas-w', `${width}px`)
     this.stage.style.setProperty('--blitz-canvas-h', `${height}px`)
@@ -500,7 +501,7 @@ export class Deck implements NavTarget {
           if (anim.dur !== undefined) node.style.setProperty('--blitz-fx-dur', `${anim.dur}ms`)
           if (anim.delay !== undefined) node.style.setProperty('--blitz-fx-delay', `${anim.delay}ms`)
           if (anim.ease) node.style.setProperty('--blitz-fx-ease', anim.ease)
-        } else if (needsBox(anim.effect) && this.win.getComputedStyle(node).display === 'inline') {
+        } else if (needsBox(anim.effect, this.doc) && this.win.getComputedStyle(node).display === 'inline') {
           node.dataset.blitzBox = ''
         }
       }
@@ -716,6 +717,7 @@ export class Deck implements NavTarget {
       reducedMotion: still,
       loadAsset: (path) => this.loadAsset(path),
       assetUrl: (path) => new URL(this.payload.urls[path] ?? path, this.doc.baseURI).href,
+      meta: this.payload.meta ?? {},
     }
   }
 

@@ -1,16 +1,11 @@
-// Browser entry for every deck. Plain JS: shipped as-is and bundled per deck
-// by Vite. Renderers are wired here as lazy loaders so each lands in its own
-// chunk and the runtime never imports a renderer directly.
+// The dev server's browser entry. Plain JS, served by Vite. Renderers are
+// lazy loaders, built in and the deck's plugins', from a virtual module the
+// dev server writes (dev.ts), so the runtime never imports a renderer.
 import { start } from '@blitzstrahl/runtime'
+import renderers from 'virtual:blitzstrahl-renderers'
 
 const deck = start({
-  renderers: {
-    chart: () => import('@blitzstrahl/renderers/chart'),
-    embed: () => import('@blitzstrahl/renderers/embed'),
-    map: () => import('@blitzstrahl/renderers/map'),
-    mermaid: () => import('@blitzstrahl/renderers/mermaid'),
-    table: () => import('@blitzstrahl/renderers/table'),
-  },
+  renderers,
   // Dev: badge overflowing slides and report them to the terminal.
   dev: !!import.meta.hot,
   onOverflow: (found) => import.meta.hot?.send('blitz:overflow', found),

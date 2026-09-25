@@ -13,9 +13,9 @@ import { mathData, type BlitzMath } from './syntax/mdast.js'
 import type { StepSpec } from './attrs.js'
 import { assetKind, isExplicitRelative, isLocalRef, normalizeRelative } from './assets.js'
 import { pointSpan, spanOf, type Diagnostics } from './diagnostics.js'
-import type { AnimSpec, AssetRef, HastNode, RenderBlock, SourceSpan, StepRange } from './ir.js'
+import type { AnimSpec, AssetRef, EffectKind, HastNode, RenderBlock, SourceSpan, StepRange } from './ir.js'
 import { milliseconds, notYet } from './meta.js'
-import { ANIM_KEYS, EFFECTS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RENDERERS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES } from './vocab.js'
+import { ANIM_KEYS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES, type RendererBody } from './vocab.js'
 
 /** Deck-wide state threaded through every slide. */
 export interface DeckContext {
@@ -23,6 +23,9 @@ export interface DeckContext {
   ids: Set<string>
   assets: AssetRef[]
   blockCount: number
+  /** Built-in renderers plus plugins' (`since` absent: always supported). */
+  renderers: Readonly<Record<string, { body: RendererBody; since?: string }>>
+  effects: Readonly<Record<string, EffectKind>>
 }
 
 /** A placeholder left where a render fence was. */
@@ -140,7 +143,7 @@ export function resolveSlide(
       const here = (offset: number) => pointSpan({ line: at.line, column: at.column + 1 + offset })
 
       for (const cls of attrs.classes) {
-        if (!(cls in EFFECTS)) classes.push(cls)
+        if (!Object.hasOwn(ctx.effects, cls)) classes.push(cls)
         else if (effect) diags.error('effect/multiple', `second effect \`.${cls}\`: at most one effect per element; nest spans to combine`, pointSpan(at))
         else effect = cls
       }
@@ -210,7 +213,7 @@ export function resolveSlide(
 
     if (effect) {
       anim.effect = effect
-      anim.kind = EFFECTS[effect]!
+      anim.kind = ctx.effects[effect]!
       range ??= { in: 0 }
     }
 
@@ -285,7 +288,7 @@ export function resolveSlide(
         if (node.position) math.position = node.position
         kids[k] = math
         node = math
-      } else if (node.type === 'code' && node.lang && node.lang in RENDERERS) {
+      } else if (node.type === 'code' && node.lang && Object.hasOwn(ctx.renderers, node.lang)) {
         const placeholder = renderBlock(node, ctx, blocks)
         kids[k] = placeholder
         node = placeholder
@@ -478,9 +481,9 @@ function findFirst<T extends Nodes>(nodes: RootContent[], test: (n: Nodes) => n 
 
 function renderBlock(code: Code, ctx: DeckContext, blocks: RenderBlock[]): BlitzBlock {
   const renderer = code.lang!
-  const def = RENDERERS[renderer]!
+  const def = ctx.renderers[renderer]!
   const span = spanOf(code.position)
-  notYet(`the \`${renderer}\` renderer is`, def.since, ctx.diags, span)
+  if (def.since) notYet(`the \`${renderer}\` renderer is`, def.since, ctx.diags, span)
   const id = `${renderer}-${++ctx.blockCount}`
 
   let spec: unknown = code.value

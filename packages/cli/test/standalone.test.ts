@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { inlineSafe, standaloneEntry } from '../src/standalone.js'
+import type { Deck } from '@blitzstrahl/core'
+import { inlineSafe, standaloneEntry, usedRenderers } from '../src/standalone.js'
 
 describe('standalone', () => {
   it('makes script text safe inside <script> without changing what it does', () => {
@@ -16,7 +17,10 @@ describe('standalone', () => {
   })
 
   it('imports only the renderers asked for, by absolute path', () => {
-    const entry = standaloneEntry(['chart'])
+    const deck = { slides: [{ blocks: [{ renderer: 'chart' }, { renderer: 'poll' }] }] } as unknown as Deck
+    const used = usedRenderers(deck, { poll: { browser: '/plugins/poll.browser.js' } })
+    expect(Object.keys(used)).toEqual(['chart', 'poll'])
+    const entry = standaloneEntry({ chart: used.chart! })
     expect(entry).toMatch(/^import \{ start \} from "\/.+\/runtime\/dist\/index\.js"$/m)
     expect(entry).toMatch(/^import r0 from "\/.+\/renderers\/dist\/chart\.js"$/m)
     expect(entry).not.toContain('map')

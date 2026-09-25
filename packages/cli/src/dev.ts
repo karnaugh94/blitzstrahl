@@ -8,11 +8,13 @@ import { dirname, extname, relative, resolve } from 'node:path'
 import { createServer, type Plugin, type ViteDevServer } from 'vite'
 import { toPayload } from '@blitzstrahl/core'
 import type { Overflow } from '@blitzstrahl/runtime/overflow-report'
-import { renderNotes, renderPage, renderStage, resolveTheme } from './html.js'
+import { fontCss } from './extend.js'
+import { renderNotes, renderPage, renderStage } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
 import { overflowDiagnostics } from './overflow.js'
 import { printDiagnostics, summary } from './report.js'
 import { mathCss, mathFont } from './math.js'
+import { allRenderers } from './standalone.js'
 import { ENTRY, cacheDir, servedDirs } from './vite.js'
 
 export interface DevOptions {
@@ -22,6 +24,8 @@ export interface DevOptions {
 }
 
 const ASSET_PREFIX = '/_blitz/asset/'
+const RENDERERS_ID = 'virtual:blitzstrahl-renderers'
+const fsUrl = (file: string) => '/@fs/' + file.replace(/^\//, '')
 const assetUrl = (path: string) => ASSET_PREFIX + encodeURIComponent(path)
 
 const TYPES: Record<string, string> = {
@@ -47,8 +51,17 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
   }
   let loaded: LoadedDeck = await load()
 
+  /** Loaders for every renderer the deck could use: a save can add any. */
+  const renderersModule = () => {
+    const map = Object.entries(allRenderers(loaded.extras.renderers)).map(([r, file]) => `${JSON.stringify(r)}: () => import(${JSON.stringify(file)})`)
+    return `export default { ${map.join(', ')} }\n`
+  }
+  const allowed = () => [dirname(abs), ...servedDirs(), cacheDir(dirname(abs)), ...loaded.extras.dirs]
+
   const plugin: Plugin = {
     name: 'blitzstrahl:dev',
+    resolveId: (id) => (id === RENDERERS_ID ? `\0${RENDERERS_ID}` : undefined),
+    load: (id) => (id === `\0${RENDERERS_ID}` ? renderersModule() : undefined),
     configureServer(server) {
       const watched = () => new Set([abs, ...loaded.files.values()])
       server.watcher.add([...watched()])
@@ -68,7 +81,11 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
           server.config.logger.info(`[blitzstrahl] ${display} rebuilt: ${summary(loaded.diagnostics)}`, { timestamp: true })
           const m = loaded.deck.meta
           const b = before.deck.meta
-          if (m.theme !== b.theme || m.lang !== b.lang) {
+          if (m.theme !== b.theme || m.lang !== b.lang || String(m.plugins) !== String(b.plugins) || loaded.css !== before.css) {
+            // New plugins: new renderer modules, and folders to serve them from.
+            for (const dir of loaded.extras.dirs) if (!server.config.server.fs.allow.includes(dir)) server.config.server.fs.allow.push(dir)
+            const mod = server.moduleGraph.getModuleById(`\0${RENDERERS_ID}`)
+            if (mod) server.moduleGraph.invalidateModule(mod)
             server.ws.send({ type: 'full-reload' })
             return
           }
@@ -76,7 +93,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             type: 'custom',
             event: 'blitz:update',
             data: {
-              payload: toPayload(loaded.deck, loaded.inline, assetUrl),
+              payload: toPayload(loaded.deck, loaded.inline, assetUrl, loaded.plugins),
               stage: renderStage(loaded.deck, assetUrl),
               notes: renderNotes(loaded.deck, assetUrl),
               diagnostics: loaded.diagnostics,
@@ -105,16 +122,20 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
       server.middlewares.use(async (req, res, next) => {
         const url = (req.url ?? '/').split('?')[0]!
         if (url === '/' || url === '/index.html') {
-          const { theme } = resolveTheme(loaded.deck.meta.theme)
           const page = renderPage({
             deck: loaded.deck,
             inline: loaded.inline,
-            theme,
+            theme: loaded.extras.theme,
             assetUrl,
-            entry: { src: '/@fs/' + ENTRY.replace(/^\//, '') },
+            entry: { src: fsUrl(ENTRY) },
             diagnostics: loaded.diagnostics,
-            // Always: math can appear on any save, and the fonts only load when used.
-            css: await mathCss((file) => '/@fs/' + mathFont(file).replace(/^\//, '')),
+            plugins: loaded.plugins,
+            css: [
+              await fontCss(loaded.extras.fonts, fsUrl),
+              loaded.css,
+              // Always: math can appear on any save, and the fonts only load when used.
+              await mathCss((file) => fsUrl(mathFont(file))),
+            ].join('\n'),
           })
           res.setHeader('content-type', 'text/html; charset=utf-8')
           res.end(await server.transformIndexHtml(url, page))
@@ -153,7 +174,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
       ...(options.port !== undefined ? { port: options.port } : {}),
       ...(options.host !== undefined ? { host: options.host } : {}),
       open: options.open ?? false,
-      fs: { allow: [dirname(abs), ...servedDirs(), cacheDir(dirname(abs))] },
+      fs: { allow: allowed() },
     },
   })
   await server.listen()

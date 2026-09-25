@@ -1,0 +1,380 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "code-lines.md",
+    "meta": {
+      "lang": "en",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1280,
+        "height": 720
+      },
+      "transition": {
+        "name": "fade"
+      },
+      "extra": {},
+      "title": "Lines"
+    },
+    "slides": [
+      {
+        "id": "lines",
+        "index": 0,
+        "layout": "title",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 3,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Lines"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "pre",
+                "properties": {
+                  "dataBlitzLines": "[{\"in\":0,\"lines\":[[1,1]]},{\"in\":1,\"lines\":[[2,3]]},{\"in\":2,\"lines\":null}]"
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {
+                      "className": [
+                        "language-js"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "const a = 1\nconst b = 2\nconst c = 3\n"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 3,
+                  "dataBlitzAnim": 0
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "After the code"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 10,
+            "column": 1
+          }
+        },
+        "title": "Lines"
+      },
+      {
+        "id": "stepped-block",
+        "index": 1,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 3,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Stepped block"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {
+                  "dataBlitzStepIn": 1,
+                  "dataBlitzAnim": 0
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Intro"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "pre",
+                "properties": {
+                  "dataBlitzLines": "[{\"in\":2,\"lines\":[[1,1],[3,3]]},{\"in\":3,\"lines\":[[2,2]]}]",
+                  "dataBlitzStepIn": 2,
+                  "dataBlitzAnim": 1
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {
+                      "className": [
+                        "language-py"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "x = 1\ny = 2\nz = 3\n"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 12,
+            "column": 1
+          },
+          "end": {
+            "line": 22,
+            "column": 1
+          }
+        },
+        "title": "Stepped block"
+      },
+      {
+        "id": "problems",
+        "index": 2,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Problems"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "pre",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {
+                      "className": [
+                        "language-js"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "x\n"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "pre",
+                "properties": {
+                  "dataBlitzLines": "[{\"in\":0,\"lines\":[[5,5]]}]"
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {
+                      "className": [
+                        "language-js"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "x\n"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Not code"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 24,
+            "column": 1
+          },
+          "end": {
+            "line": 36,
+            "column": 1
+          }
+        },
+        "title": "Problems"
+      }
+    ],
+    "assets": []
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "lines/syntax",
+      "message": "bad `lines=` group `2-1`: use line numbers and ranges, e.g. `lines=\"1|2-4,6|all\"`",
+      "file": "code-lines.md",
+      "span": {
+        "start": {
+          "line": 27,
+          "column": 8
+        },
+        "end": {
+          "line": 27,
+          "column": 9
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "lines/out-of-range",
+      "message": "`lines=` names line 5, but the block has 1",
+      "file": "code-lines.md",
+      "span": {
+        "start": {
+          "line": 31,
+          "column": 8
+        },
+        "end": {
+          "line": 31,
+          "column": 9
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "lines/target",
+      "message": "`lines=` applies to a code block",
+      "file": "code-lines.md",
+      "span": {
+        "start": {
+          "line": 35,
+          "column": 11
+        },
+        "end": {
+          "line": 35,
+          "column": 12
+        }
+      }
+    }
+  ]
+}

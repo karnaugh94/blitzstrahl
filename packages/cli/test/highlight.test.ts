@@ -56,4 +56,17 @@ describe('code highlighting', () => {
     }
     expect(text(pres(deck.slides[0]!.content)[0])).toBe('if a < b:\n    print("<&>")')
   })
+
+  it('splits every block into lines, and tokens into words and punctuation', async () => {
+    const src = '```js\nadd(a, b)\n  return\n```\n\n```\nno language\n```'
+    const { deck } = parseDeck(src)
+    await highlightDeck(deck, src)
+    const [js, plain] = pres(deck.slides[0]!.content)
+    const lines = (pre: Element) =>
+      ((pre.children[0] as Element).children.filter((c) => c.type === 'element') as Element[]).map((line) =>
+        line.children.map((c) => (c.type === 'text' ? `_${c.value}_` : (((c as Element).children[0] as { value: string }).value))),
+      )
+    expect(lines(js!)).toEqual([['add', '(', 'a', ',', '_ _', 'b', ')'], ['_  _', 'return']])
+    expect(lines(plain!)).toEqual([['no', '_ _', 'language']])
+  })
 })

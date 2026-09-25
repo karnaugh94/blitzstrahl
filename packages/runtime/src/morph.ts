@@ -62,10 +62,20 @@ function signature(el: HTMLElement): string | undefined {
     const src = el.getAttribute('src')
     return src ? `img ${src}` : undefined
   }
+  // Code blocks in the same language pair whatever they say: their tokens morph (code-morph.ts).
+  if (tag === 'pre') {
+    const lang = [...(el.querySelector('code')?.classList ?? [])].find((c) => c.startsWith('language-'))
+    return `pre ${lang ?? ''}`
+  }
   const text = (el.textContent ?? '').replace(/\s+/g, ' ').trim()
   if (!text) return undefined
   // Headings pair across levels: a title shrinking into a slide heading is the classic move.
   return `${/^h[1-6]$/.test(tag) ? 'h' : tag} ${text}`
+}
+
+/** A pair of code blocks: its tokens morph, rather than the block as a whole. */
+export function isCode(p: MorphPair): boolean {
+  return p.from.localName === 'pre' && p.to.localName === 'pre'
 }
 
 /** A slide's pairing candidates: keyed elements, then content matches, as the slide shows them. */

@@ -75,8 +75,13 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
   // Theme.
   const themeName = deck.meta.theme
   const builtin = Object.hasOwn(themes, themeName) ? themes[themeName] : undefined
-  if (builtin) x.theme = builtin
-  else {
+  if (builtin) {
+    x.theme = builtin
+    // Built-in themes' font paths are relative to the themes package's entry.
+    const problems: string[] = []
+    collectFonts(builtin.fonts ?? [], fileURLToPath(import.meta.resolve('@blitzstrahl/themes')), problems, x)
+    if (problems.length) throw new Error(`built-in theme \`${themeName}\`: ${problems.join('; ')}`)
+  } else {
     const loaded = await importFrom(themeCandidates(themeName), dir)
     if ('error' in loaded) error('theme', 'theme/load', `theme \`${themeName}\` ${loaded.error}; using aurora (built-in: ${Object.keys(themes).join(', ')})`)
     else {
@@ -229,24 +234,29 @@ function validateTheme(value: unknown, file: string, problems: string[], x: Extr
   const { missing } = tokenProblems(tokens)
   if (missing.length) problems.push(`missing required token${missing.length > 1 ? 's' : ''} ${missing.map((t) => `\`${t}\``).join(', ')}`)
 
-  const fonts = value.fonts ?? []
-  if (!Array.isArray(fonts)) problems.push('`fonts` must be a list')
-  else {
-    for (const f of fonts) {
-      const path = isRecord(f) ? filePath(f.src, file) : undefined
-      if (!isRecord(f) || typeof f.family !== 'string' || !path) {
-        problems.push('each font needs a `family` and a `src` (a file URL or a path)')
-        continue
-      }
-      if (!existsSync(path)) {
-        problems.push(`font file not found: ${path}`)
-        continue
-      }
-      x.fonts.push({ family: f.family, file: path, weight: String(f.weight ?? 400), style: typeof f.style === 'string' ? f.style : 'normal' })
-      x.dirs.push(dirname(path))
-    }
-  }
+  collectFonts(value.fonts ?? [], file, problems, x)
   return defineTheme({ name: String(value.name), tokens, css: typeof value.css === 'string' ? value.css : '' })
+}
+
+/** A theme's `fonts`, as files, into `x.fonts`; `from` is the theme module relative paths start from. */
+function collectFonts(fonts: unknown, from: string, problems: string[], x: Extras): void {
+  if (!Array.isArray(fonts)) {
+    problems.push('`fonts` must be a list')
+    return
+  }
+  for (const f of fonts) {
+    const path = isRecord(f) ? filePath(f.src, from) : undefined
+    if (!isRecord(f) || typeof f.family !== 'string' || !path) {
+      problems.push('each font needs a `family` and a `src` (a file URL or a path)')
+      continue
+    }
+    if (!existsSync(path)) {
+      problems.push(`font file not found: ${path}`)
+      continue
+    }
+    x.fonts.push({ family: f.family, file: path, weight: String(f.weight ?? 400), style: typeof f.style === 'string' ? f.style : 'normal' })
+    x.dirs.push(dirname(path))
+  }
 }
 
 function addPlugin(value: unknown, file: string, spec: string, x: Extras, problems: string[]): void {

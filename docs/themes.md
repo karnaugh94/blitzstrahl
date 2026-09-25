@@ -6,7 +6,14 @@ names a theme sets, which become CSS custom properties `--blitz-<name>`
 and which everything else reads. Token names are stable from 1.0. New ones
 may be added in minor versions, always with a default.
 
-Built-in themes: **aurora** (dark, technical).
+Built-in themes:
+
+- **aurora**: dark, technical. Inter-style sans, mint and periwinkle
+  accents. The default.
+- **broadsheet**: light, editorial. Newsprint paper, Newsreader serif
+  (shipped with the theme, OFL), sans for tables, a masthead rule, newspaper
+  red. Its source (`packages/themes/src/broadsheet.ts`) uses only the public
+  contract, so it's a good model for writing your own.
 
 ## Required
 

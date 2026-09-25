@@ -155,7 +155,7 @@ keys, which are then known (docs/plugins.md §2.4).
 | `author` | string | — | Shown by themes that display it |
 | `date` | string | — | Free-form, displayed as written |
 | `lang` | string | `en` | BCP 47 tag, `<html lang>` |
-| `theme` | string | `aurora` | A built-in theme (`aurora`), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` (docs/plugins.md §1) |
+| `theme` | string | `aurora` | A built-in theme (`aurora`, `broadsheet`), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` (docs/plugins.md §1) |
 | `plugins` | list | — | Plugin packages or `./paths`, loaded in order (docs/plugins.md) |
 | `canvas` | `WxH` string | `1280x720` | Logical canvas size in CSS pixels |
 | `transition` | transition | `fade` | Default slide transition (§9) |

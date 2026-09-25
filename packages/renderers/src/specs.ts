@@ -6,7 +6,7 @@
 import { chartOption, validate as validateChart } from './chart-option.js'
 import { parseData } from './data.js'
 import { validate as validateEmbed } from './embed.js'
-import { asFeatureCollection, markersFromGeoJson, markersFromRows, validate as validateMap } from './map-geo.js'
+import { asFeatureCollection, markersFromRows, markersFromText, validate as validateMap } from './map-geo.js'
 import { validate as validateMermaid } from './mermaid.js'
 
 /** Text of a deck-relative data file, if it was found. */
@@ -34,10 +34,7 @@ export function specProblem(renderer: string, spec: unknown, read: ReadData): st
         if (Array.isArray(s.markers)) markersFromRows(s.markers, s.label, s.size)
         else if (typeof s.markers === 'string') {
           const text = read(s.markers)
-          if (text !== undefined) {
-            if (/\.(geo)?json$/i.test(s.markers)) markersFromGeoJson(asFeatureCollection(JSON.parse(text), '`markers`'), s.label, s.size)
-            else markersFromRows(parseData(s.markers, text), s.label, s.size)
-          }
+          if (text !== undefined) markersFromText(s.markers, text, s.label, s.size)
         }
         if (s.regions !== undefined) {
           const text = read(s.regions)
@@ -83,3 +80,5 @@ export async function mermaidProblem(spec: unknown): Promise<string | undefined>
     return last && last !== lines[0] ? `${first}: ${last.length > 160 ? `${last.slice(0, 157)}…` : last}` : first
   }
 }
+
+export { asFeatureCollection, isUrl, markersFromText, tileSource, type MapSpec } from './map-geo.js'

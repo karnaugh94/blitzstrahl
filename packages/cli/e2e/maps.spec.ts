@@ -128,6 +128,38 @@ test('regions: a choropleth by `value`, with no tiles at all', async ({ page }) 
   expect(tileRequests).toEqual([])
 })
 
+test('a map names its street map: without `tiles` there is none, and no request', async ({ page }) => {
+  await open(page, 'plain')
+  await expect.poll(async () => (await page.locator('#plain svg path').count()) > 0).toBe(true)
+  await expect(page.locator('#plain .blitz-tile')).toHaveCount(0)
+  await expect(page.locator('#plain .blitz-map-attribution')).toHaveCount(0)
+  expect(tileRequests).toEqual([])
+
+  await open(page, 'stores')
+  await expect(page.locator('#stores .blitz-map-attribution')).toHaveText('© OpenStreetMap contributors')
+})
+
+test('markers from a URL with no extension (an ArcGIS query), read by content', async ({ page }) => {
+  const requests: string[] = []
+  await page.route('https://geo.test/**', (route) => {
+    requests.push(route.request().url())
+    return route.fulfill({
+      contentType: 'application/geo+json',
+      headers: { 'access-control-allow-origin': '*' },
+      body: JSON.stringify({
+        type: 'FeatureCollection',
+        features: [
+          { type: 'Feature', properties: { name: 'Born' }, geometry: { type: 'Point', coordinates: [2.1826, 41.3851] } },
+          { type: 'Feature', properties: { name: 'Sants' }, geometry: { type: 'Point', coordinates: [2.1404, 41.3792] } },
+        ],
+      }),
+    })
+  })
+  await open(page, 'remote')
+  await expect(page.locator('#remote')).toContainText('Sants')
+  expect(requests).toEqual(['https://geo.test/arcgis/rest/services/stores/FeatureServer/0/query?where=1%3D1&f=geojson&outSR=4326'])
+})
+
 test('a map mistake is explained in place', async ({ page }) => {
   await open(page, 'swapped')
   await expect(page.locator('#swapped .blitz-block-error')).toContainText('latitude comes first')

@@ -32,7 +32,7 @@ test.beforeAll(async () => {
   cpSync(join(here, '../../../examples/palette'), dir, { recursive: true, filter: (f) => !/\.(html|pdf)$/.test(f) })
   deck = join(dir, 'deck.md')
   const md = readFileSync(deck, 'utf8')
-    .replace(/```map\n/g, `\`\`\`map\ntiles: ${local}/tiles/{z}/{x}/{y}.svg\n`)
+    .replace(/^tiles: osm$/gm, `tiles: ${local}/tiles/{z}/{x}/{y}.svg`)
     .replace(/^src: https:\/\/.*$/m, `src: ${local}/`)
   expect(md).toContain(`tiles: ${local}`)
   expect(md).toContain(`src: ${local}/`)

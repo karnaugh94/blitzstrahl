@@ -9,6 +9,7 @@ center: [41.38, 2.17]
 zoom: 12
 markers: ./stores.geojson
 labels: true
+tiles: osm
 ```
 ````
 
@@ -16,15 +17,32 @@ labels: true
 |---|---|---|---|
 | `center` | `[lat, lng]` | fits the data | What the map is centred on. **Latitude first**, as in most map tools (41.38 N, 2.17 E is Barcelona) |
 | `zoom` | number | fits the data | `0` shows the whole world, `12` a city, `16` a few streets, `19` a building. Fractions are fine |
-| `markers` | path or list | — | Points: a `./file.geojson` of Point features, a `./file.csv`/`.tsv` with `lat` and `lng` columns, or rows written inline |
-| `regions` | path | — | A `./file.geojson` of polygons, drawn as outlines, or coloured by `value` |
+| `markers` | path, URL or list | — | Points: GeoJSON Point features, a list of rows as JSON, or a `.csv`/`.tsv` with `lat` and `lng` columns; from a `./file`, an `https://` URL, or rows written inline |
+| `regions` | path or URL | — | GeoJSON polygons, from a `./file.geojson` or an `https://` URL, drawn as outlines, or coloured by `value` |
 | `label` | property | `name` | Which column or property names each marker or region (tooltips, `labels`) |
 | `size` | column | — | Sizes each marker by this number (a bubble map) |
 | `value` | property | — | Colours each region by this number (a choropleth), from the theme's surface colour to its first chart colour |
 | `labels` | boolean | `false` | Show marker names beside the markers |
-| `tiles` | URL template or `none` | OpenStreetMap | Where the street map comes from, e.g. `https://tile.example.com/{z}/{x}/{y}.png` (`{s}` picks a subdomain a/b/c). `none` draws only your markers and regions |
-| `attribution` | string | `© OpenStreetMap contributors` for the default tiles | Credit shown in the corner. Tile providers require it |
+| `tiles` | provider, URL template or `none` | `none` | The street map under your data. **There is none unless you name one**: `osm` (OpenStreetMap), or any provider's URL template, e.g. `https://tile.example.com/{z}/{x}/{y}.png` (`{s}` picks a subdomain a/b/c; ArcGIS's `{z}/{y}/{x}` order works too) |
+| `attribution` | string | the provider's, for `osm` | Credit shown in the corner. Tile providers require it, and `check` warns when a URL template has none |
 | `roam` | boolean | `true` | Drag to pan and scroll to zoom |
+
+**Street maps.** Maps are political, and whose streets and borders you
+show is your call, so blitzstrahl doesn't pick a provider for you. Name one
+with `tiles`: an organisation's own tile server, a commercial provider, or
+`tiles: osm` for OpenStreetMap's public servers (free for light use, a talk
+is light use, under the
+[OSM tile usage policy](https://operations.osmfoundation.org/policies/tiles/)).
+Without `tiles`, the map draws your markers and regions on the page's
+background, and `check` mentions it.
+
+**Data from a URL.** `markers` and `regions` can come from a web service,
+e.g. an ArcGIS feature layer's `…/query?where=1%3D1&f=geojson`. The format
+is read from the content, so a URL needn't end in `.geojson`. The server must
+allow other pages to read it (CORS: `Access-Control-Allow-Origin: *`), or the
+browser refuses; `check` fetches each URL and tells you. The data is fetched
+when the slide is shown, so it's always current, and it needs the network
+even in a standalone file. Save it as a `./file` to freeze it into the deck.
 
 Give `center` and `zoom`, or leave either out and the map fits your markers
 and regions. `markers` columns may be named `lat`/`latitude` and
@@ -56,9 +74,10 @@ change the slide. Leaving the slide and coming back resets the view.
   in a single-file (`--standalone`) build. Your markers and regions are
   inlined and always draw. For a map that works anywhere, use `regions` with
   `tiles: none`.
-- **The default tiles are OpenStreetMap's**, which are free for light use
-  under the [OSM tile usage policy](https://operations.osmfoundation.org/policies/tiles/).
-  A talk is light use. For anything heavier (a deck on a busy website, say),
-  set `tiles` to a provider you have an account with.
+- **`tiles: osm` uses OpenStreetMap's public servers.** For anything
+  heavier than a talk (a deck on a busy website, say), use a provider you
+  have an account with.
+- **Map data from a URL needs the network** too, and a server that allows
+  CORS.
 - In a PDF (`blitzstrahl export`), markers and regions stay vector
   graphics, and the tiles are images, as they loaded at export time.

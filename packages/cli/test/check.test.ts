@@ -2,7 +2,7 @@ import { createServer, type Server } from 'node:http'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { parseDeck } from '@blitzstrahl/core'
 import { specProblem } from '@blitzstrahl/renderers/specs'
-import { probeEmbeds, stepGaps, unusedClasses } from '../src/check.js'
+import { mapNotes, probeEmbeds, probeGeometry, stepGaps, unusedClasses } from '../src/check.js'
 
 describe('check: steps', () => {
   it('finds presses that change nothing', () => {
@@ -84,5 +84,48 @@ describe('check: embedded sites', () => {
     expect(byPath('gone')[0]).toMatchObject({ code: 'embed/status', message: expect.stringContaining('404') })
     expect(found.find((d) => d.code === 'embed/unreachable')?.message).toContain('127.0.0.1:9')
     expect(found).toHaveLength(4)
+  })
+})
+
+describe('check: maps', () => {
+  it('notes a map with no street map, and a provider with no credit', () => {
+    const md = '# a\n\n```map\ncenter: [0, 0]\nzoom: 2\n```\n\n---\n\n# b\n\n```map\ncenter: [0, 0]\nzoom: 2\ntiles: https://t/{z}/{x}/{y}.png\n```\n\n---\n\n# c\n\n```map\ncenter: [0, 0]\nzoom: 2\ntiles: osm\n```\n'
+    const { deck } = parseDeck(md, { file: 'deck.md' })
+    expect(mapNotes(deck).map((d) => [d.severity, d.code, d.span.start.line])).toEqual([
+      ['info', 'map/no-tiles', 3],
+      ['warning', 'map/no-attribution', 12],
+    ])
+  })
+
+  let server: Server
+  let base = ''
+  beforeAll(async () => {
+    const geo = JSON.stringify({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: {}, geometry: { type: 'Point', coordinates: [2, 41] } }] })
+    server = createServer((req, res) => {
+      if (req.url !== '/private') res.setHeader('Access-Control-Allow-Origin', req.url === '/mine' ? 'https://intranet.example' : '*')
+      if (req.url === '/gone') res.statusCode = 404
+      res.end(req.url === '/broken' ? '{"type": "Feature"' : req.url === '/regions' ? '{"type": "Nope"}' : geo)
+    })
+    await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
+    const addr = server.address()
+    base = typeof addr === 'object' && addr ? `http://127.0.0.1:${addr.port}` : ''
+  })
+  afterAll(() => server.close())
+
+  it('fetches map data from URLs as the page would: status, content and CORS', async () => {
+    const map = (key: string, path: string) => `# ${path}\n\n\`\`\`map\n${key}: ${base}/${path}\ntiles: none\n\`\`\`\n`
+    const md = [map('markers', 'ok'), map('markers', 'private'), map('markers', 'mine'), map('markers', 'gone'), map('markers', 'broken'), map('regions', 'regions')].join('\n---\n\n')
+    const { deck } = parseDeck(md, { file: 'deck.md' })
+    const found = (await probeGeometry(deck, 3000)).map((d) => [d.severity, d.code, d.message.replaceAll(base, '')])
+    expect(found).toHaveLength(5)
+    expect(found).toEqual(
+      expect.arrayContaining([
+        ['warning', 'map/cors', "/private doesn't let other pages read it (no Access-Control-Allow-Origin header), so the browser will refuse it"],
+        ['warning', 'map/cors', "/mine only lets https://intranet.example read it (CORS), so the deck's page can't"],
+        ['warning', 'map/status', '/gone answers 404 Not Found'],
+        ['error', 'map/data', expect.stringContaining('`markers` from /broken: `/broken` is not valid JSON')],
+        ['error', 'map/data', expect.stringContaining('`regions` from /regions:')],
+      ]),
+    )
   })
 })

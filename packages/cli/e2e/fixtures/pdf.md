@@ -33,4 +33,5 @@ center: [41.39, 2.17]
 zoom: 12
 markers:
   - { name: Here, lat: 41.39, lng: 2.17 }
+tiles: osm
 ```

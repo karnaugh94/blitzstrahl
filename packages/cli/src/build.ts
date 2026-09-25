@@ -4,6 +4,7 @@ import { copyFile, mkdir, readFile, writeFile } from 'node:fs/promises'
 import { basename, dirname, extname, join, relative, resolve } from 'node:path'
 import { build as viteBuild, type Rolldown } from 'vite'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
+import { isUrl, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
 import { fontCss } from './extend.js'
 import { renderPage } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
@@ -177,8 +178,11 @@ function formatSize(bytes: number): string {
 function networkNotes(deck: Deck): Diagnostic[] {
   const blocks = deck.slides.flatMap((s) => s.blocks)
   const notes: Diagnostic[] = []
-  const tiled = blocks.find((b) => b.renderer === 'map' && (b.spec as { tiles?: unknown } | null)?.tiles !== 'none')
+  const spec = (b: (typeof blocks)[number]) => (b.renderer === 'map' && b.spec && typeof b.spec === 'object' ? (b.spec as MapSpec) : undefined)
+  const tiled = blocks.find((b) => spec(b) && tileSource(spec(b)!))
   if (tiled) notes.push(info('standalone/network', "this map's street tiles load from the network, even in a standalone file (`tiles: none` draws without them)", tiled.span))
+  const remote = blocks.find((b) => [spec(b)?.markers, spec(b)?.regions].some((v) => typeof v === 'string' && isUrl(v)))
+  if (remote) notes.push(info('standalone/network', "this map's data loads from its URL, even in a standalone file (a ./file is inlined instead)", remote.span))
   const embed = blocks.find((b) => b.renderer === 'embed')
   if (embed) notes.push(info('standalone/network', 'embedded pages load from the network, even in a standalone file (`fallback:` covers being offline)', embed.span))
   return notes

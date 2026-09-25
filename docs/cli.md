@@ -109,11 +109,17 @@ at each problem as `deck.md:line:col`:
 | A class that nothing styles, so it does nothing | info |
 | Slides that overflow the canvas, or clip inside a box | warning |
 | Embedded sites that refuse to be framed (`X-Frame-Options`, CSP `frame-ancestors`), are missing, or don't answer | warning |
+| Map data from a URL that doesn't answer, or that the browser won't be allowed to read (no CORS header) | warning |
+| Map data from a URL that isn't what the map expects | error |
+| A map with a tile provider but no `attribution` | warning |
+| A map with no street map (no `tiles`) | info |
+| Classes from plugins' effects and a theme's CSS count as styled; plugin renderers run their own checks | — |
 
 - The exit code is 1 when there are errors. With `--strict`, warnings
   count too, which suits CI.
 - Embedded sites are asked over the network, once each (a `HEAD`
-  request). `--offline` skips that.
+  request), and map data URLs are fetched once each. `--offline` skips
+  both.
 - The overflow part needs a Chromium-based browser, like `build`'s. Without
   one, `check` says it was skipped.
 

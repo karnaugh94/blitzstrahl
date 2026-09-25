@@ -93,15 +93,22 @@ function measure(section: HTMLElement, els: HTMLElement[], canvas: { width: numb
     const hidden = insideClipper(el)
     if (hidden) return
     check(el.getBoundingClientRect(), k)
-    for (const node of el.childNodes) {
-      if (node.nodeType !== 3 || !node.textContent?.trim()) continue
-      range.selectNodeContents(node)
-      check(range.getBoundingClientRect(), k)
-    }
-    if (el.hasAttribute('data-blitz-block')) return
+    const block = el.hasAttribute('data-blitz-block')
     const style = view.getComputedStyle(el)
     const clips = (v: string) => v !== 'visible'
-    if (clips(style.overflowX) || clips(style.overflowY)) clippers.add(el)
+    const clipping = !block && (clips(style.overflowX) || clips(style.overflowY))
+    // Text that its own element clips is reported as clipped, below, not as off the canvas.
+    if (!clipping) {
+      for (const node of el.childNodes) {
+        if (node.nodeType !== 3 || !node.textContent?.trim()) continue
+        range.selectNodeContents(node)
+        check(range.getBoundingClientRect(), k)
+      }
+    }
+    if (block) return
+    if (clipping) clippers.add(el)
+    // Screen-reader-only content (KaTeX's MathML, say) is clipped to a pixel on purpose.
+    if (clipping && el.clientWidth <= 1 && el.clientHeight <= 1) return
     const right = clips(style.overflowX) ? el.scrollWidth - el.clientWidth : 0
     const bottom = clips(style.overflowY) ? el.scrollHeight - el.clientHeight : 0
     if (right > TOLERANCE || bottom > TOLERANCE) {

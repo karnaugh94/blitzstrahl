@@ -12,6 +12,7 @@ import { renderNotes, renderPage, renderStage, resolveTheme } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
 import { overflowDiagnostics } from './overflow.js'
 import { printDiagnostics, summary } from './report.js'
+import { mathCss, mathFont } from './math.js'
 import { ENTRY, cacheDir, servedDirs } from './vite.js'
 
 export interface DevOptions {
@@ -112,6 +113,8 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             assetUrl,
             entry: { src: '/@fs/' + ENTRY.replace(/^\//, '') },
             diagnostics: loaded.diagnostics,
+            // Always: math can appear on any save, and the fonts only load when used.
+            css: await mathCss((file) => '/@fs/' + mathFont(file).replace(/^\//, '')),
           })
           res.setHeader('content-type', 'text/html; charset=utf-8')
           res.end(await server.transformIndexHtml(url, page))

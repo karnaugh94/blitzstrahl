@@ -4,6 +4,7 @@
  * - `{...}` attribute blocks (text construct)
  * - `[text]{...}` bracketed spans (text construct)
  * - `:::` fenced containers (flow construct)
+ * - `$…$` and `$$…$$` math, by Pandoc's `tex_math_dollars` rules (§12)
  *
  * The span label factory and the container's nested-document handling are
  * adapted from micromark-extension-directive (MIT, © Titus Wormer). We don't use
@@ -39,6 +40,8 @@ declare module 'micromark-util-types' {
     blitzContainerInfo: 'blitzContainerInfo'
     blitzContainerContent: 'blitzContainerContent'
     blitzContainerClose: 'blitzContainerClose'
+    blitzMath: 'blitzMath'
+    blitzMathData: 'blitzMathData'
   }
 }
 
@@ -50,6 +53,7 @@ const RIGHT_BRACE = 125
 const BACKSLASH = 92
 const QUOTE = 34
 const APOSTROPHE = 39
+const DOLLAR = 36
 
 /**
  * Container info after the colons: `name? attrs?`, at least one of them,
@@ -74,12 +78,104 @@ export function blitzSyntax(): Extension {
     text: {
       [LEFT_BRACE]: { name: 'blitzAttrs', tokenize: tokenizeAttrs('blitzAttrs') },
       [LEFT_BRACKET]: { name: 'blitzSpan', tokenize: tokenizeSpan },
+      [DOLLAR]: { name: 'blitzMath', tokenize: tokenizeMath },
     },
     flow: {
       [COLON]: { name: 'blitzContainer', tokenize: tokenizeContainer, concrete: true },
     },
     // syntax.md §1: `Text\n---` must stay a paragraph and a separator.
     disable: { null: ['setextUnderline'] },
+  }
+}
+
+const isSpace = (code: Code) => code === null || code < 0 || code === 32
+const isDigit = (code: Code) => code !== null && code >= 48 && code <= 57
+
+/**
+ * Pandoc's `tex_math_dollars` (syntax.md §12), exactly:
+ *
+ * - `$…$`: the opening `$` has a non-space character right after it; the
+ *   closing `$` has a non-space character right before it and no digit
+ *   right after it. So `$20,000 to $30,000` stays text.
+ * - `$$…$$`: display math, which may span lines (a paragraph's, since a
+ *   blank line ends it).
+ * - A backslash escapes the next character: `\$` inside math isn't a close,
+ *   and `\$` outside it is CommonMark's literal dollar.
+ */
+function tokenizeMath(this: TokenizeContext, effects: Effects, ok: State, nok: State): State {
+  let display = false
+  let size = 0
+  let prev: Code = null
+  let inData = false
+  return start
+
+  function start(code: Code): State | undefined {
+    effects.enter('blitzMath')
+    effects.consume(code)
+    return afterOpen
+  }
+
+  function afterOpen(code: Code): State | undefined {
+    if (code === DOLLAR && !display) {
+      display = true
+      effects.consume(code)
+      return afterOpen
+    }
+    if (display ? code === DOLLAR : isSpace(code)) return nok(code)
+    return body(code)
+  }
+
+  function body(code: Code): State | undefined {
+    if (code === null) return nok(code)
+    if (markdownLineEnding(code)) {
+      if (inData) effects.exit('blitzMathData')
+      inData = false
+      effects.enter('lineEnding')
+      effects.consume(code)
+      effects.exit('lineEnding')
+      prev = -1
+      return body
+    }
+    if (!inData) effects.enter('blitzMathData')
+    inData = true
+    const closing = code === DOLLAR && (display || (!isSpace(prev) && size > 0))
+    effects.consume(code)
+    if (closing) return display ? displayClose : inlineClose
+    size++
+    prev = code
+    return code === BACKSLASH ? escaped : body
+  }
+
+  function escaped(code: Code): State | undefined {
+    if (code === null || markdownLineEnding(code)) return body(code)
+    effects.consume(code)
+    prev = code
+    return body
+  }
+
+  function close(code: Code): State | undefined {
+    effects.exit('blitzMathData')
+    effects.exit('blitzMath')
+    return ok(code)
+  }
+
+  function inlineClose(code: Code): State | undefined {
+    // `$` then a digit is money, not the end: keep going.
+    if (!isDigit(code)) return close(code)
+    prev = DOLLAR
+    size++
+    return body(code)
+  }
+
+  function displayClose(code: Code): State | undefined {
+    if (code !== DOLLAR) {
+      prev = DOLLAR
+      size++
+      return body(code)
+    }
+    if (size === 0) return nok(code)
+    effects.consume(code)
+    return close
   }
 }
 

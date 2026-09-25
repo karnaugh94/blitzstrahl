@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url'
 export const ENTRY = fileURLToPath(new URL('../client/entry.js', import.meta.url))
 
 /** Root directory of package `name`, as resolved from `fromFile`. */
-function packageDir(fromFile: string, name: string): string {
+export function packageDir(fromFile: string, name: string): string {
   let dir = dirname(createRequire(fromFile).resolve(name))
   for (;;) {
     try {
@@ -39,6 +39,8 @@ export function servedDirs(): string[] {
     renderers,
     packageDir(here, '@blitzstrahl/core'),
     packageDir(join(renderers, 'package.json'), 'echarts'),
+    // KaTeX's fonts (math.ts).
+    packageDir(here, 'katex'),
   ]
 }
 

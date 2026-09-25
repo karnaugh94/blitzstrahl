@@ -530,7 +530,7 @@ Each renderer's body schema is documented in `docs/renderers/`.
 | `map` | M3 | YAML: `center`, `zoom`, `markers`, `regions`, `tiles`, … |
 | `embed` | M3 | YAML: `src`, optional `fallback` image, `zoom`, `title` |
 | `mermaid` | M4 | text |
-| `math` | M4 | text (TeX, display mode). Same as `$$…$$` (§12) |
+| `math` | M4 | text (TeX, display mode). Same as `$$…$$`; typeset when the deck is built (§12) |
 
 Any other fence language is a **code block**, syntax-highlighted. Its info
 string may carry an attribute block too: ```` ```js {.big @2} ````.
@@ -738,7 +738,7 @@ columns.
 
 ---
 
-## 12. Math (M4)
+## 12. Math
 
 Math is written in TeX between dollar signs and rendered with KaTeX. The rules
 are **Pandoc's `tex_math_dollars` extension**, adopted unchanged: they are the
@@ -760,9 +760,21 @@ fence (§8). Use the fence when you want attributes such as a build step.
 
 Math spans take attributes like any other inline element: `$E=mc^2${.pop @2}`.
 
-**Until M4, `$` has no meaning** and dollar signs render literally. When M4
-lands, any text that matches the rules above becomes math. Authors can use
-`\$` in any deck written before then to be sure.
+Math is typeset when the deck is built, so the page carries the finished
+formulas (with MathML alongside, for screen readers), KaTeX's stylesheet
+and its fonts, but no TeX engine:
+
+- A static build copies KaTeX's fonts into `assets/katex/`; the browser
+  loads only the ones a slide needs.
+- A standalone file inlines only the font families its formulas use
+  (roughly 150–250 kB for typical math).
+- TeX that KaTeX can't read is a warning at its line, and the slide shows
+  the source in red instead of a formula.
+- KaTeX supports most of LaTeX's math mode; see its [list of supported
+  functions](https://katex.org/docs/supported).
+
+Before M4, `$` had no meaning. A deck written then that means a literal
+dollar where these rules would see math can write `\$`.
 
 ---
 

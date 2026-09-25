@@ -477,7 +477,7 @@
     {
       "severity": "error",
       "code": "attr/no-target",
-      "message": "an inline attribute block must directly follow a [span], link, image or `code`; to style a whole block, put a space before it at the end of the line",
+      "message": "an inline attribute block must directly follow a [span], link, image, `code` or $math$; to style a whole block, put a space before it at the end of the line",
       "file": "attributes.md",
       "span": {
         "start": {
@@ -541,7 +541,7 @@
     {
       "severity": "error",
       "code": "attr/no-target",
-      "message": "an inline attribute block must directly follow a [span], link, image or `code`; to style a whole block, put a space before it at the end of the line",
+      "message": "an inline attribute block must directly follow a [span], link, image, `code` or $math$; to style a whole block, put a space before it at the end of the line",
       "file": "attributes.md",
       "span": {
         "start": {

@@ -1,0 +1,397 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "math.md",
+    "meta": {
+      "lang": "en",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1280,
+        "height": 720
+      },
+      "transition": {
+        "name": "fade"
+      },
+      "extra": {},
+      "title": "Math"
+    },
+    "slides": [
+      {
+        "id": "math",
+        "index": 0,
+        "layout": "title",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 2,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Math"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Inline "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "className": [
+                        "math",
+                        "math-inline"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "E=mc^2"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": " and "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "className": [
+                        "math",
+                        "math-inline"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\\alpha + \\beta"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": " here."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Prices stay: from $20,000 to $30,000, and $5/$10."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "A $ lone dollar stays text."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "So does $not math $ here."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "And $escaped$ too."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "This "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "className": [
+                        "math",
+                        "math-inline"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "is math $, then\\$ and"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": " ends here."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Display inside a paragraph "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "className": [
+                        "math",
+                        "math-display"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\\int_0^1 x\\,dx = \\frac12"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": " and on."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "className": [
+                        "math",
+                        "math-display"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\\sum_{i=1}^n i = \\frac{n(n+1)}{2}"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Attributes: "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "className": [
+                        "math",
+                        "math-inline"
+                      ],
+                      "dataBlitzStepIn": 1,
+                      "dataBlitzAnim": 0
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "x^2"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": " directly after."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Escaped dollar inside: "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "className": [
+                        "math",
+                        "math-inline"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "a \\$ b"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": " stays math."
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "math",
+                    "math-display"
+                  ],
+                  "dataBlitzStepIn": 2,
+                  "dataBlitzAnim": 1
+                },
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "a^2 + b^2 = c^2"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Code keeps dollars: "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "code",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "$x$"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Heading with "
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {
+                      "className": [
+                        "math",
+                        "math-inline"
+                      ]
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\\pi"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "pop",
+            "kind": "entrance",
+            "options": {}
+          },
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 32,
+            "column": 1
+          }
+        },
+        "title": "Math"
+      }
+    ],
+    "assets": []
+  },
+  "diagnostics": []
+}

@@ -9,6 +9,7 @@ import { toHast } from 'mdast-util-to-hast'
 import { toString } from 'mdast-util-to-string'
 import { parseDocument } from 'yaml'
 import type { Attached } from './attach.js'
+import { mathData, type BlitzMath } from './syntax/mdast.js'
 import type { StepSpec } from './attrs.js'
 import { assetKind, isExplicitRelative, isLocalRef, normalizeRelative } from './assets.js'
 import { pointSpan, spanOf, type Diagnostics } from './diagnostics.js'
@@ -278,7 +279,13 @@ export function resolveSlide(
     const kids = parent.children
     for (let k = 0; k < kids.length; k++) {
       let node = kids[k]!
-      if (node.type === 'code' && node.lang && node.lang in RENDERERS) {
+      // A math fence is display math (§12), rendered at build time like `$$…$$`, not a render block.
+      if (node.type === 'code' && node.lang === 'math') {
+        const math: BlitzMath = { type: 'blitzMath', value: node.value, display: true, data: { ...node.data, ...mathData(node.value, true, 'div') } }
+        if (node.position) math.position = node.position
+        kids[k] = math
+        node = math
+      } else if (node.type === 'code' && node.lang && node.lang in RENDERERS) {
         const placeholder = renderBlock(node, ctx, blocks)
         kids[k] = placeholder
         node = placeholder

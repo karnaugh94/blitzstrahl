@@ -24,7 +24,7 @@ function themed(example: string, theme: string): string {
 }
 
 for (const theme of ['aurora', 'broadsheet']) {
-  for (const example of ['layouts', 'palette', 'auto-animate']) {
+  for (const example of ['layouts', 'palette', 'auto-animate', 'editorial']) {
     test(`${example} fits every slide in ${theme}`, async () => {
       test.setTimeout(120_000)
       const outDir = mkdtempSync(join(tmpdir(), 'blitz-themes-out-'))

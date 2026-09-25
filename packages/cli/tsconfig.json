@@ -7,5 +7,5 @@
     "types": ["node"]
   },
   "include": ["src"],
-  "references": [{ "path": "../core" }, { "path": "../runtime" }, { "path": "../themes" }]
+  "references": [{ "path": "../core" }, { "path": "../runtime" }, { "path": "../renderers" }, { "path": "../themes" }]
 }

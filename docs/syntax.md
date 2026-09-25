@@ -529,7 +529,7 @@ Each renderer's body schema is documented in `docs/renderers/`.
 | `chart` | M1 (bar, line); M3 (pie, scatter) | YAML |
 | `map` | M3 | YAML: `center`, `zoom`, `markers`, `regions`, `tiles`, … |
 | `embed` | M3 | YAML: `src`, optional `fallback` image, `zoom`, `title` |
-| `mermaid` | M4 | text |
+| `mermaid` | M4 | text: a Mermaid diagram (`docs/renderers/mermaid.md`) |
 | `math` | M4 | text (TeX, display mode). Same as `$$…$$`; typeset when the deck is built (§12) |
 
 Any other fence language is a **code block**, syntax-highlighted. Its info

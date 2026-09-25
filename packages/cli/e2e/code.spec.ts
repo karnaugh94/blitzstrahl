@@ -60,8 +60,9 @@ test('`lines=` moves the focus one group per step, and the text after it comes n
   await expect(page.getByText('After')).toBeHidden()
   await page.keyboard.press('ArrowRight')
   await expect(page.getByText('After')).toBeVisible()
-  // Backwards snaps straight to the earlier focus.
+  // Backwards snaps straight to the earlier focus: once the deck is there, no transition is left to wait for.
   await page.keyboard.press('ArrowLeft')
   await page.keyboard.press('ArrowLeft')
+  await expect.poll(() => page.evaluate(() => window.blitz!.pos)).toEqual({ slide: 2, step: 1 })
   expect(await lit()).toEqual([false, true, true])
 })

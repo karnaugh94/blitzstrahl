@@ -9,8 +9,8 @@ import { loadDeck, type LoadedDeck } from './load.js'
 import { hasMath, mathCss, mathFont } from './math.js'
 import { checkBuiltOverflow } from './overflow.js'
 import { hasErrors, printDiagnostics } from './report.js'
-import { bundleStandalone, dataUri, inlineSafe, usedRenderers } from './standalone.js'
-import { ENTRY, cacheDir } from './vite.js'
+import { bundleStandalone, dataUri, inlineSafe, staticEntry, usedRenderers, virtualEntry } from './standalone.js'
+import { cacheDir } from './vite.js'
 
 export interface BuildOptions {
   /** Static build: the folder to write. Default `dist/` next to the deck. */
@@ -94,6 +94,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     cacheDir: cacheDir(loaded.dir),
     publicDir: false,
     logLevel: options.quiet ? 'silent' : 'warn',
+    plugins: [virtualEntry(STATIC_ENTRY, staticEntry(usedRenderers(loaded.deck)))],
     build: {
       outDir,
       emptyOutDir: true,
@@ -102,7 +103,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
       // ECharts is one lazy chunk by design; don't warn about it.
       chunkSizeWarningLimit: 1024,
       modulePreload: { polyfill: false },
-      rolldownOptions: { input: { deck: ENTRY } },
+      rolldownOptions: { input: { deck: STATIC_ENTRY } },
     },
   })
   const outputs = (Array.isArray(result) ? result : [result]) as Rolldown.RolldownOutput[]
@@ -149,6 +150,8 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   await writeFile(index, html)
   return checkOverflow({ outDir, index, page: '' }, loaded, options)
 }
+
+const STATIC_ENTRY = 'virtual:blitzstrahl-deck'
 
 /** A standalone file that's bigger than this gets a warning. */
 export const STANDALONE_WARN_BYTES = 8 * 1024 * 1024

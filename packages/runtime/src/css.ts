@@ -31,7 +31,14 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
 
 /* Print layout (print.ts): while it exists, it's the whole page. */
 html[data-blitz-printing], html[data-blitz-printing] body { height: auto; overflow: visible; background: none; }
-html[data-blitz-printing] body > :not(.blitz-print) { display: none !important; }
+html[data-blitz-printing] body > :is(.blitz-viewport, .blitz-blackout, .blitz-layer, .blitz-overflow-badge) { display: none !important; }
+/* Anything else in <body> is a library measuring text (mermaid, d3): it has
+   to stay laid out to be measured, so it moves off the pages instead. */
+html[data-blitz-printing] body > :not(.blitz-print, .blitz-viewport, .blitz-blackout, .blitz-layer, .blitz-overflow-badge) {
+  position: absolute !important; left: -100000px !important; top: 0 !important;
+}
+/* Where a renderer lays something out to measure it: off screen and unscaled. */
+.blitz-scratch { position: absolute; left: -100000px; top: 0; width: 1280px; pointer-events: none; }
 .blitz-print > .blitz-slide {
   display: block; position: relative; inset: auto; overflow: hidden;
   width: var(--blitz-canvas-w); height: var(--blitz-canvas-h);
@@ -90,6 +97,10 @@ html[data-blitz-printing] body > :not(.blitz-print) { display: none !important; 
 }
 .blitz-embed[data-loading]::before { content: "Loading " attr(data-loading) "\\2026"; }
 .blitz-embed-fallback { display: block; width: 100%; height: 100%; object-fit: cover; object-position: top; }
+
+/* Mermaid (renderers/mermaid.ts): the drawing, centred in its block. */
+.blitz-mermaid { position: absolute; inset: 0; display: grid; place-items: center; overflow: hidden; }
+.blitz-mermaid > svg { display: block; }
 
 /* Maps (renderers/map.ts): tiles under the chart. Themes filter the tiles
    with --blitz-map-tiles so a light basemap sits in a dark deck. */

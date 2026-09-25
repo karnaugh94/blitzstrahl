@@ -23,7 +23,27 @@ export function usedRenderers(deck: Deck): string[] {
   return BUILTIN_RENDERERS.filter((r) => used.has(r))
 }
 
-/** The entry: `start()` with each used renderer imported statically. */
+/**
+ * A static build's entry: `start()` with a lazy loader for each renderer the
+ * deck uses, and none for the rest. (The dev server's entry, client/entry.js,
+ * names them all, since a save can add any.) Without this, every deck would
+ * bundle Mermaid's hundred-odd chunks.
+ */
+export function staticEntry(renderers: readonly string[]): string {
+  const map = renderers.map((r) => `${JSON.stringify(r)}: () => import(${JSON.stringify(resolve(`@blitzstrahl/renderers/${r}`))})`).join(', ')
+  return `import { start } from ${JSON.stringify(resolve('@blitzstrahl/runtime'))}\nstart({ renderers: { ${map} } })\n`
+}
+
+/** A Vite plugin serving `code` as the module `id`. */
+export function virtualEntry(id: string, code: string): Plugin {
+  return {
+    name: `blitzstrahl:${id}`,
+    resolveId: (spec) => (spec === id ? `\0${id}` : undefined),
+    load: (spec) => (spec === `\0${id}` ? code : undefined),
+  }
+}
+
+/** The standalone entry: `start()` with each used renderer imported statically. */
 export function standaloneEntry(renderers: readonly string[]): string {
   const lines = [`import { start } from ${JSON.stringify(resolve('@blitzstrahl/runtime'))}`]
   renderers.forEach((r, i) => lines.push(`import r${i} from ${JSON.stringify(resolve(`@blitzstrahl/renderers/${r}`))}`))
@@ -34,12 +54,7 @@ export function standaloneEntry(renderers: readonly string[]): string {
 
 /** Bundle the entry into a single ES module, in memory. */
 export async function bundleStandalone(root: string, cacheDir: string, renderers: readonly string[], quiet = false): Promise<string> {
-  const entry = standaloneEntry(renderers)
-  const plugin: Plugin = {
-    name: 'blitzstrahl:standalone-entry',
-    resolveId: (id) => (id === ENTRY_ID ? `\0${ENTRY_ID}` : undefined),
-    load: (id) => (id === `\0${ENTRY_ID}` ? entry : undefined),
-  }
+  const plugin = virtualEntry(ENTRY_ID, standaloneEntry(renderers))
   const result = await viteBuild({
     configFile: false,
     root,

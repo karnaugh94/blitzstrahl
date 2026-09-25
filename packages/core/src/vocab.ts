@@ -48,7 +48,7 @@ export const RENDERERS: Readonly<Record<string, { body: RendererBody; since: str
 }
 
 /** Milestones implemented by this build. */
-export const SUPPORTED_MILESTONES = new Set(['M1', 'M2', 'M3'])
+export const SUPPORTED_MILESTONES = new Set(['M1', 'M2', 'M3', 'M4'])
 
 const DIRECTIONS = ['left', 'right', 'up', 'down'] as const
 

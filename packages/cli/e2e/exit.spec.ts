@@ -56,8 +56,10 @@ test('it becomes one file that runs from disk, every slide rendering', async ({ 
   expect(count).toBe(12)
   for (let i = 0; i < count; i++) {
     await page.evaluate((n) => window.blitz!.goto(n, 99), i)
+    // A view transition swaps the slides asynchronously: count blocks once this one is current.
+    await page.waitForFunction((n) => document.querySelectorAll('.blitz-stage > .blitz-slide')[n]?.hasAttribute('data-blitz-current'), i)
     const blocks = page.locator('[data-blitz-current] [data-blitz-block]')
-    for (let b = 0; b < (await blocks.count()); b++) await expect(blocks.nth(b).locator(':scope > *').first()).toBeVisible()
+    for (let b = 0; b < (await blocks.count()); b++) await expect(blocks.nth(b).locator(':scope > *').first(), `slide ${i + 1}, block ${b + 1}`).toBeVisible()
     await expect(page.locator('[data-blitz-current] .blitz-block-error')).toHaveCount(0)
   }
   expect(errors).toEqual([])

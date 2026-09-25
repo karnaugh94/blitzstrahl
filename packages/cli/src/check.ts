@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import type { Deck, Diagnostic, HastNode, SourceSpan } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
-import { specProblem } from '@blitzstrahl/renderers/specs'
+import { mermaidProblem, specProblem } from '@blitzstrahl/renderers/specs'
 import { build } from './build.js'
 import { resolveTheme } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
@@ -44,7 +44,7 @@ export async function check(deckPath: string, options: CheckOptions = {}): Promi
 
   // Render blocks, checked against their data the way the renderer would.
   for (const block of deck.slides.flatMap((s) => s.blocks)) {
-    const problem = specProblem(block.renderer, block.spec, (p) => loaded.inline[p])
+    const problem = block.renderer === 'mermaid' ? await mermaidProblem(block.spec) : specProblem(block.renderer, block.spec, (p) => loaded.inline[p])
     if (problem) add('error', `renderer/${block.renderer}`, `\`${block.renderer}\` block: ${problem}`, block.span)
   }
 

@@ -118,6 +118,7 @@ center: [41.395, 2.175]
 zoom: 13
 markers: ./stores.geojson
 labels: true
+tiles: osm
 ```
 
 ---
@@ -128,6 +129,7 @@ labels: true
 markers: ./cities.csv
 label: city
 size: stores
+tiles: osm
 ```
 
 ---

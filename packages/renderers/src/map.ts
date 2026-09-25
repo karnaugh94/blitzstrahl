@@ -18,18 +18,17 @@ import { GeoComponent, TooltipComponent, VisualMapComponent } from 'echarts/comp
 import * as echarts from 'echarts/core'
 import { SVGRenderer } from 'echarts/renderers'
 import type { RenderCtx, RenderInstance, Renderer } from '@blitzstrahl/runtime'
-import { parseData, type Row } from './data.js'
+import type { Row } from './data.js'
 import {
   MAX_ZOOM,
-  OSM_ATTRIBUTION,
-  OSM_TILES,
   WORLD,
   asFeatureCollection,
   fitView,
   geometryPoints,
-  markersFromGeoJson,
   markersFromRows,
+  markersFromText,
   project,
+  tileSource,
   tilesFor,
   unproject,
   validate,
@@ -82,8 +81,7 @@ async function loadJson(path: string, ctx: RenderCtx): Promise<unknown> {
 
 async function loadMarkers(src: string | Row[], ctx: RenderCtx, label?: string, size?: string): Promise<Marker[]> {
   if (typeof src !== 'string') return markersFromRows(src, label, size)
-  if (/\.(geo)?json$/i.test(src)) return markersFromGeoJson(asFeatureCollection(await loadJson(src, ctx), '`markers`'), label, size)
-  return markersFromRows(parseData(src, await ctx.loadAsset(src)), label, size)
+  return markersFromText(src, await ctx.loadAsset(src), label, size)
 }
 
 /** Name every region by `label`, so ECharts (which reads `name`) shows it. */
@@ -125,11 +123,12 @@ const map: Renderer = {
     const chartEl = doc.createElement('div')
     chartEl.className = 'blitz-map-chart'
     el.append(tilesLayer, chartEl)
-    const template = spec.tiles === 'none' ? undefined : (spec.tiles ?? OSM_TILES)
+    const tiles = tileSource(spec)
+    const template = tiles?.template
     if (template) {
       const credit = doc.createElement('div')
       credit.className = 'blitz-map-attribution'
-      credit.textContent = spec.attribution ?? (spec.tiles === undefined ? OSM_ATTRIBUTION : '')
+      credit.textContent = tiles!.attribution
       if (credit.textContent) el.append(credit)
     }
 

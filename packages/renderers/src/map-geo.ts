@@ -4,7 +4,7 @@
  * GeoJSON. Pure (no ECharts, no DOM), so it's unit-tested directly and
  * `check` can validate specs without a browser.
  */
-import type { Row } from './data.js'
+import { parseDelimited, rowsFrom, type Row } from './data.js'
 
 /** Web mercator's limit: the square world stops here. */
 const MAX_LAT = 85.0511287798
@@ -16,9 +16,9 @@ export interface MapSpec {
   /** `[lat, lng]`. */
   center?: [number, number]
   zoom?: number
-  /** `./file.geojson` (Points), `./file.csv` with lat/lng columns, or inline rows. */
+  /** A file or `https://` URL: GeoJSON Points, rows as JSON, or CSV/TSV with lat/lng columns. Or inline rows. */
   markers?: string | Row[]
-  /** `./file.geojson` of polygons: outlines, or a choropleth with `value`. */
+  /** A file or `https://` URL of GeoJSON polygons: outlines, or a choropleth with `value`. */
   regions?: string
   /** Marker or region property with each one's name. Default `name`. */
   label?: string
@@ -28,7 +28,7 @@ export interface MapSpec {
   value?: string
   /** Show marker names beside them. */
   labels?: boolean
-  /** Tile URL template with `{z}`, `{x}`, `{y}` (and optional `{s}`), or `none`. */
+  /** A tile URL template with `{z}`, `{x}`, `{y}` (and optional `{s}`), a preset (`osm`), or `none` (the default). */
   tiles?: string
   attribution?: string
   /** Pan and zoom with the pointer. */
@@ -38,6 +38,41 @@ export interface MapSpec {
 export const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
 export const OSM_ATTRIBUTION = '© OpenStreetMap contributors'
 export const MAX_ZOOM = 19
+
+/** Tile providers by name. A deck opts in: there's no default street map (docs/renderers/map.md). */
+export const TILE_PRESETS: Readonly<Record<string, { template: string; attribution: string }>> = {
+  osm: { template: OSM_TILES, attribution: OSM_ATTRIBUTION },
+}
+
+/** The street map a spec asks for, if any, with its credit. */
+export function tileSource(s: MapSpec): { template: string; attribution: string } | undefined {
+  if (s.tiles === undefined || s.tiles === 'none') return undefined
+  const preset = Object.hasOwn(TILE_PRESETS, s.tiles) ? TILE_PRESETS[s.tiles] : undefined
+  return { template: preset?.template ?? s.tiles, attribution: s.attribution ?? preset?.attribution ?? '' }
+}
+
+export const isUrl = (s: string): boolean => /^https?:\/\//i.test(s)
+
+/**
+ * Markers from a file's or a URL's text. JSON (GeoJSON, or a list of rows)
+ * is recognised by its content, since a URL often has no extension (an
+ * ArcGIS `query?f=geojson`); anything else is CSV, or TSV by extension.
+ */
+export function markersFromText(src: string, text: string, label?: string, size?: string): Marker[] {
+  const t = text.trimStart()
+  if (t.startsWith('{') || t.startsWith('[')) {
+    let value: unknown
+    try {
+      value = JSON.parse(t)
+    } catch (err) {
+      throw new Error(`\`${src}\` is not valid JSON: ${(err as Error).message}`)
+    }
+    if (Array.isArray(value)) return markersFromRows(rowsFrom(value, `\`${src}\``), label, size)
+    return markersFromGeoJson(asFeatureCollection(value, '`markers`'), label, size)
+  }
+  const tsv = /\.tsv$/i.test(src.replace(/[?#].*$/, ''))
+  return markersFromRows(parseDelimited(text, tsv ? '\t' : ','), label, size)
+}
 
 const KEYS = new Set(['center', 'zoom', 'markers', 'regions', 'label', 'size', 'value', 'labels', 'tiles', 'attribution', 'roam'])
 
@@ -58,9 +93,9 @@ export function validate(spec: unknown): MapSpec {
     throw new Error(`\`zoom\` must be a number from 0 (the world) to ${MAX_ZOOM} (a building)`)
   }
   if (s.markers !== undefined && typeof s.markers !== 'string' && !Array.isArray(s.markers)) {
-    throw new Error('`markers` must be a ./file.geojson or ./file.csv path, or a list of { lat, lng }')
+    throw new Error('`markers` must be a ./file (GeoJSON, CSV) or an https:// URL, or a list of { lat, lng }')
   }
-  if (s.regions !== undefined && typeof s.regions !== 'string') throw new Error('`regions` must be a ./file.geojson path')
+  if (s.regions !== undefined && typeof s.regions !== 'string') throw new Error('`regions` must be a ./file.geojson or an https:// URL')
   for (const k of ['label', 'size', 'value', 'tiles', 'attribution'] as const) {
     if (s[k] !== undefined && typeof s[k] !== 'string') throw new Error(`\`${k}\` must be text`)
   }
@@ -69,8 +104,8 @@ export function validate(spec: unknown): MapSpec {
   }
   if (s.value !== undefined && s.regions === undefined) throw new Error('`value` colours `regions`: add a regions file')
   if (s.size !== undefined && s.markers === undefined) throw new Error('`size` sizes `markers`: add markers')
-  if (typeof s.tiles === 'string' && s.tiles !== 'none' && !/\{z\}/.test(s.tiles)) {
-    throw new Error('`tiles` must be a URL template with {z}, {x} and {y}, or `none`')
+  if (typeof s.tiles === 'string' && s.tiles !== 'none' && !Object.hasOwn(TILE_PRESETS, s.tiles) && !/\{z\}/.test(s.tiles)) {
+    throw new Error(`\`tiles\` must be a URL template with {z}, {x} and {y}, a provider (${Object.keys(TILE_PRESETS).join(', ')}), or \`none\``)
   }
   if (s.center === undefined && s.markers === undefined && s.regions === undefined) {
     throw new Error('say where: give `center` and `zoom`, or `markers` or `regions` to fit the map to')

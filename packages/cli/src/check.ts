@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import type { Deck, Diagnostic, HastNode, SourceSpan } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
-import { mermaidProblem, specProblem } from '@blitzstrahl/renderers/specs'
+import { asFeatureCollection, isUrl, markersFromText, mermaidProblem, specProblem, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
 import { build } from './build.js'
 import { deckStyles, loadDeck, type LoadedDeck } from './load.js'
 import { checkBuiltOverflow } from './overflow.js'
@@ -55,8 +55,12 @@ export async function check(deckPath: string, options: CheckOptions = {}): Promi
 
   found.push(...unusedClasses(deck, loaded.source, theme.stylesheet + runtimeCss + loaded.css))
 
-  if (!options.offline) found.push(...(await probeEmbeds(deck, options.timeout ?? 8000)))
-  else if (deck.slides.some((s) => s.blocks.some((b) => b.renderer === 'embed'))) skipped.push('embedded sites (--offline)')
+  found.push(...mapNotes(deck))
+  if (!options.offline) found.push(...(await probeEmbeds(deck, options.timeout ?? 8000)), ...(await probeGeometry(deck, options.timeout ?? 8000)))
+  else {
+    if (deck.slides.some((s) => s.blocks.some((b) => b.renderer === 'embed'))) skipped.push('embedded sites (--offline)')
+    if (geometryUrls(deck).size) skipped.push('map data from URLs (--offline)')
+  }
 
   if (options.overflow !== false) {
     const over = await measure(loaded)
@@ -197,6 +201,82 @@ function distance(a: string, b: string): number {
  * file, or any host), so anything short of "anyone may frame this" is a
  * warning.
  */
+/** Maps' specs, where they're valid enough to read. */
+function maps(deck: Deck): Array<{ spec: MapSpec; span: SourceSpan }> {
+  return deck.slides
+    .flatMap((s) => s.blocks)
+    .filter((b) => b.renderer === 'map' && b.spec && typeof b.spec === 'object' && !Array.isArray(b.spec))
+    .map((b) => ({ spec: b.spec as MapSpec, span: b.span }))
+}
+
+/**
+ * Maps have no street map unless the deck names one (map.md): say so, once
+ * per map without `tiles`, and ask for a credit where a custom provider
+ * has none.
+ */
+export function mapNotes(deck: Deck): Diagnostic[] {
+  const out: Diagnostic[] = []
+  for (const { spec, span } of maps(deck)) {
+    if (spec.tiles === undefined) {
+      out.push({ severity: 'info', code: 'map/no-tiles', message: 'this map has no street map under it: set `tiles` to a provider (`tiles: osm`, or a URL template), or `tiles: none` to say that\'s intended', file: deck.source, span })
+    } else if (typeof spec.tiles === 'string' && !tileSource(spec)?.attribution) {
+      out.push({ severity: 'warning', code: 'map/no-attribution', message: 'tile providers require credit: add `attribution` (it shows in the corner of the map)', file: deck.source, span })
+    }
+  }
+  return out
+}
+
+/** `markers` and `regions` URLs, with where each is first used. */
+function geometryUrls(deck: Deck): Map<string, { span: SourceSpan; key: 'markers' | 'regions'; spec: MapSpec }> {
+  const out = new Map<string, { span: SourceSpan; key: 'markers' | 'regions'; spec: MapSpec }>()
+  for (const { spec, span } of maps(deck)) {
+    for (const key of ['markers', 'regions'] as const) {
+      const v = spec[key]
+      if (typeof v === 'string' && isUrl(v) && !out.has(v)) out.set(v, { span, key, spec })
+    }
+  }
+  return out
+}
+
+/**
+ * Fetch each map's `markers` / `regions` URL the way the page will: it must
+ * answer, hold what the map expects, and let other pages read it (CORS),
+ * or the browser refuses it however well the server answers.
+ */
+export async function probeGeometry(deck: Deck, timeout: number): Promise<Diagnostic[]> {
+  const out: Diagnostic[] = []
+  await Promise.all(
+    [...geometryUrls(deck)].map(async ([url, { span, key, spec }]) => {
+      const warn = (code: string, message: string) => out.push({ severity: 'warning', code, message, file: deck.source, span })
+      let res: Response
+      let text: string
+      try {
+        res = await fetch(url, { redirect: 'follow', signal: AbortSignal.timeout(timeout) })
+        text = await res.text()
+      } catch (err) {
+        const why = err instanceof Error && err.name === 'TimeoutError' ? `no answer in ${timeout / 1000}s` : err instanceof Error ? (err.cause as Error | undefined)?.message ?? err.message : String(err)
+        warn('map/unreachable', `couldn't reach ${url} (${why}); the map will be missing its \`${key}\` if it can't during the talk`)
+        return
+      }
+      if (res.status >= 400) {
+        warn('map/status', `${url} answers ${res.status} ${res.statusText}`.trim())
+        return
+      }
+      const cors = res.headers.get('access-control-allow-origin')?.trim()
+      if (cors !== '*') {
+        warn('map/cors', cors ? `${url} only lets ${cors} read it (CORS), so the deck's page can't` : `${url} doesn't let other pages read it (no Access-Control-Allow-Origin header), so the browser will refuse it`)
+      }
+      try {
+        if (key === 'markers') markersFromText(url, text, spec.label, spec.size)
+        else asFeatureCollection(JSON.parse(text), '`regions`')
+      } catch (err) {
+        out.push({ severity: 'error', code: 'map/data', message: `\`${key}\` from ${url}: ${(err as Error).message}`, file: deck.source, span })
+      }
+    }),
+  )
+  return out
+}
+
 export async function probeEmbeds(deck: Deck, timeout: number): Promise<Diagnostic[]> {
   const blocks = deck.slides.flatMap((s) => s.blocks).filter((b) => b.renderer === 'embed')
   const bySrc = new Map<string, SourceSpan>()

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fitView, markersFromGeoJson, markersFromRows, project, tilesFor, unproject, validate, viewBounds } from '../src/map-geo.js'
+import { OSM_TILES, fitView, markersFromGeoJson, markersFromRows, markersFromText, project, tileSource, tilesFor, unproject, validate, viewBounds } from '../src/map-geo.js'
 
 describe('map geometry', () => {
   it('projects web mercator: the world is one 256-unit tile', () => {
@@ -66,5 +66,25 @@ describe('map geometry', () => {
     expect(() => validate({ center: [0, 0], zoom: 25 })).toThrow('`zoom`')
     expect(() => validate({ center: [0, 0], tiles: 'https://x/a.png' })).toThrow('{z}')
     expect(() => validate({ center: [0, 0], value: 'pop' })).toThrow('add a regions file')
+  })
+
+  it('reads markers by content, since a URL may have no extension', () => {
+    const geo = JSON.stringify({ type: 'FeatureCollection', features: [{ type: 'Feature', properties: { name: 'A' }, geometry: { type: 'Point', coordinates: [2, 41] } }] })
+    const at = (src: string, text: string) => markersFromText(src, text).map((m) => [m.name, ...m.at])
+    expect(at('https://x/query?f=geojson', geo)).toEqual([['A', 2, 41]])
+    expect(at('https://x/rows', ' [{"name": "B", "lat": 40, "lng": 3}]')).toEqual([['B', 3, 40]])
+    expect(at('stores.csv', 'name,lat,lng\nC,39,1\n')).toEqual([['C', 1, 39]])
+    expect(at('https://x/stores.tsv?v=2', 'name\tlat\tlng\nD\t38\t0\n')).toEqual([['D', 0, 38]])
+    expect(() => markersFromText('https://x/q', '{ nope')).toThrow('`https://x/q` is not valid JSON')
+  })
+
+  it('has no street map unless the deck names one', () => {
+    expect(tileSource({})).toBeUndefined()
+    expect(tileSource({ tiles: 'none' })).toBeUndefined()
+    expect(tileSource({ tiles: 'osm' })).toEqual({ template: OSM_TILES, attribution: '© OpenStreetMap contributors' })
+    expect(tileSource({ tiles: 'https://t/{z}/{y}/{x}', attribution: 'Esri' })).toEqual({ template: 'https://t/{z}/{y}/{x}', attribution: 'Esri' })
+    expect(tileSource({ tiles: 'https://t/{z}/{y}/{x}' })?.attribution).toBe('')
+    expect(() => validate({ center: [0, 0], tiles: 'osm' })).not.toThrow()
+    expect(() => validate({ center: [0, 0], tiles: 'google' })).toThrow('a provider (osm)')
   })
 })

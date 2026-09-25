@@ -66,3 +66,19 @@ test('`lines=` moves the focus one group per step, and the text after it comes n
   await expect.poll(() => page.evaluate(() => window.blitz!.pos)).toEqual({ slide: 2, step: 1 })
   expect(await lit()).toEqual([false, true, true])
 })
+
+test('two quick steps back still snap: the first one’s snap ending doesn’t let the second transition', async ({ page }) => {
+  await page.goto(`${url}#/lines/3`)
+  await page.waitForFunction(() => window.blitz)
+  // Let the snap from arriving at the slide finish first.
+  await page.waitForTimeout(100)
+  const opacity = await page.evaluate(async () => {
+    window.blitz!.retreat()
+    // The second step lands just after a frame: before the first step's snap ends, after it began.
+    await new Promise((r) => requestAnimationFrame(() => setTimeout(r, 0)))
+    window.blitz!.retreat()
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+    return Number(getComputedStyle(document.querySelector('#lines .line')!).opacity)
+  })
+  expect(opacity).toBeLessThan(0.5)
+})

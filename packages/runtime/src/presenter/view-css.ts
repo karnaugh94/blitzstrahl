@@ -33,6 +33,9 @@ body.blitz-presenter-mode { background: #0a0c13; overflow: hidden; }
 .bp-current > .bp-frame { width: 100%; max-height: 100%; }
 .bp-frame { position: relative; width: 100%; border-radius: 8px; overflow: hidden; background: #000; }
 .bp-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
+/* Drawing and pointing on the current preview (ink.ts). */
+.bp[data-tool="laser"] .bp-current .bp-frame { cursor: none; }
+.bp[data-tool="pen"] .bp-current .bp-frame { cursor: crosshair; touch-action: none; }
 .bp-black, .bp-end {
   position: absolute; inset: 0; display: none; place-items: center;
   font-weight: 600; letter-spacing: .04em; color: #fff; background: rgba(0, 0, 0, .72);

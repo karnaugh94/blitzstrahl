@@ -8,6 +8,7 @@ import { needsBox, playEntrance, playExit, type Played } from './effects.js'
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
 import type { BlockData, RenderCtx, RenderInstance, Renderer, RendererLoader } from './renderer.js'
 import { buildPrint, type PrintOptions, type PrintResult } from './print.js'
+import { bindInk, InkLayer, type InkEvent, type Tool } from './ink.js'
 import { focusLines } from './lines.js'
 import { isCode, pairSlides, type MorphPair } from './morph.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
@@ -66,6 +67,8 @@ interface SlideView {
 
 /** Called after every change of position or blackout. */
 export type ChangeListener = (pos: Position, deck: Deck) => void
+/** Called with every ink event the deck applies. */
+export type InkListener = (e: InkEvent) => void
 
 export class Deck implements NavTarget {
   pos: Position | undefined
@@ -78,6 +81,7 @@ export class Deck implements NavTarget {
   private readonly live: HTMLElement | null
   private readonly renderers: Record<string, RendererLoader>
   private readonly listeners = new Set<ChangeListener>()
+  private readonly inkListeners = new Set<InkListener>()
   private readonly cleanups: Array<() => void> = []
   private readonly reduced: MediaQueryList
   /** Bumped whenever block instances are torn down, to drop stale async mounts. */
@@ -89,6 +93,10 @@ export class Deck implements NavTarget {
   /** The audience sees black (`B`); navigation still works underneath. */
   blackout = false
   private readonly blackoutEl: HTMLElement
+  /** Drawing and the laser, over the slides (ink.ts). */
+  readonly ink: InkLayer
+  /** The tool in this window's hands (`L`, `D`). */
+  tool: Tool = 'none'
   readonly mode: NonNullable<StartOptions['mode']>
   /** The presenter link (audience mode only). */
   readonly presenter: DeckBridge | undefined
@@ -107,6 +115,8 @@ export class Deck implements NavTarget {
     this.blackoutEl = this.doc.createElement('div')
     this.blackoutEl.className = 'blitz-blackout'
     this.doc.body.append(this.blackoutEl)
+    this.ink = new InkLayer(this.doc, payload.canvas)
+    this.cleanups.push(() => this.ink.destroy())
     this.load(payload)
 
     const ro = new ResizeObserver(() => this.rescale())
@@ -119,7 +129,22 @@ export class Deck implements NavTarget {
       return
     }
 
-    this.cleanups.push(bindKeyboard(this.win, this, (e) => this.onKey(e)), bindPointer(this.viewport, this))
+    this.cleanups.push(
+      bindKeyboard(this.win, this, (e) => this.onKey(e)),
+      bindPointer(this.viewport, this, () => this.tool === 'pen'),
+      bindInk(
+        this.viewport,
+        {
+          tool: () => this.tool,
+          slide: () => this.pos?.slide,
+          stage: this.stage,
+          canvas: this.payload.canvas,
+          pen: () => this.pen(),
+          emit: (e) => this.applyInk(e),
+        },
+        'a',
+      ),
+    )
     const onHash = () => {
       // The page's mode is chosen when it loads, so typing `#presenter` onto
       // an open deck has to reload it to take effect.
@@ -183,8 +208,10 @@ export class Deck implements NavTarget {
   private mirror() {
     const parent = this.win.parent
     const onMessage = (e: MessageEvent) => {
-      if (e.source !== parent || !isEnvelope(e.data) || e.data.type !== 'state') return
-      this.goto(e.data.slide, e.data.step, { history: 'none' })
+      if (e.source !== parent || !isEnvelope(e.data)) return
+      if (e.data.type === 'state') this.goto(e.data.slide, e.data.step, { history: 'none' })
+      // The current-slide preview shows the talk's ink too.
+      else if (e.data.type === 'ink' && this.mode === 'mirror') this.ink.apply(e.data.event)
     }
     this.win.addEventListener('message', onMessage)
     this.cleanups.push(() => this.win.removeEventListener('message', onMessage))
@@ -217,6 +244,35 @@ export class Deck implements NavTarget {
   onChange(cb: ChangeListener): () => void {
     this.listeners.add(cb)
     return () => this.listeners.delete(cb)
+  }
+
+  onInk(cb: InkListener): () => void {
+    this.inkListeners.add(cb)
+    return () => this.inkListeners.delete(cb)
+  }
+
+  /** Apply drawing or laser input, from this window or the presenter, and pass it on. */
+  applyInk(e: InkEvent): void {
+    this.ink.apply(e)
+    for (const cb of this.inkListeners) cb(e)
+  }
+
+  /** Pick up a tool, or put it down (`none`). */
+  setTool(tool: Tool): void {
+    if (this.tool === 'laser' && tool !== 'laser') this.applyInk({ op: 'laser', at: null })
+    this.tool = tool
+    if (tool === 'none') delete this.viewport.dataset.blitzTool
+    else this.viewport.dataset.blitzTool = tool
+  }
+
+  /** `C`: wipe the current slide's drawing. */
+  clearInk(): void {
+    if (this.pos) this.applyInk({ op: 'clear', slide: this.pos.slide })
+  }
+
+  private pen(): { color: string; width: number } {
+    const token = (name: string) => this.win.getComputedStyle(this.stage).getPropertyValue(name).trim()
+    return { color: token('--blitz-ink') || token('--blitz-accent') || '#ff4d6d', width: 6 }
   }
 
   advance(): void {
@@ -362,7 +418,24 @@ export class Deck implements NavTarget {
   /** The deck's own keys (PLAN §8), ahead of navigation. */
   private onKey(e: KeyboardEvent): boolean {
     if (this.layers.key(e)) return true
+    // Esc puts a tool down before it does anything else.
+    if (e.key === 'Escape' && this.tool !== 'none') {
+      this.setTool('none')
+      return true
+    }
     switch (e.key) {
+      case 'l':
+      case 'L':
+        this.setTool(this.tool === 'laser' ? 'none' : 'laser')
+        return true
+      case 'd':
+      case 'D':
+        this.setTool(this.tool === 'pen' ? 'none' : 'pen')
+        return true
+      case 'c':
+      case 'C':
+        this.clearInk()
+        return true
       case 'Escape':
       case 'o':
       case 'O':
@@ -407,6 +480,9 @@ export class Deck implements NavTarget {
     this.stage.style.setProperty('--blitz-canvas-h', `${height}px`)
     const sections = [...this.stage.querySelectorAll<HTMLElement>(':scope > .blitz-slide')]
     this.views = payload.slides.map((data, i) => this.buildView(sections[i]!, data))
+    // Over the slides (a dev update replaces the stage's HTML).
+    this.ink.resize(payload.canvas)
+    this.stage.append(this.ink.el)
     this.rescale()
   }
 
@@ -466,6 +542,7 @@ export class Deck implements NavTarget {
     queueMicrotask(() => this.showBadge())
     view.el.dataset.blitzCurrent = ''
     view.el.removeAttribute('aria-hidden')
+    this.ink.showSlide(this.views.indexOf(view))
     for (const s of view.stepped) delete s.phase
     if (this.live && this.mode === 'audience') {
       const i = this.views.indexOf(view)
@@ -668,9 +745,20 @@ function toggle(el: HTMLElement, key: string, on: boolean) {
   else delete el.dataset[key]
 }
 
+/** Snaps still pending, per element: only the last one to end may lift `.blitz-snap`. */
+const snapping = new WeakMap<HTMLElement, number>()
+
 /** Apply the next class change without CSS transitions. */
 function snap(el: HTMLElement) {
   el.classList.add('blitz-snap')
   void el.offsetWidth
-  requestAnimationFrame(() => requestAnimationFrame(() => el.classList.remove('blitz-snap')))
+  snapping.set(el, (snapping.get(el) ?? 0) + 1)
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      const left = (snapping.get(el) ?? 1) - 1
+      snapping.set(el, left)
+      // Two quick steps back: the first one's snap ending mustn't let the second's change transition.
+      if (!left) el.classList.remove('blitz-snap')
+    }),
+  )
 }

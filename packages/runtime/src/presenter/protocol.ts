@@ -4,6 +4,8 @@
  * input can never disagree about where the talk is.
  */
 
+import type { InkEvent } from '../ink.js'
+
 /** The talk timer. Held by the deck so it survives the presenter reloading. */
 export interface TimerState {
   running: boolean
@@ -14,14 +16,22 @@ export interface TimerState {
 }
 
 export type PresenterMsg =
-  /** "I'm here": sent on start and as a heartbeat. The deck answers with `state`. */
-  | { type: 'hello'; role: 'deck' | 'presenter' | 'mirror' }
+  /**
+   * "I'm here": sent on start and as a heartbeat. The deck answers with
+   * `state`, and with the drawing so far (an `ink` sync) if `sync` asks.
+   */
+  | { type: 'hello'; role: 'deck' | 'presenter' | 'mirror'; sync?: boolean }
   | { type: 'state'; slide: number; step: number; blackout: boolean; timer: TimerState }
   | { type: 'goto'; slide: number; step: number }
   | { type: 'advance' }
   | { type: 'retreat' }
   | { type: 'timer'; action: 'start' | 'pause' | 'reset' }
   | { type: 'blackout'; on: boolean }
+  /**
+   * Drawing and the laser. From the presenter, an intent; from the deck, what
+   * it applied (whoever drew it), which the presenter shows on its preview.
+   */
+  | { type: 'ink'; event: InkEvent }
   /** The sender is going away (unload). */
   | { type: 'bye' }
 

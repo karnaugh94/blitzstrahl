@@ -58,6 +58,20 @@ html[data-blitz-printing] body > :not(.blitz-print, .blitz-viewport, .blitz-blac
 .blitz-overflow-badge ul { margin: 4px 0 0; padding-left: 18px; font-weight: 400; }
 .blitz-slide[data-blitz-outgoing] { pointer-events: none; }
 
+/* Ink (ink.ts): drawing and the laser pointer, over the slides, in canvas pixels. */
+.blitz-ink { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; overflow: visible; }
+.blitz-stroke { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.blitz-laser {
+  fill: var(--blitz-laser, #ff3344);
+  filter: drop-shadow(0 0 5px var(--blitz-laser, #ff3344)) drop-shadow(0 0 14px var(--blitz-laser, #ff3344));
+}
+.blitz-laser-trail {
+  fill: none; stroke: var(--blitz-laser, #ff3344); stroke-width: 8; opacity: .4;
+  stroke-linecap: round; stroke-linejoin: round;
+}
+.blitz-viewport[data-blitz-tool="laser"] { cursor: none; }
+.blitz-viewport[data-blitz-tool="pen"] { cursor: crosshair; touch-action: none; }
+
 /* Slide transitions (transitions.ts). The stage is snapshotted on its own,
    and its pseudo-elements are animated from script. */
 :root { view-transition-name: none; }

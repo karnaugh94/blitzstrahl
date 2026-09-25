@@ -86,6 +86,8 @@ export interface PageOptions {
   entry: { src: string } | { code: string }
   /** Dev only: shown in the browser console. */
   diagnostics?: Diagnostic[]
+  /** More CSS after the theme's: KaTeX's, when the deck has math. */
+  css?: string
 }
 
 /** A deck with external chunks can't run from a file (module scripts need HTTP); say so. */
@@ -113,6 +115,7 @@ export function renderPage(o: PageOptions): string {
 <style>
 ${runtimeCss}
 ${o.theme.stylesheet}
+${o.css ?? ''}
 </style>
 </head>
 <body>

@@ -25,6 +25,12 @@ export interface BlitzSpan extends Parent {
   attrsStart: Point
 }
 
+/** `$…$` or `$$…$$` (§12): TeX, rendered by the CLI with KaTeX. */
+export interface BlitzMath extends Literal {
+  type: 'blitzMath'
+  display: boolean
+}
+
 /** `::: name {...}` … `:::`. */
 export interface BlitzContainer extends Parent {
   type: 'blitzContainer'
@@ -40,6 +46,7 @@ declare module 'mdast' {
   interface PhrasingContentMap {
     blitzAttrs: BlitzAttrs
     blitzSpan: BlitzSpan
+    blitzMath: BlitzMath
   }
   interface BlockContentMap {
     blitzContainer: BlitzContainer
@@ -47,6 +54,7 @@ declare module 'mdast' {
   interface RootContentMap {
     blitzAttrs: BlitzAttrs
     blitzSpan: BlitzSpan
+    blitzMath: BlitzMath
     blitzContainer: BlitzContainer
   }
 }
@@ -69,6 +77,9 @@ export function blitzFromMarkdown(): Extension {
       },
       blitzContainer(this: CompileContext, token: Token) {
         this.enter({ type: 'blitzContainer', closed: false, children: [] } as never, token)
+      },
+      blitzMath(this: CompileContext, token: Token) {
+        this.enter({ type: 'blitzMath', value: '', display: false } as never, token)
       },
     },
     exit: {
@@ -105,6 +116,25 @@ export function blitzFromMarkdown(): Extension {
       blitzContainer(this: CompileContext, token: Token) {
         this.exit(token)
       },
+      blitzMath(this: CompileContext, token: Token) {
+        const node = top<BlitzMath>(this)
+        const raw = this.sliceSerialize(token)
+        node.display = raw.startsWith('$$')
+        const d = node.display ? 2 : 1
+        node.value = raw.slice(d, -d)
+        if (node.display) node.value = node.value.trim()
+        node.data = mathData(node.value, node.display)
+        this.exit(token)
+      },
     },
+  }
+}
+
+/** How a math node becomes hast: a span the CLI renders with KaTeX. */
+export function mathData(tex: string, display: boolean, tag = 'span') {
+  return {
+    hName: tag,
+    hProperties: { className: ['math', display ? 'math-display' : 'math-inline'] },
+    hChildren: [{ type: 'text' as const, value: tex }],
   }
 }

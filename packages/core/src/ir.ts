@@ -139,7 +139,7 @@ export interface AnimSpec {
 export interface RenderBlock {
   /** Deck-unique id, matching the `data-blitz-block` placeholder. */
   id: string
-  /** Renderer name: 'chart' | 'map' | 'embed' | 'table' | 'mermaid' | 'math' | plugin names. */
+  /** Renderer name: 'chart' | 'map' | 'embed' | 'table' | 'mermaid' | plugin names. (Math is typeset at build time, not a block.) */
   renderer: string
   /** Fence body exactly as written; empty for blocks that enhance authored HTML. */
   source: string

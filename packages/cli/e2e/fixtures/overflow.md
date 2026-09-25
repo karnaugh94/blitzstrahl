@@ -78,3 +78,11 @@ Left.
 ::: right
 Right.
 :::
+
+---
+
+# Screen-reader text fits
+
+Math carries hidden MathML: $\frac{a}{b} + \sqrt{x^2 + y^2}$
+
+<span style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0)">A long sentence only screen readers hear, far wider than one pixel.</span>

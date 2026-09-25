@@ -6,6 +6,7 @@ import { build as viteBuild, type Rolldown } from 'vite'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
 import { renderPage, resolveTheme } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
+import { hasMath, mathCss, mathFont } from './math.js'
 import { checkBuiltOverflow } from './overflow.js'
 import { hasErrors, printDiagnostics } from './report.js'
 import { bundleStandalone, dataUri, inlineSafe, usedRenderers } from './standalone.js'
@@ -75,7 +76,8 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
       const uri = await dataUri(file)
       if (uri) uris.set(asset.path, uri)
     }
-    const html = renderPage({ deck: loaded.deck, inline: loaded.inline, theme, entry: { code: inlineSafe(code) }, assetUrl: (p) => uris.get(p) ?? p })
+    const css = hasMath(loaded.deck) ? await mathCss(async (file) => (await dataUri(mathFont(file)))!, loaded.deck) : undefined
+    const html = renderPage({ deck: loaded.deck, inline: loaded.inline, theme, entry: { code: inlineSafe(code) }, assetUrl: (p) => uris.get(p) ?? p, ...(css ? { css } : {}) })
     await mkdir(outDir, { recursive: true })
     await writeFile(outFile, html)
     const size = Buffer.byteLength(html)
@@ -127,12 +129,21 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     urls.set(asset.path, name)
   }
 
+  let css: string | undefined
+  if (hasMath(loaded.deck)) {
+    await mkdir(join(outDir, 'assets', 'katex'), { recursive: true })
+    css = await mathCss(async (file) => {
+      await copyFile(mathFont(file), join(outDir, 'assets', 'katex', file))
+      return `assets/katex/${file}`
+    })
+  }
   const html = renderPage({
     deck: loaded.deck,
     inline: loaded.inline,
     theme,
     entry: { src: `./${entry.fileName}` },
     assetUrl: (p) => urls.get(p) ?? p,
+    ...(css ? { css } : {}),
   })
   const index = join(outDir, 'index.html')
   await writeFile(index, html)

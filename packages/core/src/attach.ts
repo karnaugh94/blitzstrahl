@@ -20,7 +20,7 @@ declare module 'mdast' {
 }
 
 const BLOCK_PARENTS = new Set(['root', 'blockquote', 'listItem', 'list', 'blitzContainer', 'footnoteDefinition'])
-const INLINE_TARGETS = new Set(['link', 'image', 'inlineCode', 'linkReference', 'imageReference'])
+const INLINE_TARGETS = new Set(['link', 'image', 'inlineCode', 'linkReference', 'imageReference', 'blitzMath'])
 
 export function attachAttributes(nodes: RootContent[], lines: string[], diags: Diagnostics): void {
   const attach = (target: Nodes, raw: string, at: Point) => {
@@ -113,7 +113,7 @@ export function attachAttributes(nodes: RootContent[], lines: string[], diags: D
         } else {
           diags.error(
             'attr/no-target',
-            'an inline attribute block must directly follow a [span], link, image or `code`; ' +
+            'an inline attribute block must directly follow a [span], link, image, `code` or $math$; ' +
               'to style a whole block, put a space before it at the end of the line',
             child,
           )

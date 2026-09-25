@@ -36,7 +36,7 @@ plugins:
   written in the deck's folder, so it comes from the deck's own
   `node_modules`. A path starting `./` or `../` is relative to the markdown
   file.
-- **`theme`**: a built-in name (`aurora`), a package, or a path.
+- **`theme`**: a built-in name (`aurora`, `broadsheet`), a package, or a path.
   A bare name that isn't built in is tried as `blitzstrahl-theme-<name>`,
   then as `<name>`. So `theme: acme` finds `blitzstrahl-theme-acme`.
 - A plugin or theme that can't be found, loaded or validated is an

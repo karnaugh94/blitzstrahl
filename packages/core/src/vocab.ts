@@ -32,7 +32,7 @@ export const ANIM_KEYS = new Set(['dur', 'delay', 'ease', 'reverse', 'from', 'cp
 export const SLIDE_SHORTHAND_KEYS = new Set(['transition', 'transition-dur', 'layout', 'background'])
 export const PASSTHROUGH_KEYS = new Set(['style', 'title', 'lang', 'dir', 'width', 'height', 'alt'])
 /** Reserved for a later milestone: accepted with a "not yet supported" warning. */
-export const RESERVED_KEYS: Readonly<Record<string, string>> = { key: 'M4', lines: 'M4' }
+export const RESERVED_KEYS: Readonly<Record<string, string>> = { lines: 'M4' }
 
 export const NAMED_EASINGS = new Set(['linear', 'in', 'out', 'in-out', 'out-expo', 'in-out-expo', 'out-back'])
 

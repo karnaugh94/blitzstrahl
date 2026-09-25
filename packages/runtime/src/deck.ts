@@ -8,8 +8,9 @@ import { needsBox, playEntrance, playExit, type Played } from './effects.js'
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
 import type { BlockData, RenderCtx, RenderInstance, Renderer, RendererLoader } from './renderer.js'
 import { buildPrint, type PrintOptions, type PrintResult } from './print.js'
+import { pairSlides, type MorphPair } from './morph.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
-import { ViewTransitionEngine, WaapiEngine, slideMotion, type TransitionEngine } from './transitions.js'
+import { ViewTransitionEngine, WaapiEngine, slideMotion, type SlideMotion, type TransitionEngine } from './transitions.js'
 import { LayerHost, gotoPrompt, help, overview, presenterBlocked } from './ui.js'
 import { DeckBridge } from './presenter/bridge.js'
 import { measureOverflow } from './overflow.js'
@@ -80,6 +81,8 @@ export class Deck implements NavTarget {
   private readonly reduced: MediaQueryList
   /** Bumped whenever block instances are torn down, to drop stale async mounts. */
   private generation = 0
+  /** Elements the running auto-animate moves into place: they don't play entrances too. */
+  private morphing = new Set<HTMLElement>()
   readonly transitions: TransitionEngine
   readonly layers: LayerHost
   /** The audience sees black (`B`); navigation still works underneath. */
@@ -253,7 +256,8 @@ export class Deck implements NavTarget {
       this.syncBlocks(view, to.step)
     }
     this.pos = to
-    const t = old && from ? this.slideTransition(from.slide, to.slide) : undefined
+    const t = old && from ? this.slideTransition(from.slide, to) : undefined
+    this.morphing = new Set(t?.morph?.map((p) => p.to))
     if (t && old) {
       this.transitions.run({ ...t, from: old.el, to: view.el, commit, done: () => teardown() })
     } else {
@@ -425,6 +429,10 @@ export class Deck implements NavTarget {
       }
       stepped.push({ el: node, range, kind, anim })
     }
+    // Inline boxes can't be transformed, and auto-animate moves keyed elements.
+    for (const node of el.querySelectorAll<HTMLElement>('[data-blitz-key]')) {
+      if (this.win.getComputedStyle(node).display === 'inline') node.dataset.blitzBox = ''
+    }
     const blocks: BlockView[] = []
     for (const b of data.blocks) {
       const id = CSS.escape(b.id)
@@ -486,15 +494,21 @@ export class Deck implements NavTarget {
    * The transition between two slides (syntax.md §9): forward uses the
    * entered slide's, backward plays the left slide's mirrored.
    */
-  private slideTransition(from: number, to: number) {
+  private slideTransition(from: number, to: Position): { motion: SlideMotion; reverse: boolean; dur: number; easing: string; morph?: MorphPair[] } | undefined {
     // Nobody sees a transition under blackout, and a view transition would
     // paint above the black screen (it's drawn in the top layer): cut instead.
     if (this.still || this.blackout) return undefined
-    const reverse = to < from
-    const spec = this.payload.slides[reverse ? from : to]!.transition
+    const reverse = to.slide < from
+    const spec = this.payload.slides[reverse ? from : to.slide]!.transition
     const m = slideMotion(spec.name)
     if (!m) return undefined
-    return { motion: m, reverse, dur: spec.dur ?? this.defaultTransitionDur(), easing: TRANSITION_EASE }
+    const t = { motion: m, reverse, dur: spec.dur ?? this.defaultTransitionDur(), easing: TRANSITION_EASE }
+    if (spec.name !== 'auto-animate') return t
+    // Morphing runs the same way in both directions: from here to there.
+    const view = this.views[to.slide]!
+    const visible = (el: HTMLElement) =>
+      !view.stepped.some((s) => s.kind === 'entrance' && s.el.contains(el) && phaseAt(s.kind, s.range, to.step) === 'hidden')
+    return { ...t, reverse: false, morph: pairSlides(this.views[from]!.el, view.el, visible) }
   }
 
   private defaultTransitionDur(): number {
@@ -532,7 +546,7 @@ export class Deck implements NavTarget {
       if (phase === 'shown') {
         toggle(s.el, 'blitzHidden', false)
         const entrance = m === 'step-forward' || (m === 'enter' && s.range.in === 0 && s.anim !== undefined)
-        if (animate && entrance && was !== 'shown') s.running = playEntrance(s.el, anim)
+        if (animate && entrance && was !== 'shown' && !this.morphing.has(s.el)) s.running = playEntrance(s.el, anim)
       } else if (animate && m === 'step-forward' && was === 'shown') {
         const run = playExit(s.el, anim)
         s.running = run

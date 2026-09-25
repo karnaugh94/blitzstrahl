@@ -75,11 +75,13 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
     if (fm.class !== undefined) attrs.class = String(fm.class).split(/\s+/).filter(Boolean)
     if (fm.style !== undefined) attrs.style = String(fm.style)
 
-    let id = scalarString(fm.id) || r.headingId || (r.title && slug(r.title)) || `slide-${index + 1}`
+    const explicit = scalarString(fm.id) || r.headingId
+    let id = explicit || (r.title && slug(r.title)) || `slide-${index + 1}`
     if (slideIds.has(id)) {
       let n = 2
       while (slideIds.has(`${id}-${n}`)) n++
-      diags.warn('slide/duplicate-id', `slide id \`${id}\` is already used; this slide gets \`${id}-${n}\``, raw.span)
+      // Repeating a heading is normal (auto-animate lives on it); only an id the author chose is worth a warning.
+      if (explicit) diags.warn('slide/duplicate-id', `slide id \`${id}\` is already used; this slide gets \`${id}-${n}\``, raw.span)
       id = `${id}-${n}`
     }
     slideIds.add(id)

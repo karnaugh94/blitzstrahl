@@ -23,3 +23,5 @@ ___
 No heading here
 ---
 # First
+---
+# Chosen twice {#custom-id}

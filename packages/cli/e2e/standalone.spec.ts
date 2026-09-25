@@ -78,6 +78,31 @@ test('the presenter view works from the file, previews included', async ({ page,
   await expect.poll(() => page.evaluate(() => window.blitz!.pos)).toEqual({ slide: 1, step: 0 })
 })
 
+test('typing #presenter onto an open deck turns that tab into the presenter view', async ({ page }) => {
+  await open(page)
+  await page.evaluate(() => {
+    location.hash = '#presenter'
+  })
+  await expect(page.locator('.bp-notes')).toBeVisible()
+  expect(new URL(page.url()).hash).toBe('#presenter')
+})
+
+test('when the browser blocks P’s window, a link opens a presenter that drives the deck', async ({ page, context }) => {
+  // What Firefox does: a key press isn't permission for a pop-up.
+  await page.addInitScript(() => {
+    window.open = () => null
+  })
+  await open(page)
+  await page.keyboard.press('p')
+  const link = page.getByRole('link', { name: 'Open the presenter view' })
+  await expect(link).toBeVisible()
+  const [presenter] = await Promise.all([context.waitForEvent('page'), link.click()])
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(presenter.locator('.bp-notes')).toContainText('Say hello.')
+  await presenter.keyboard.press('ArrowRight')
+  await expect.poll(() => page.evaluate(() => window.blitz!.pos)).toEqual({ slide: 1, step: 0 })
+})
+
 test('only the renderers the deck uses are bundled, within the size budget', async () => {
   const minimal = await standalone('minimal.md')
   const size = (f: string) => statSync(f).size

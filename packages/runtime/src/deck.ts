@@ -10,11 +10,11 @@ import type { BlockData, RenderCtx, RenderInstance, Renderer, RendererLoader } f
 import { buildPrint, type PrintOptions, type PrintResult } from './print.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type TransitionEngine } from './transitions.js'
-import { LayerHost, gotoPrompt, help, overview } from './ui.js'
+import { LayerHost, gotoPrompt, help, overview, presenterBlocked } from './ui.js'
 import { DeckBridge } from './presenter/bridge.js'
 import { measureOverflow } from './overflow.js'
 import { describeOverflow, type Overflow } from './overflow-report.js'
-import { PROTOCOL, isEnvelope, type PageMode } from './presenter/protocol.js'
+import { PROTOCOL, isEnvelope, pageMode, type PageMode } from './presenter/protocol.js'
 
 export interface StartOptions {
   /** Lazy loaders per renderer name. The entry module wires these up. */
@@ -117,6 +117,9 @@ export class Deck implements NavTarget {
 
     this.cleanups.push(bindKeyboard(this.win, this, (e) => this.onKey(e)), bindPointer(this.viewport, this))
     const onHash = () => {
+      // The page's mode is chosen when it loads, so typing `#presenter` onto
+      // an open deck has to reload it to take effect.
+      if (pageMode(this.win.location.hash) !== 'audience') return this.win.location.reload()
       const p = parseHash(this.win.location.hash, this.ids)
       if (p) this.goto(p.slide, p.step, { history: 'none' })
     }
@@ -378,7 +381,11 @@ export class Deck implements NavTarget {
         return true
       case 'p':
       case 'P':
-        this.presenter?.openPresenter()
+        if (this.presenter && !this.presenter.openPresenter()) {
+          const url = new URL(this.win.location.href)
+          url.hash = 'presenter'
+          this.layers.open(presenterBlocked(this.doc, this.layers, url.href))
+        }
         return true
     }
     return false

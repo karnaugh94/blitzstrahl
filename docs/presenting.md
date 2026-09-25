@@ -48,7 +48,9 @@ window. Whichever window you use, the deck decides where the talk is, so the
 two never disagree.
 
 You can also open the presenter view first: add `#presenter` to the deck's
-address (`…/index.html#presenter`) and use **Open audience window**.
+address (`…/index.html#presenter`, or `talk.html#presenter` for a standalone
+file) and use **Open audience window**. Adding it to a deck that's already
+open turns that tab into the presenter view.
 
 Reloading either window reconnects it. The timer lives in the deck, so it
 survives the presenter window reloading.
@@ -58,5 +60,8 @@ survives the presenter window reloading.
 - Both windows must be in the same browser, on the same computer: they talk
   through the window that opened the other. Controlling a deck from a phone
   or another machine isn't supported yet.
-- Pop-up blockers may stop `P` the first time. Allow pop-ups for the deck.
+- Some browsers block the window `P` opens (Firefox doesn't count a key
+  press as permission for a pop-up). The deck then shows an **Open the
+  presenter view** link, which works, and the presenter it opens drives the
+  deck as usual. To make `P` work directly, allow pop-ups for the deck.
 - Notes are in the page source (syntax.md §7).

@@ -3,6 +3,7 @@
  * presenter's intents, broadcasts state after every change, and holds the
  * talk timer.
  */
+import type { InkEvent, InkLayer } from '../ink.js'
 import type { Position } from '../steps.js'
 import { elapsed, type PresenterMsg, type TimerState } from './protocol.js'
 import { WindowTransport } from './transport.js'
@@ -17,6 +18,9 @@ export interface BridgedDeck {
   retreat(): void
   setBlackout(on: boolean): void
   onChange(cb: () => void): () => void
+  readonly ink: InkLayer
+  applyInk(e: InkEvent): void
+  onInk(cb: (e: InkEvent) => void): () => void
 }
 
 export class DeckBridge {
@@ -25,6 +29,7 @@ export class DeckBridge {
   /** Start the timer at the next move (set until it's paused or started by hand). */
   private armed = true
   private lastPos: string | undefined
+  private heardPresenter = false
   private readonly cleanups: Array<() => void> = []
 
   constructor(
@@ -44,6 +49,8 @@ export class DeckBridge {
         }
         this.broadcast()
       }),
+      // Every stroke and laser move, whoever made it, so the preview shows it too.
+      deck.onInk((event) => this.transport.send({ type: 'ink', event })),
     )
     const bye = () => this.transport.send({ type: 'bye' })
     win.addEventListener('pagehide', bye)
@@ -51,6 +58,7 @@ export class DeckBridge {
     if (this.transport.connected) {
       this.transport.send({ type: 'hello', role: 'deck' })
       this.broadcast()
+      this.syncInk()
     }
   }
 
@@ -83,6 +91,11 @@ export class DeckBridge {
     this.transport.send({ type: 'state', slide: pos.slide, step: pos.step, blackout: this.deck.blackout, timer: this.timer })
   }
 
+  /** The drawing so far, for a presenter that has just (re)connected. */
+  private syncInk() {
+    this.transport.send({ type: 'ink', event: this.deck.ink.book.snapshot() })
+  }
+
   private startTimer() {
     this.armed = false
     if (!this.timer.running) this.timer = { running: true, elapsed: this.timer.elapsed, since: Date.now() }
@@ -92,6 +105,15 @@ export class DeckBridge {
     switch (m.type) {
       case 'hello':
         this.broadcast()
+        // A presenter that asks gets the drawing, and so does the first one this
+        // page hears from: a reloaded deck has none, and the preview must forget it.
+        // (A `bye` sent while a page unloads arrives without a source, so it can't be relied on.)
+        if (m.role === 'presenter' && (m.sync || !this.heardPresenter)) this.syncInk()
+        if (m.role === 'presenter') this.heardPresenter = true
+        return
+      case 'ink':
+        // A presenter can't replace the whole drawing; it can draw, point and clear.
+        if (m.event.op !== 'sync') this.deck.applyInk(m.event)
         return
       case 'goto':
         this.deck.goto(m.slide, m.step)

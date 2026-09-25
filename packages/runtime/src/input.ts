@@ -73,12 +73,13 @@ export function bindKeyboard(win: Window, nav: NavTarget, first: (e: KeyboardEve
 /**
  * Edge-click gutters and swipe, over one element. Gutter clicks are ignored
  * over interactive elements and while text is selected (CLAUDE.md: without
- * this, links, hoverable charts and sortable tables break).
+ * this, links, hoverable charts and sortable tables break). Gutters and
+ * swipes all stand down while `blocked()`: the pen is out.
  *
  * Listeners sit on the document: during a view transition the browser
  * targets pointer events at `<html>`, and a click there must still count.
  */
-export function bindPointer(el: HTMLElement, nav: NavTarget): () => void {
+export function bindPointer(el: HTMLElement, nav: NavTarget, blocked: () => boolean = () => false): () => void {
   const doc = el.ownerDocument
   const ours = (e: Event) => e.target === doc.documentElement || (e.target instanceof Node && el.contains(e.target))
   let start: { x: number; y: number; t: number; id: number } | undefined
@@ -94,14 +95,14 @@ export function bindPointer(el: HTMLElement, nav: NavTarget): () => void {
 
   const onMove = (e: PointerEvent) => {
     if (e.pointerType !== 'mouse') return
-    const z = !ours(e) || isInteractive(e.target) ? undefined : zone(e.clientX)
+    const z = !ours(e) || isInteractive(e.target) || blocked() ? undefined : zone(e.clientX)
     if (z) el.dataset.blitzGutter = z
     else delete el.dataset.blitzGutter
   }
 
   const onDown = (e: PointerEvent) => {
     swiped = false
-    if (e.pointerType === 'mouse' || !e.isPrimary || !ours(e)) return
+    if (e.pointerType === 'mouse' || !e.isPrimary || !ours(e) || blocked()) return
     start = { x: e.clientX, y: e.clientY, t: e.timeStamp, id: e.pointerId }
   }
 
@@ -129,7 +130,7 @@ export function bindPointer(el: HTMLElement, nav: NavTarget): () => void {
       swiped = false
       return
     }
-    if (!ours(e) || e.button !== 0 || e.defaultPrevented || isInteractive(e.target) || hasSelection(doc)) return
+    if (!ours(e) || e.button !== 0 || e.defaultPrevented || isInteractive(e.target) || hasSelection(doc) || blocked()) return
     const z = zone(e.clientX)
     if (z === 'left') nav.retreat()
     else if (z === 'right') nav.advance()

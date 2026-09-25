@@ -59,6 +59,10 @@ function tokenMotion(page: Page) {
   })
 }
 
+/** The lifted block is moving. (On View Transitions its animations start at `ready`, a moment after the lift.) */
+const morphing = (page: Page) =>
+  page.waitForFunction(() => (document.querySelector<HTMLElement>('[data-blitz-lift] pre')?.getAnimations().length ?? 0) > 0)
+
 const settled = (page: Page) =>
   expect.poll(() => page.evaluate(() => window.blitz!.transitions.running || document.getAnimations().length > 0)).toBe(false)
 
@@ -82,7 +86,7 @@ for (const engine of ['view', 'waapi'] as const) {
       await open(page)
       const before = await tokens(page, '[data-blitz-current]')
       await page.keyboard.press('ArrowRight')
-      await page.waitForFunction(() => document.querySelector('[data-blitz-lift]'))
+      await morphing(page)
       await freeze(page, 0)
       const motion = await tokenMotion(page)
       // Line 1 gains types, so what follows the first `a` moves right; a new line pushes `return` down.
@@ -105,7 +109,7 @@ for (const engine of ['view', 'waapi'] as const) {
     test('removed tokens fade out where they were', async ({ page }) => {
       await open(page, '#/add-2')
       await page.keyboard.press('ArrowRight')
-      await page.waitForFunction(() => document.querySelector('[data-blitz-lift]'))
+      await morphing(page)
       expect((await tokenMotion(page)).ghosts).toEqual(['/', '/', 'now', 'with', 'types'])
       await settled(page)
       expect(await page.locator('[data-blitz-ghost]').count()).toBe(0)
@@ -114,7 +118,7 @@ for (const engine of ['view', 'waapi'] as const) {
     test('moving code stays at full strength while the slides cross-fade', async ({ page }) => {
       await open(page)
       await page.keyboard.press('ArrowRight')
-      await page.waitForFunction(() => document.querySelector('[data-blitz-lift]'))
+      await morphing(page)
       await freeze(page, 0.5)
       const full = await page.evaluate(() => {
         const pre = document.querySelector<HTMLElement>('[data-blitz-lift] pre')!

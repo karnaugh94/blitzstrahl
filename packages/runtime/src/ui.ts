@@ -248,11 +248,14 @@ export const KEYS: Array<[string, string]> = [
   ['→  ↓  Space  PageDown', 'Next step or slide'],
   ['←  ↑  Shift+Space  PageUp', 'Previous step or slide'],
   ['Home  End', 'First / last slide'],
-  ['Esc  O', 'Overview of all slides'],
+  ['Esc  O', 'Overview of all slides (Esc first puts the laser or pen down)'],
   ['G', 'Go to a slide by number, id or title'],
   ['B  .', 'Black out the screen'],
   ['F', 'Fullscreen'],
   ['P', 'Presenter view'],
+  ['L', 'Laser pointer'],
+  ['D', 'Draw on the slide'],
+  ['C', 'Clear the drawing on this slide'],
   ['?', 'This help'],
 ]
 

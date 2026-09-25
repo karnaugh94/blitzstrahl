@@ -121,5 +121,10 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
   expect(text(file)).not.toContain(embed)
 })
 
-/** Measured 2026-09-24: 69 kB and 650 kB. Raise deliberately, never to make a test pass. */
-const BUDGET = { minimal: 90_000, withChart: 800_000 }
+/**
+ * Measured 2026-09-24: 69 kB and 650 kB. Raise deliberately, never to make a test pass.
+ * Raised 2026-09-25 (M4): 91.5 kB bare, now carrying auto-animate, magic move,
+ * `lines=` and the laser/pen in every deck's runtime (of which 26 kB is CSS,
+ * unminified; minifying it would save ~5 kB).
+ */
+const BUDGET = { minimal: 110_000, withChart: 800_000 }

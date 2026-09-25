@@ -7,6 +7,7 @@
  * deck's `state` messages.
  */
 import type { DeckPayload } from '@blitzstrahl/core'
+import { InkBook, bindInk, type Tool } from '../ink.js'
 import { bindKeyboard, type NavTarget } from '../input.js'
 import { next, type Position } from '../steps.js'
 import { LayerHost, gotoPrompt, help, overview, slideLabel } from '../ui.js'
@@ -42,6 +43,11 @@ export class PresenterView implements NavTarget {
   private lastHeard = 0
   private notesSize: number
   private readonly timers: number[] = []
+  /** The talk's drawing, as the deck last told it, to hand to a preview that (re)loads. */
+  private readonly book = new InkBook()
+  private inkSynced = false
+  /** The tool in the presenter's hands: it draws and points on the current preview. */
+  tool: Tool = 'none'
 
   constructor(
     private readonly doc: Document,
@@ -67,8 +73,25 @@ export class PresenterView implements NavTarget {
     this.transport.onMessage((m) => this.receive(m))
     this.win.addEventListener('message', (e) => this.fromMirror(e))
     bindKeyboard(this.win, this, (e) => this.onKey(e))
+    // Drawing and pointing on the current preview are intents, like any other.
+    bindInk(
+      this.el.currentBox!,
+      {
+        tool: () => (this.status === 'connected' ? this.tool : 'none'),
+        slide: () => this.state?.slide,
+        stage: this.el.currentBox!,
+        canvas: payload.canvas,
+        pen: () => {
+          const token = (name: string) => this.win.getComputedStyle(doc.documentElement).getPropertyValue(name).trim()
+          return { color: token('--blitz-ink') || token('--blitz-accent') || '#ff4d6d', width: 6 }
+        },
+        emit: (event) => this.transport.send({ type: 'ink', event }),
+      },
+      'p',
+    )
 
-    const beat = () => this.transport.send({ type: 'hello', role: 'presenter' })
+    // Until the deck has sent the drawing so far, every heartbeat asks for it.
+    const beat = () => this.transport.send({ type: 'hello', role: 'presenter', ...(this.inkSynced ? {} : { sync: true }) })
     beat()
     this.timers.push(
       this.win.setInterval(beat, HEARTBEAT_MS),
@@ -108,6 +131,18 @@ export class PresenterView implements NavTarget {
     this.transport.send({ type: 'blackout', on: !this.state?.blackout })
   }
 
+  setTool(tool: Tool): void {
+    if (this.tool === 'laser' && tool !== 'laser') this.transport.send({ type: 'ink', event: { op: 'laser', at: null } })
+    this.tool = tool
+    this.el.root!.dataset.tool = tool
+    this.el.laser!.setAttribute('aria-pressed', String(tool === 'laser'))
+    this.el.pen!.setAttribute('aria-pressed', String(tool === 'pen'))
+  }
+
+  clearInk(): void {
+    if (this.state) this.transport.send({ type: 'ink', event: { op: 'clear', slide: this.state.slide } })
+  }
+
   /** Dev HMR: a rebuilt deck. The mirrors update themselves. */
   update(payload: DeckPayload, stageHtml: string, notesHtml?: string): void {
     this.payload = payload
@@ -136,6 +171,10 @@ export class PresenterView implements NavTarget {
     if (m.type === 'state') {
       this.state = m
       this.render()
+    } else if (m.type === 'ink') {
+      if (m.event.op === 'sync') this.inkSynced = true
+      this.book.apply(m.event)
+      this.post(this.current, { type: 'ink', event: m.event })
     } else if (m.type === 'bye') {
       this.lastHeard = 0
       this.render()
@@ -150,6 +189,7 @@ export class PresenterView implements NavTarget {
         delete m.sent
       }
     }
+    if (e.source === this.current.frame.contentWindow) this.post(this.current, { type: 'ink', event: this.book.snapshot() })
     this.render()
   }
 
@@ -162,7 +202,23 @@ export class PresenterView implements NavTarget {
 
   private onKey(e: KeyboardEvent): boolean {
     if (this.layers.key(e)) return true
+    if (e.key === 'Escape' && this.tool !== 'none') {
+      this.setTool('none')
+      return true
+    }
     switch (e.key) {
+      case 'l':
+      case 'L':
+        this.setTool(this.tool === 'laser' ? 'none' : 'laser')
+        return true
+      case 'd':
+      case 'D':
+        this.setTool(this.tool === 'pen' ? 'none' : 'pen')
+        return true
+      case 'c':
+      case 'C':
+        this.clearInk()
+        return true
       case 'Escape':
       case 'o':
       case 'O':
@@ -210,7 +266,11 @@ export class PresenterView implements NavTarget {
     const key = `${pos.slide}/${pos.step}`
     if (!m.ready || m.sent === key) return
     m.sent = key
-    m.frame.contentWindow?.postMessage({ blitz: PROTOCOL, type: 'state', slide: pos.slide, step: pos.step, blackout: false, timer: { running: false, elapsed: 0 } }, this.win.location.protocol === 'file:' ? '*' : this.win.location.origin)
+    this.post(m, { type: 'state', slide: pos.slide, step: pos.step, blackout: false, timer: { running: false, elapsed: 0 } })
+  }
+
+  private post(m: Mirror, msg: PresenterMsg) {
+    if (m.ready) m.frame.contentWindow?.postMessage({ blitz: PROTOCOL, ...msg }, this.win.location.protocol === 'file:' ? '*' : this.win.location.origin)
   }
 
   private render() {
@@ -299,6 +359,9 @@ export class PresenterView implements NavTarget {
       el('span', 'bp-clock', 'clock'),
       button('Slides', 'All slides (Esc)', () => this.showGrid()),
       button('Black out', 'Black out the audience screen (B)', () => this.toggleBlackout(), 'blackout'),
+      button('Laser', 'Laser pointer on the current slide (L)', () => this.setTool(this.tool === 'laser' ? 'none' : 'laser'), 'laser'),
+      button('Pen', 'Draw on the current slide (D)', () => this.setTool(this.tool === 'pen' ? 'none' : 'pen'), 'pen'),
+      button('Clear', 'Clear the drawing on this slide (C)', () => this.clearInk()),
       el('span', 'bp-status', 'status'),
     )
     const connect = el(
@@ -308,7 +371,7 @@ export class PresenterView implements NavTarget {
       el('p', '', undefined, 'This presenter view isn’t connected to an audience window. Open the deck from here, or press P in the deck.'),
       button('Open audience window', 'Open audience window', () => this.openAudience()),
     )
-    const current = el('section', 'bp-current', undefined, el('div', 'bp-frame', undefined, frame('currentFrame', 'Current slide'), el('div', 'bp-black', undefined, 'Audience sees black')), connect)
+    const current = el('section', 'bp-current', undefined, el('div', 'bp-frame', 'currentBox', frame('currentFrame', 'Current slide'), el('div', 'bp-black', undefined, 'Audience sees black')), connect)
     const notesTools = el(
       'div',
       'bp-notes-tools',

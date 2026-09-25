@@ -92,6 +92,7 @@ export function resolveSlide(
   const blocks: RenderBlock[] = []
   const propTable: Array<Record<string, unknown>> = []
   let prevEntry: number | undefined
+  const keys = new Set<string>()
   let maxStep = 0
   /** Visible ranges of stepped (entrance) ancestors, for the nesting check. */
   const ancestors: StepRange[] = []
@@ -159,6 +160,11 @@ export function resolveSlide(
           animOption(anim, key, value, diags, span)
         } else if (key === 'reveal') {
           revealMode = value
+        } else if (key === 'key') {
+          // auto-animate pairs elements by key (§9); one slide can't use a key twice.
+          if (keys.has(value)) diags.warn('key/duplicate', `key \`${value}\` is already used on this slide; auto-animate pairs only the first`, span)
+          keys.add(value)
+          props.dataBlitzKey = value
         } else if (key in RESERVED_KEYS) {
           notYet(`\`${key}=\``, RESERVED_KEYS[key]!, diags, span)
         } else if (SLIDE_SHORTHAND_KEYS.has(key)) {

@@ -67,7 +67,6 @@ export function transitionName(value: unknown, diags: Diagnostics, span: SourceS
     diags.error('transition/unknown', `unknown transition \`${s}\``, span)
     return undefined
   }
-  if (s === 'auto-animate') notYet('transition `auto-animate`', 'M4', diags, span)
   return s as TransitionName
 }
 

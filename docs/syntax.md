@@ -120,7 +120,10 @@ sync. The first rule that matches picks it:
 3. A slug of the first heading's text (GitHub slugger rules).
 4. `slide-<n>`, where `<n>` is the slide's number, starting at 1.
 
-Duplicates get `-2`, `-3`, … appended, with a warning. The slide **title** used
+Duplicates get `-2`, `-3`, … appended. That's silent for ids taken from
+heading text, since repeating a heading is normal (it's how `auto-animate`,
+§9, carries a title from slide to slide), and a warning for an `id` or `#id`
+the author wrote. The slide **title** used
 in the overview and presenter view is the plain text of the first heading, of
 any level.
 
@@ -272,7 +275,7 @@ Keys fall into four groups:
 | Kind | Keys | Behaviour |
 |---|---|---|
 | Animation | `dur`, `delay`, `ease`, `reverse`, plus effect options (§6.3) | Consumed, drives the animation |
-| Structure | `reveal`, `key` **(M4)**, `lines` **(M4)** | Consumed (§6.4, §8, §9) |
+| Structure | `reveal`, `key`, `lines` **(M4)** | Consumed (§6.4, §8, §9) |
 | Slide shorthand | `transition`, `transition-dur`, `layout`, `background` | First heading only (§3.2) |
 | HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes |
 
@@ -559,7 +562,7 @@ attribute block (§4.2). A `.sortable` table is enhanced in place by the
 | `push-left` / `-right` / `-up` / `-down` | Both slides move together in that direction |
 | `cover-left` / `-right` / `-up` / `-down` | New slide slides in over the stationary old one |
 | `uncover-left` / `-right` / `-up` / `-down` | Old slide slides away, uncovering the new one beneath |
-| `auto-animate` | **(M4)** Elements shared by both slides morph between their positions |
+| `auto-animate` | Elements shared by both slides move from their old place to their new one; the rest cross-fades (below) |
 
 - A slide's `transition` controls how that slide is **entered**. Going backwards
   from slide *n* to slide *n − 1* plays slide *n*'s transition mirrored, so
@@ -572,10 +575,50 @@ attribute block (§4.2). A `.sortable` table is enhanced in place by the
 - Resolution order: slide frontmatter → first-heading shorthand → deck
   `transition` → `fade`.
 - Under reduced motion, every transition is `none`.
-- **(M4)** `auto-animate` pairs elements by `key=` (e.g. `{key=logo}`), or,
-  without keys, by matching heading and text content. HTML `id`s can't be used
-  to pair elements, because every slide lives in one document and ids must be
-  unique across the whole deck.
+
+### 9.1 `auto-animate`
+
+An `auto-animate` slide is entered by moving each element it shares with the
+previous slide from where it was to where it is now, resizing it on the way,
+while everything else cross-fades. It's how a title shrinks into a heading, a
+card slides across, or a list grows by one item without the others jumping.
+
+```markdown
+# The plan
+
+---
+transition: auto-animate
+---
+
+## The plan
+
+- Collect
+- Clean
+```
+
+Elements are paired in this order:
+
+1. **By `key=`.** `{key=logo}` on both slides makes them the same element,
+   whatever they contain: `![](./logo.png){key=logo}`, `::: card {key=card}`,
+   `[42%]{key=figure}`, or a render block (```` ```chart {key=sales} ````).
+   A key is per slide; using one twice on a slide is a warning, and only the
+   first pairs. A keyed element pairs only by its key.
+2. **By content.** Headings with the same text pair (at any level, so `#`
+   can become `##`); so do paragraphs, list items, block quotes, tables and
+   code blocks with the same tag and text, and images with the same source.
+   When a slide has several identical ones, they pair in order.
+
+- Only elements the slides show pair: on the new slide, that's what's
+  visible at the step you arrive at (step 0 going forwards, the last step
+  going backwards, §6.1).
+- Pairs don't nest. Once an element pairs, its contents move with it and
+  don't pair on their own.
+- Text is lined up by its glyphs and scaled by its font size; images and
+  render blocks by their box. A box that only moves keeps its text size.
+- Going backwards morphs the same way, from the slide you're on to the one
+  you arrive at. `transition-dur` sets the duration, as for any transition.
+- HTML `id`s can't pair elements, because every slide lives in one document
+  and ids must be unique across the deck; that's what `key=` is for.
 
 ---
 

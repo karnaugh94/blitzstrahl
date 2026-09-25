@@ -10,6 +10,7 @@
  * keyframes with the roles of the two slides swapped, run in reverse.
  */
 import type { TransitionName } from '@blitzstrahl/core'
+import { flipFrames, place, textPair, type MorphPair } from './morph.js'
 
 export interface SlideMotion {
   old: Keyframe[]
@@ -31,7 +32,7 @@ const OFFSET = {
 export function slideMotion(name: TransitionName): SlideMotion | undefined {
   if (name === 'none') return undefined
   if (name === 'fade' || name === 'auto-animate') {
-    // auto-animate is M4; until then it cross-fades.
+    // auto-animate cross-fades what it doesn't morph (`TransitionRun.morph`).
     return { old: still, new: [{ opacity: 0 }, { opacity: 1 }], top: 'new' }
   }
   if (name === 'zoom') {
@@ -54,6 +55,11 @@ export interface TransitionRun {
   reverse: boolean
   dur: number
   easing: string
+  /**
+   * auto-animate: elements that move from their place on the old slide to
+   * their place on the new one, cross-fading, while the rest cross-fades.
+   */
+  morph?: MorphPair[]
   /** Swap the DOM to the new state. Called exactly once. */
   commit(): void
   /** The outgoing slide is no longer visible. Called exactly once, after `commit`. */
@@ -106,6 +112,15 @@ export class WaapiEngine implements TransitionEngine {
     from.style.zIndex = r.fromOnTop ? '2' : '0'
     to.style.zIndex = '1'
     const anims = [from.animate(r.from, r.options), to.animate(r.to, r.options)]
+    // Each pair moves together: the old element onto the new one's place
+    // (under the new slide as it fades in), the new one from the old place.
+    for (const p of t.morph ?? []) {
+      const text = textPair(p)
+      const a = place(p.from, text)
+      const b = place(p.to, text)
+      if (!a.box.width || !b.box.width) continue
+      anims.push(p.from.animate(flipFrames(a, b, 'to'), r.options), p.to.animate(flipFrames(b, a, 'from'), r.options))
+    }
     const settle = once(() => {
       if (this.settle === settle) this.settle = undefined
       for (const a of anims) a.cancel()
@@ -152,10 +167,23 @@ export class ViewTransitionEngine implements TransitionEngine {
     const commit = once(t.commit)
     const done = once(t.done)
     root.dataset.blitzVtTop = r.fromOnTop ? 'old' : 'new'
+    // auto-animate: each old element that morphs is captured on its own, so
+    // it can move onto its partner's place above the snapshots, while the
+    // partner (live in the new snapshot) moves in from the old place.
+    const morph = t.morph ?? []
+    const olds = morph.map((p) => place(p.from, textPair(p)))
+    const name = (value: (i: number) => string) => morph.forEach((p, i) => (p.from.style.viewTransitionName = value(i)))
+    if (morph.length) {
+      root.dataset.blitzVtMorph = ''
+      root.style.setProperty('--blitz-vt-dur', `${t.dur}ms`)
+      root.style.setProperty('--blitz-vt-ease', t.easing)
+      name((i) => `blitz-morph-${i}`)
+    }
     const start = (this.doc as Document & { startViewTransition: StartViewTransition }).startViewTransition.bind(this.doc)
     // The snapshot of the old slide is an image, so its renderers can go
     // as soon as the DOM has switched.
     const vt = start(() => {
+      name(() => '')
       commit()
       done()
     })
@@ -167,6 +195,12 @@ export class ViewTransitionEngine implements TransitionEngine {
       // `fill: both` would otherwise keep them listed after the pseudo-elements are gone.
       for (const a of anims) a.cancel()
       delete root.dataset.blitzVtTop
+      if (morph.length) {
+        name(() => '')
+        delete root.dataset.blitzVtMorph
+        root.style.removeProperty('--blitz-vt-dur')
+        root.style.removeProperty('--blitz-vt-ease')
+      }
     })
     const skip = () => {
       vt.skipTransition()
@@ -179,6 +213,15 @@ export class ViewTransitionEngine implements TransitionEngine {
           root.animate(r.from, { ...r.options, pseudoElement: '::view-transition-old(blitz-stage)' }),
           root.animate(r.to, { ...r.options, pseudoElement: '::view-transition-new(blitz-stage)' }),
         )
+        morph.forEach((p, i) => {
+          const a = olds[i]!
+          const b = place(p.to, textPair(p))
+          if (!a.box.width || !b.box.width) return
+          anims.push(
+            root.animate(flipFrames(a, b, 'to'), { ...r.options, pseudoElement: `::view-transition-old(blitz-morph-${i})` }),
+            p.to.animate(flipFrames(b, a, 'from'), r.options),
+          )
+        })
       },
       () => {},
     )

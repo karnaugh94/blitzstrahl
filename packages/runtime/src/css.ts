@@ -61,6 +61,11 @@ html[data-blitz-printing] body > :not(.blitz-print) { display: none !important; 
   animation: none; mix-blend-mode: normal; height: 100%;
 }
 :root[data-blitz-vt-top="old"]::view-transition-old(blitz-stage) { z-index: 1; }
+/* auto-animate: the old side of each morphing pair (\`blitz-morph-*\`) fades
+   out, at the transition's duration; transitions.ts moves it. */
+:root[data-blitz-vt-morph]::view-transition-old(*) {
+  animation-duration: var(--blitz-vt-dur); animation-timing-function: var(--blitz-vt-ease);
+}
 .blitz-sr {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;

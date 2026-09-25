@@ -10,6 +10,7 @@
  * keyframes with the roles of the two slides swapped, run in reverse.
  */
 import type { TransitionName } from '@blitzstrahl/core'
+import { CodeMorph } from './code-morph.js'
 import { flipFrames, place, textPair, type MorphPair } from './morph.js'
 
 export interface SlideMotion {
@@ -60,6 +61,8 @@ export interface TransitionRun {
    * their place on the new one, cross-fading, while the rest cross-fades.
    */
   morph?: MorphPair[]
+  /** auto-animate: code blocks whose tokens move (magic move). */
+  code?: MorphPair[]
   /** Swap the DOM to the new state. Called exactly once. */
   commit(): void
   /** The outgoing slide is no longer visible. Called exactly once, after `commit`. */
@@ -105,6 +108,8 @@ export class WaapiEngine implements TransitionEngine {
 
   run(t: TransitionRun): void {
     this.finish()
+    const code = (t.code ?? []).map((p) => new CodeMorph(p.from, p.to))
+    code.forEach((c) => c.hideOld())
     t.commit()
     const r = roles(t)
     const { from, to } = t
@@ -121,9 +126,14 @@ export class WaapiEngine implements TransitionEngine {
       if (!a.box.width || !b.box.width) continue
       anims.push(p.from.animate(flipFrames(a, b, 'to'), r.options), p.to.animate(flipFrames(b, a, 'from'), r.options))
     }
+    for (const c of code) {
+      c.lift()
+      anims.push(...c.animate(r.options))
+    }
     const settle = once(() => {
       if (this.settle === settle) this.settle = undefined
       for (const a of anims) a.cancel()
+      code.forEach((c) => c.restore())
       delete from.dataset.blitzOutgoing
       from.style.zIndex = ''
       to.style.zIndex = ''
@@ -179,12 +189,17 @@ export class ViewTransitionEngine implements TransitionEngine {
       root.style.setProperty('--blitz-vt-ease', t.easing)
       name((i) => `blitz-morph-${i}`)
     }
+    // Magic move: the old block is left out of the old snapshot, and the new
+    // one is lifted into a layer that's captured on its own, at full opacity.
+    const code = (t.code ?? []).map((p) => new CodeMorph(p.from, p.to))
+    code.forEach((c) => c.hideOld())
     const start = (this.doc as Document & { startViewTransition: StartViewTransition }).startViewTransition.bind(this.doc)
     // The snapshot of the old slide is an image, so its renderers can go
     // as soon as the DOM has switched.
     const vt = start(() => {
       name(() => '')
       commit()
+      code.forEach((c, i) => (c.lift().style.viewTransitionName = `blitz-lift-${i}`))
       done()
     })
     const anims: Animation[] = []
@@ -194,6 +209,7 @@ export class ViewTransitionEngine implements TransitionEngine {
       done()
       // `fill: both` would otherwise keep them listed after the pseudo-elements are gone.
       for (const a of anims) a.cancel()
+      code.forEach((c) => c.restore())
       delete root.dataset.blitzVtTop
       if (morph.length) {
         name(() => '')
@@ -213,6 +229,10 @@ export class ViewTransitionEngine implements TransitionEngine {
           root.animate(r.from, { ...r.options, pseudoElement: '::view-transition-old(blitz-stage)' }),
           root.animate(r.to, { ...r.options, pseudoElement: '::view-transition-new(blitz-stage)' }),
         )
+        code.forEach((c, i) => {
+          const full = [{ opacity: 1 }, { opacity: 1 }]
+          anims.push(root.animate(full, { ...r.options, pseudoElement: `::view-transition-new(blitz-lift-${i})` }), ...c.animate(r.options))
+        })
         morph.forEach((p, i) => {
           const a = olds[i]!
           const b = place(p.to, textPair(p))

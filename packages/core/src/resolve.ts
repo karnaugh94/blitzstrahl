@@ -132,6 +132,7 @@ export function resolveSlide(
     let animIndex: number | undefined
     const anim: AnimSpec = { effect: 'fade', kind: 'entrance', options: {} }
     let revealMode: string | undefined
+    let lineGroups: LineGroup[] | undefined
 
     if (blitz) {
       const { attrs, at } = blitz
@@ -160,6 +161,8 @@ export function resolveSlide(
           animOption(anim, key, value, diags, span)
         } else if (key === 'reveal') {
           revealMode = value
+        } else if (key === 'lines') {
+          lineGroups = linesOption(node, value, diags, span)
         } else if (key === 'key') {
           // auto-animate pairs elements by key (§9); one slide can't use a key twice.
           if (keys.has(value)) diags.warn('key/duplicate', `key \`${value}\` is already used on this slide; auto-animate pairs only the first`, span)
@@ -210,7 +213,7 @@ export function resolveSlide(
       range ??= { in: 0 }
     }
 
-    const annotated = blitz?.attrs.step !== undefined || revealMode !== undefined
+    const annotated = blitz?.attrs.step !== undefined || revealMode !== undefined || (lineGroups?.length ?? 0) > 1
     const animates = effect !== undefined || (range !== undefined && (range.in > 0 || range.out !== undefined))
     if (range && animIndex === undefined && animates) {
       animIndex = anims.length
@@ -219,6 +222,17 @@ export function resolveSlide(
 
     // reveal: the block enters with its first child; each later child is one step on.
     let lastEntry = range?.in
+    // lines: the first group shows with the block; each later one is one press on.
+    if (lineGroups) {
+      const first = range?.in ?? 0
+      const next = blitz?.attrs.step ? first + 1 : (prevEntry ?? 0) + 1
+      const steps = lineGroups.map((g, k) => ({ in: k === 0 ? first : next + k - 1, lines: g }))
+      props.dataBlitzLines = JSON.stringify(steps)
+      if (steps.length > 1) {
+        lastEntry = steps[steps.length - 1]!.in
+        range ??= { in: 0 }
+      }
+    }
     if (revealMode && range) {
       const children =
         node.type === 'list' ? node.children : node.type === 'table' ? node.children.slice(1) : []
@@ -347,6 +361,40 @@ function slotted(nodes: RootContent[]): RootContent[] {
     data: { hName: 'div', hProperties: { className: ['blitz-slot'], dataSlot: 'main' } },
   }
   return [wrapper, ...named]
+}
+
+/** One `|`-separated group of `lines=`: inclusive line ranges, or `null` for all lines. */
+type LineGroup = Array<[number, number]> | null
+
+/** `lines="1|2-3,5|all"` on a code block (§8.1). */
+function linesOption(node: Nodes, value: string, diags: Diagnostics, span: SourceSpan): LineGroup[] | undefined {
+  if (node.type !== 'code') {
+    diags.error('lines/target', '`lines=` applies to a code block', span)
+    return undefined
+  }
+  const count = node.value.split('\n').length
+  const groups: LineGroup[] = []
+  for (const group of value.split('|')) {
+    const g = group.trim()
+    if (g === 'all' || g === '*') {
+      groups.push(null)
+      continue
+    }
+    const ranges: Array<[number, number]> = []
+    for (const part of g.split(',')) {
+      const m = /^\s*(\d+)\s*(?:-\s*(\d+)\s*)?$/.exec(part)
+      const a = m ? Number(m[1]) : NaN
+      const b = m?.[2] !== undefined ? Number(m[2]) : a
+      if (!m || a < 1 || b < a) {
+        diags.error('lines/syntax', `bad \`lines=\` group \`${g}\`: use line numbers and ranges, e.g. \`lines="1|2-4,6|all"\``, span)
+        return undefined
+      }
+      if (b > count) diags.warn('lines/out-of-range', `\`lines=\` names line ${b}, but the block has ${count}`, span)
+      ranges.push([a, b])
+    }
+    groups.push(ranges)
+  }
+  return groups
 }
 
 function fmtRange(r: StepRange): string {

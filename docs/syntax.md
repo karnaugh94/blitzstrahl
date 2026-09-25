@@ -275,7 +275,7 @@ Keys fall into four groups:
 | Kind | Keys | Behaviour |
 |---|---|---|
 | Animation | `dur`, `delay`, `ease`, `reverse`, plus effect options (§6.3) | Consumed, drives the animation |
-| Structure | `reveal`, `key`, `lines` **(M4)** | Consumed (§6.4, §8, §9) |
+| Structure | `reveal`, `key`, `lines` | Consumed (§6.4, §8.1, §9.1) |
 | Slide shorthand | `transition`, `transition-dur`, `layout`, `background` | First heading only (§3.2) |
 | HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes |
 
@@ -533,8 +533,7 @@ Each renderer's body schema is documented in `docs/renderers/`.
 | `math` | M4 | text (TeX, display mode). Same as `$$…$$` (§12) |
 
 Any other fence language is a **code block**, syntax-highlighted. Its info
-string may carry an attribute block too: ```` ```js {.big @2} ````. Code-reveal
-attributes (`lines=`, per-step line highlights) are reserved for **(M4)**.
+string may carry an attribute block too: ```` ```js {.big @2} ````.
 
 - Highlighting happens when the deck is built, with
   [shiki](https://shiki.style) and the same grammars as VS Code, so the page
@@ -549,6 +548,29 @@ GFM tables take `.sortable`, `.zebra` and `reveal=rows` through a standalone
 attribute block (§4.2). A `.sortable` table is enhanced in place by the
 `table` renderer, but it stays an ordinary table in the page. See
 `docs/renderers/table.md`.
+
+### 8.1 `lines`: walking through code
+
+`lines=` puts some lines of a code block in focus and dims the rest. Groups
+separated by `|` are successive steps:
+
+````markdown
+```js {lines="1|2-3|5,7|all"}
+…
+```
+````
+
+- A group is line numbers (from 1) and ranges, separated by commas. `all`
+  (or `*`) means no line is dimmed.
+- The first group shows with the block (from slide entry, or from the
+  block's own `@`). Each later group is one more step, counted like
+  `reveal=` (§6.4): from the block's `@` if it has one, else from the
+  previous annotated element. For `@+` and `@=` after it, the block counts
+  as its last group's step.
+- The focus moves smoothly going forwards and snaps going backwards, like
+  emphasis effects (§6.3). PDFs print each page's group.
+- `lines=` on anything but a code block is an error; a line number past the
+  end of the block is a warning.
 
 ---
 
@@ -604,8 +626,9 @@ Elements are paired in this order:
    A key is per slide; using one twice on a slide is a warning, and only the
    first pairs. A keyed element pairs only by its key.
 2. **By content.** Headings with the same text pair (at any level, so `#`
-   can become `##`); so do paragraphs, list items, block quotes, tables and
-   code blocks with the same tag and text, and images with the same source.
+   can become `##`); so do paragraphs, list items, block quotes and tables
+   with the same tag and text, code blocks in the same language (see magic
+   move, below), and images with the same source.
    When a slide has several identical ones, they pair in order.
 
 - Only elements the slides show pair: on the new slide, that's what's
@@ -619,6 +642,29 @@ Elements are paired in this order:
   you arrive at. `transition-dur` sets the duration, as for any transition.
 - HTML `id`s can't pair elements, because every slide lives in one document
   and ids must be unique across the deck; that's what `key=` is for.
+
+**Magic move.** Code blocks pair by language (the first `ts` block with the
+first `ts` block, and so on), or by `key=`. When two paired blocks differ,
+their tokens morph: code that stayed moves to its new place, code that went
+away fades out where it was, and new code fades in. Step through a program
+by writing each version on its own `auto-animate` slide:
+
+````markdown
+```ts
+function add(a, b) {
+```
+
+---
+transition: auto-animate
+---
+
+```ts
+function add(a: number, b: number): number {
+```
+````
+
+The moving code stays at full strength while the rest of the slide
+cross-fades. A longer `transition-dur` (800 ms or so) suits bigger changes.
 
 ---
 

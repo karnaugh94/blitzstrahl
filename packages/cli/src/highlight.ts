@@ -6,6 +6,11 @@
  * defines, so code always matches the deck. A theme without them shows plain
  * code, not broken code.
  *
+ * Every block is split into `<span class="line">`s, plain code too, and
+ * shiki's tokens are split further into words and punctuation, whitespace
+ * left bare: `lines=` dims lines, and magic move (auto-animate) matches
+ * tokens, so both need them fine-grained.
+ *
  * Only the `<code>`'s children are replaced. The `<pre>` keeps its own
  * attributes (build steps, classes), and never gets shiki's `tabindex`,
  * which would make every code block swallow gutter clicks.
@@ -46,7 +51,7 @@ function codeBlocks(nodes: HastNode[], out: CodeBlock[] = []): CodeBlock[] {
       const code = n.children.find((c): c is Element => c.type === 'element' && c.tagName === 'code')
       const cls = code?.properties.className
       const lang = Array.isArray(cls) ? cls.map(String).find((c) => c.startsWith('language-'))?.slice(9) : undefined
-      if (code && lang) out.push({ code, lang: lang.toLowerCase() })
+      if (code) out.push({ code, lang: (lang ?? 'text').toLowerCase() })
       continue
     }
     codeBlocks(n.children, out)
@@ -64,18 +69,28 @@ export async function highlightDeck(deck: Deck, source: string): Promise<Diagnos
   const langs = new Set(blocks.map((b) => b.lang).filter((l) => !PLAIN.has(l)))
   const usable = [...langs].filter(known)
   const diagnostics = [...langs].filter((l) => !known(l)).map((l) => unknownLanguage(deck, source, l))
-  if (!usable.length) return diagnostics
+  if (!blocks.length) return diagnostics
 
   const h = await load(usable)
   for (const { code, lang } of blocks) {
-    if (!known(lang)) continue
     const text = textOf(code).replace(/\n$/, '')
-    const root = h.codeToHast(text, { lang, theme: THEME_NAME })
+    const root = h.codeToHast(text, { lang: known(lang) ? lang : 'text', theme: THEME_NAME })
     const pre = root.children[0] as Element
     const inner = pre.children[0] as Element
-    code.children = inner.children as ElementContent[]
+    code.children = inner.children.map((line) => (line.type === 'element' ? { ...line, children: line.children.flatMap(splitToken) } : line)) as ElementContent[]
   }
   return diagnostics
+}
+
+/** Words, numbers, and single punctuation marks; whitespace between them stays bare text. */
+const PIECE = /\s+|[\p{L}\p{N}_$]+|[^\s\p{L}\p{N}_$]/gu
+
+function splitToken(token: ElementContent): ElementContent[] {
+  if (token.type !== 'element') return [token]
+  const text = textOf(token)
+  return (text.match(PIECE) ?? []).map((piece) =>
+    /^\s/.test(piece) ? { type: 'text', value: piece } : { ...token, children: [{ type: 'text', value: piece }] },
+  )
 }
 
 function textOf(node: ElementContent): string {

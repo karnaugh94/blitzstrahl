@@ -8,7 +8,8 @@ import { needsBox, playEntrance, playExit, type Played } from './effects.js'
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
 import type { BlockData, RenderCtx, RenderInstance, Renderer, RendererLoader } from './renderer.js'
 import { buildPrint, type PrintOptions, type PrintResult } from './print.js'
-import { pairSlides, type MorphPair } from './morph.js'
+import { focusLines } from './lines.js'
+import { isCode, pairSlides, type MorphPair } from './morph.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type SlideMotion, type TransitionEngine } from './transitions.js'
 import { LayerHost, gotoPrompt, help, overview, presenterBlocked } from './ui.js'
@@ -257,7 +258,7 @@ export class Deck implements NavTarget {
     }
     this.pos = to
     const t = old && from ? this.slideTransition(from.slide, to) : undefined
-    this.morphing = new Set(t?.morph?.map((p) => p.to))
+    this.morphing = new Set([...(t?.morph ?? []), ...(t?.code ?? [])].map((p) => p.to))
     if (t && old) {
       this.transitions.run({ ...t, from: old.el, to: view.el, commit, done: () => teardown() })
     } else {
@@ -494,7 +495,10 @@ export class Deck implements NavTarget {
    * The transition between two slides (syntax.md §9): forward uses the
    * entered slide's, backward plays the left slide's mirrored.
    */
-  private slideTransition(from: number, to: Position): { motion: SlideMotion; reverse: boolean; dur: number; easing: string; morph?: MorphPair[] } | undefined {
+  private slideTransition(
+    from: number,
+    to: Position,
+  ): { motion: SlideMotion; reverse: boolean; dur: number; easing: string; morph?: MorphPair[]; code?: MorphPair[] } | undefined {
     // Nobody sees a transition under blackout, and a view transition would
     // paint above the black screen (it's drawn in the top layer): cut instead.
     if (this.still || this.blackout) return undefined
@@ -508,7 +512,8 @@ export class Deck implements NavTarget {
     const view = this.views[to.slide]!
     const visible = (el: HTMLElement) =>
       !view.stepped.some((s) => s.kind === 'entrance' && s.el.contains(el) && phaseAt(s.kind, s.range, to.step) === 'hidden')
-    return { ...t, reverse: false, morph: pairSlides(this.views[from]!.el, view.el, visible) }
+    const pairs = pairSlides(this.views[from]!.el, view.el, visible)
+    return { ...t, reverse: false, morph: pairs.filter((p) => !isCode(p)), code: pairs.filter(isCode) }
   }
 
   private defaultTransitionDur(): number {
@@ -567,6 +572,12 @@ export class Deck implements NavTarget {
     for (const parent of dimParents) {
       const any = view.stepped.some((s) => s.anim?.effect === 'dim-others' && s.el.parentElement === parent && s.phase === 'active')
       toggle(parent, 'blitzDim', any)
+    }
+
+    // `lines=`: like emphasis, the focus moves smoothly only going forwards.
+    for (const pre of view.el.querySelectorAll<HTMLElement>('pre[data-blitz-lines]')) {
+      if (!animate || m !== 'step-forward') snap(pre)
+      focusLines(pre, step)
     }
   }
 

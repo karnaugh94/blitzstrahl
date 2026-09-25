@@ -9,6 +9,7 @@
  */
 import type { PayloadSlide, StepRange } from '@blitzstrahl/core'
 import type { BlockData, RenderInstance } from './renderer.js'
+import { focusLines } from './lines.js'
 import { phaseAt } from './steps.js'
 
 export interface PrintOptions {
@@ -35,7 +36,7 @@ export interface PrintHost {
 const READY_TIMEOUT = 15_000
 
 /** Attributes that belong to the live deck's current state, not the slide. */
-const LIVE_STATE = ['data-blitz-hidden', 'data-blitz-active', 'data-blitz-dim', 'data-blitz-current', 'data-blitz-outgoing', 'data-blitz-overflow', 'aria-hidden']
+const LIVE_STATE = ['data-blitz-hidden', 'data-blitz-active', 'data-blitz-dim', 'data-blitz-focus', 'data-blitz-lines-on', 'data-blitz-current', 'data-blitz-outgoing', 'data-blitz-overflow', 'aria-hidden']
 
 export async function buildPrint(host: PrintHost, options: PrintOptions = {}): Promise<{ result: PrintResult; remove(): void }> {
   const { doc, canvas } = host
@@ -124,6 +125,7 @@ function pageOf(section: HTMLElement, data: PayloadSlide, step: number): HTMLEle
     }
   }
   for (const p of dimmed) p.dataset.blitzDim = ''
+  for (const pre of copy.querySelectorAll<HTMLElement>('pre[data-blitz-lines]')) focusLines(pre, step)
   return copy
 }
 

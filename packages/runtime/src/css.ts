@@ -66,6 +66,11 @@ html[data-blitz-printing] body > :not(.blitz-print) { display: none !important; 
 :root[data-blitz-vt-morph]::view-transition-old(*) {
   animation-duration: var(--blitz-vt-dur); animation-timing-function: var(--blitz-vt-ease);
 }
+/* Magic move (code-morph.ts): code lifted above both slides while it moves. */
+.blitz-slide[data-blitz-lift] { display: block; z-index: 3; background: none !important; pointer-events: none; }
+.blitz-slide[data-blitz-lift]::before, .blitz-slide[data-blitz-lift]::after,
+[data-blitz-lift-chain]::before, [data-blitz-lift-chain]::after { content: none !important; }
+[data-blitz-tokens] .line > span, .blitz-slide[data-blitz-lift] .line > span { display: inline-block; }
 .blitz-sr {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip-path: inset(50%); white-space: nowrap;
@@ -130,6 +135,8 @@ th[aria-sort="descending"] > .blitz-sort::after { opacity: 1; clip-path: polygon
   background-size: 0% .08em;
 }
 [data-blitz-fx="strike"][data-blitz-active] { background-size: 100% .08em; }
+pre[data-blitz-lines] .line { transition: opacity var(--blitz-fx-dur, 400ms) ease; }
+pre[data-blitz-lines-on] .line:not([data-blitz-focus]) { opacity: var(--blitz-dim-opacity, .3); }
 [data-blitz-dim] > * { transition: opacity var(--blitz-fx-dur, 600ms) ease; }
 [data-blitz-dim] > :not([data-blitz-active]) { opacity: var(--blitz-dim-opacity, .3); }
 

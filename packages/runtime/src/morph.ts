@@ -109,6 +109,8 @@ export interface Placement {
   anchor: Rect
   /** What should match in size: the width for media, else the font size. */
   size: number
+  /** Media only: the height, so a box that changes shape is fitted both ways. */
+  sizeY?: number
   /** Viewport pixels per local pixel (the stage's scale). */
   k: number
 }
@@ -117,13 +119,15 @@ export interface Rect {
   left: number
   top: number
   width: number
+  height?: number
 }
 
 /** Text lines up by its glyphs, whatever its box does (a `fit-content` title vs a full-width heading). */
 const TEXT = 'h1, h2, h3, h4, h5, h6, p, li:not(:has(> p, > ul, > ol))'
 /**
- * Media scales with its box. Anything else scales with its font size: a
- * card that only moves (or changes width) keeps its text the same size.
+ * Media scales with its box, both ways (a chart going from the full width
+ * into a column changes shape). Anything else scales uniformly with its font
+ * size: a card that only moves (or changes width) keeps its text the size it was.
  */
 const MEDIA = 'img, svg, video, canvas, iframe, [data-blitz-block]'
 
@@ -131,14 +135,46 @@ export function place(el: HTMLElement, text = el.matches(TEXT)): Placement {
   const box = el.getBoundingClientRect()
   const k = box.width / (el.offsetWidth || box.width) || 1
   const fontSize = parseFloat(el.ownerDocument.defaultView!.getComputedStyle(el).fontSize) * k
-  const size = el.matches(MEDIA) || !fontSize ? box.width : fontSize
+  if (el.matches(MEDIA) || !fontSize) return { box, anchor: box, size: box.width, sizeY: box.height, k }
+  const size = fontSize
   if (text) {
-    const range = el.ownerDocument.createRange()
-    range.selectNodeContents(el)
-    const anchor = range.getBoundingClientRect()
-    if (anchor.width) return { box, anchor, size, k }
+    const anchor = textBox(el)
+    if (anchor) return { box, anchor, size, k }
   }
   return { box, anchor: box, size, k }
+}
+
+/**
+ * Where an element's visible text is drawn: the union of its text's boxes,
+ * leaving out text that's there only for screen readers (KaTeX's MathML,
+ * clipped to a pixel), which would drag the anchor off to one side.
+ */
+function textBox(el: HTMLElement): Rect | undefined {
+  const doc = el.ownerDocument
+  const range = doc.createRange()
+  const walker = doc.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+  const hidden = new Map<Element, boolean>()
+  const screenReaderOnly = (from: Element | null): boolean => {
+    for (let e = from; e && e !== el; e = e.parentElement) {
+      let h = hidden.get(e)
+      if (h === undefined) hidden.set(e, (h = e.clientWidth <= 1 && e.clientHeight <= 1 && doc.defaultView!.getComputedStyle(e).overflow !== 'visible'))
+      if (h) return true
+    }
+    return false
+  }
+  let left = Infinity
+  let top = Infinity
+  let right = -Infinity
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.textContent?.trim() || screenReaderOnly(n.parentElement)) continue
+    range.selectNodeContents(n)
+    const r = range.getBoundingClientRect()
+    if (!r.width) continue
+    left = Math.min(left, r.left)
+    top = Math.min(top, r.top)
+    right = Math.max(right, r.right)
+  }
+  return right > left ? { left, top, width: right - left } : undefined
 }
 
 /** Both sides of a pair are placed the same way: as text only if both are text. */
@@ -149,7 +185,8 @@ export function textPair(p: MorphPair): boolean {
 /**
  * FLIP keyframes that carry an element from its own place (`self`) onto
  * `other`'s (`'to'`), or from `other`'s place back into its own (`'from'`).
- * Uniform scale, about the anchor's corner, in the element's local pixels.
+ * Scaled about the anchor's corner, in the element's local pixels: uniformly,
+ * except media, which is fitted to the other box.
  */
 export function flipFrames(self: Placement, other: Placement, dir: 'to' | 'from'): Keyframe[] {
   const ox = (self.anchor.left - self.box.left) / self.k
@@ -157,9 +194,11 @@ export function flipFrames(self: Placement, other: Placement, dir: 'to' | 'from'
   const tx = (other.anchor.left - self.anchor.left) / self.k
   const ty = (other.anchor.top - self.anchor.top) / self.k
   const s = other.size / self.size
+  const sy = self.sizeY && other.sizeY ? other.sizeY / self.sizeY : s
+  const scale = sy === s ? `${round(s, 4)}` : `${round(s, 4)}, ${round(sy, 4)}`
   const transformOrigin = `${round(ox)}px ${round(oy)}px`
   const home = { transformOrigin, transform: 'none' }
-  const away = { transformOrigin, transform: `translate(${round(tx)}px, ${round(ty)}px) scale(${round(s, 4)})` }
+  const away = { transformOrigin, transform: `translate(${round(tx)}px, ${round(ty)}px) scale(${scale})` }
   return dir === 'to' ? [home, away] : [away, home]
 }
 

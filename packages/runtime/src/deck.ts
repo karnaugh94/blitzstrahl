@@ -679,7 +679,8 @@ export class Deck implements NavTarget {
       b.error?.remove()
       delete b.error
       if (!b.enhance) b.el.replaceChildren()
-      const instance = await renderer.mount(b.el, b.data.spec, this.renderCtx(b.el, b.data, this.still))
+      // A block auto-animate moves in from the last slide is the same chart, already drawn: no entrance.
+      const instance = await renderer.mount(b.el, b.data.spec, this.renderCtx(b.el, b.data, this.still || this.morphing.has(b.el)))
       if (gen !== this.generation) {
         instance.destroy()
         return

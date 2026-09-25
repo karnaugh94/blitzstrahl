@@ -50,4 +50,9 @@ describe('FLIP keyframes', () => {
     ])
     expect(flipFrames(self, other, 'from').map((k) => k.transform)).toEqual(['translate(80px, -30px) scale(2)', 'none'])
   })
+
+  it('fits media to the other box both ways, since a block can change shape', () => {
+    const chart = (left: number, width: number, height: number): Placement => ({ box: { left, top: 0, width, height }, anchor: { left, top: 0, width, height }, size: width, sizeY: height, k: 1 })
+    expect(flipFrames(chart(600, 500, 400), chart(0, 1000, 400), 'from')[0]!.transform).toBe('translate(-600px, 0px) scale(2, 1)')
+  })
 })

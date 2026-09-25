@@ -2,11 +2,27 @@
  * Deck IR → the HTML page. Slide content is rendered here, at build time; the
  * runtime only hydrates it.
  */
+import { readFileSync } from 'node:fs'
 import type { Element, ElementContent, Root } from 'hast'
 import { toHtml } from 'hast-util-to-html'
 import { isImageBackground, toPayload, type Deck, type Diagnostic, type HastNode, type PayloadPlugins } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
 import type { Theme } from '@blitzstrahl/themes'
+
+const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
+
+/**
+ * Every page carries blitzstrahl's runtime, so it carries the runtime's
+ * licence notice (EUPL-1.2, decisions.md). The deck's own content is the
+ * author's.
+ */
+export const LICENCE_NOTICE = `<!--
+  Made with blitzstrahl ${VERSION}. The slide runtime in this page is
+  (c) the blitzstrahl authors, licensed under the EUPL-1.2
+  (https://interoperable-europe.ec.europa.eu/collection/eupl/eupl-text-eupl-12).
+  Its source code is in the npm package blitzstrahl@${VERSION}.
+  The deck's content belongs to its author.
+-->`
 
 /** Maps a deck-relative asset path to the URL the page should use. */
 export type AssetUrl = (path: string) => string
@@ -102,6 +118,7 @@ export function renderPage(o: PageOptions): string {
   const json = (v: unknown) => JSON.stringify(v).replace(/</g, '\\u003c')
   const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;')
   return `<!doctype html>
+${LICENCE_NOTICE}
 <html lang="${esc(o.deck.meta.lang)}">
 <head>
 <meta charset="utf-8">

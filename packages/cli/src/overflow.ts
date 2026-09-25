@@ -8,7 +8,7 @@ import { createServer, type Server } from 'node:http'
 import { extname, join, normalize, sep } from 'node:path'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
 import { describeOverflow, type Overflow } from '@blitzstrahl/runtime/overflow-report'
-import { launchBrowser } from './browser.js'
+import { INSTALL_BROWSER, launchBrowser } from './browser.js'
 
 export interface OverflowCheck {
   diagnostics: Diagnostic[]
@@ -78,7 +78,7 @@ async function serve(root: string): Promise<{ server: Server; url: string }> {
 export async function checkBuiltOverflow(outDir: string, deck: Deck, source?: string, page = ''): Promise<OverflowCheck> {
   const browser = await launchBrowser()
   if (!browser) {
-    return { diagnostics: [], skipped: 'no browser to measure slides with; install one with `npx playwright install chromium`' }
+    return { diagnostics: [], skipped: `no browser to measure slides with; install one with ${INSTALL_BROWSER}` }
   }
   const { server, url } = await serve(outDir)
   try {

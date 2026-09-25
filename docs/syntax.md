@@ -1,16 +1,11 @@
 # blitzstrahl syntax
 
-**Status:** agreed at M0 (2026-09-24). Not frozen until 1.0; changes before
-then are recorded in `docs/decisions.md`.
+**Status:** stable from 1.0. Changes follow semver: anything that would
+change what an existing deck means is a major version.
 
 This is the public contract between a deck author and blitzstrahl. Anything not
 described here is unspecified and may change. Once 1.0 ships, changes to this
 document follow semver.
-
-Sections marked **(M2)**, **(M4)** and so on are reserved. Their syntax is fixed
-now so later milestones don't break existing decks, but they have no effect
-until that milestone lands. Until then, blitzstrahl reports "not yet supported"
-when a deck uses them, rather than silently doing something different.
 
 ---
 
@@ -527,13 +522,15 @@ stack: region
 
 Each renderer's body schema is documented in `docs/renderers/`.
 
-| Renderer | Milestone | Body |
-|---|---|---|
-| `chart` | M1 (bar, line); M3 (pie, scatter) | YAML |
-| `map` | M3 | YAML: `center`, `zoom`, `markers`, `regions`, `tiles`, … |
-| `embed` | M3 | YAML: `src`, optional `fallback` image, `zoom`, `title` |
-| `mermaid` | M4 | text: a Mermaid diagram (`docs/renderers/mermaid.md`) |
-| `math` | M4 | text (TeX, display mode). Same as `$$…$$`; typeset when the deck is built (§12) |
+| Renderer | Body |
+|---|---|
+| `chart` | YAML: bar, line, pie and scatter charts (`docs/renderers/chart.md`) |
+| `map` | YAML: `center`, `zoom`, `markers`, `regions`, `tiles`, … (`docs/renderers/map.md`) |
+| `embed` | YAML: `src`, optional `fallback` image, `zoom`, `title` (`docs/renderers/embed.md`) |
+| `mermaid` | text: a Mermaid diagram (`docs/renderers/mermaid.md`) |
+| `math` | text (TeX, display mode). Same as `$$…$$`; typeset when the deck is built (§12) |
+
+Plugins add renderers of their own (`docs/plugins.md`).
 
 Any other fence language is a **code block**, syntax-highlighted. Its info
 string may carry an attribute block too: ```` ```js {.big @2} ````.
@@ -776,8 +773,7 @@ and its fonts, but no TeX engine:
 - KaTeX supports most of LaTeX's math mode; see its [list of supported
   functions](https://katex.org/docs/supported).
 
-Before M4, `$` had no meaning. A deck written then that means a literal
-dollar where these rules would see math can write `\$`.
+A literal dollar where these rules would see math is written `\$`.
 
 ---
 

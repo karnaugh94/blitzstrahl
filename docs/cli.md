@@ -31,8 +31,10 @@ open, use `--standalone` (below).
 - `--strict` turns those warnings into a failed build (exit code 1), for CI.
   The files are still written.
 
-The overflow check needs a Chromium-based browser: Playwright's Chromium
-(`npx playwright install chromium`), or an installed Chrome or Edge. Without
+The overflow check needs a Chromium-based browser: an installed Chrome or
+Edge, or Playwright's Chromium. When it finds none, blitzstrahl prints the
+command that installs the right Chromium (`npx playwright@<version> install
+chromium`, with the version it uses). Without
 one, `build` says the check was skipped, and `--strict` fails, because it
 can't vouch for the slides.
 

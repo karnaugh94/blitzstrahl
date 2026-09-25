@@ -4,7 +4,7 @@
  * emphasis effect, a frontmatter key), plus a CSS `@keyframes blitz-*`
  * effect. Every output mode: static, standalone and dev.
  */
-import { mkdtempSync } from 'node:fs'
+import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -71,6 +71,8 @@ test('standalone file', async ({ page }) => {
   const outFile = join(mkdtempSync(join(tmpdir(), 'blitz-plugins-')), 'deck.html')
   const r = await build(deck, { standalone: true, outFile, quiet: true, overflowCheck: false })
   expect(r.ok).toBe(true)
+  // The runtime's licence notice travels with every page (EUPL-1.2).
+  expect(readFileSync(outFile, 'utf8')).toMatch(/^<!doctype html>\n<!--\n  Made with blitzstrahl \d+\.\d+\.\d+\. The slide runtime in this page is\n  \(c\) the blitzstrahl authors, licensed under the EUPL-1\.2/)
   await page.goto(pathToFileURL(outFile).href)
   await exercise(page)
 })

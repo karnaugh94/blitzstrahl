@@ -90,6 +90,10 @@ export default definePlugin({
 a local `./plugin.js` next to a deck can export a plain object and doesn't
 need `blitzstrahl` installed where it lives.
 
+Plugins are ES modules. Name a local one `.mjs`, or put it in a folder whose
+`package.json` says `"type": "module"`: otherwise Node warns that it had to
+guess the module format.
+
 Every plugin has two halves:
 
 - The **Node half** is the module above. The CLI imports it to parse, check

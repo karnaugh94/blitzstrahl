@@ -1,0 +1,98 @@
+# blitzstrahl
+
+**Markdown in. A deck worth watching out.**
+
+blitzstrahl turns a Markdown file into an HTML slide deck: real charts and
+maps, build steps and motion, a presenter view on a second screen, and a PDF
+or a single file to send afterwards. The deck is a plain text file you can
+diff, review and keep next to your code.
+
+```sh
+npx blitzstrahl dev talk.md        # live preview; saving updates the open deck
+npx blitzstrahl build talk.md      # a static site in dist/
+npx blitzstrahl build talk.md --standalone   # one talk.html that opens from disk
+npx blitzstrahl export talk.md     # talk.pdf, a page per slide
+npx blitzstrahl check talk.md      # everything findable before the talk
+```
+
+Needs Node 22 or later. PDF export and the overflow check use a Chromium
+browser: an installed Chrome or Edge, or the Chromium that blitzstrahl tells
+you how to install when it can't find one.
+
+## A deck
+
+````markdown
+---
+title: Quarterly review
+theme: broadsheet
+---
+
+# Quarterly review
+
+Where we are, and where we're going.
+
+---
+
+# Revenue by region
+
+```chart {@1}
+type: bar
+data: ./sales.csv
+x: quarter
+y: revenue
+stack: region
+```
+
+- Europe grew fastest {@2 .fade-up}
+- [Asia]{.highlight @3} is next
+
+::: notes
+Pause on the chart before revealing the bullets.
+:::
+````
+
+`---` separates slides. `{@2}` makes something appear on the second press,
+and `.fade-up` or `.highlight` says how. `::: notes` are for the presenter
+view only.
+
+## What's in the box
+
+- **A fixed 1280×720 canvas**, scaled to any screen, so what you rehearse
+  is what the room sees. Every build checks each slide for text that runs
+  off it or is clipped, the most common way Markdown decks go wrong.
+- **Charts** (bar, line, pie, scatter), **maps** (markers, regions,
+  choropleths, from files or live from a URL), **Mermaid** diagrams,
+  **KaTeX** math, **sortable tables**, **embedded pages**, and code
+  highlighted with the same grammars as VS Code. All of them take their
+  colours from the theme.
+- **Build steps and effects**: fades, pops, typewriter, count-up, drawing
+  SVG, highlight and strike, one list item at a time, code walked through
+  line by line.
+- **Slide transitions**, including **auto-animate**: elements that appear
+  on consecutive slides glide into their new places, and code morphs token
+  by token.
+- **A presenter view** with notes, a timer and live previews of the
+  current and next slide, synced between windows, even from a file opened
+  from disk. Plus a **laser pointer and pen**.
+- **Layouts**: title, section, two and three columns, quote, stat grid,
+  image left or right, full bleed, code.
+- **Two themes**, `aurora` (dark, technical) and `broadsheet` (light,
+  editorial), and your own as a package or a file.
+- **Plugins** add renderers, effects and frontmatter keys.
+
+## Documentation
+
+| | |
+|---|---|
+| [docs/syntax.md](docs/syntax.md) | Writing decks: the complete syntax |
+| [docs/cli.md](docs/cli.md) | The commands and their options |
+| [docs/presenting.md](docs/presenting.md) | Keys, the presenter view, laser and pen |
+| [docs/renderers/](docs/renderers/) | Charts, maps, embeds, tables, Mermaid |
+| [docs/themes.md](docs/themes.md) | The themes and their tokens |
+| [docs/plugins.md](docs/plugins.md) | Writing plugins and themes |
+
+## Licence
+
+blitzstrahl is licensed under the [European Union Public Licence 1.2](LICENSE)
+(EUPL-1.2). Decks you build contain blitzstrahl's slide runtime, so each page
+carries a short notice saying so. Your slides' content is yours.

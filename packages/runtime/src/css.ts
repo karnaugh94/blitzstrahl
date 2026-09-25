@@ -194,6 +194,8 @@ th[aria-sort="descending"] > .blitz-sort::after { opacity: 1; clip-path: polygon
   font: 13px/1 ui-monospace, monospace; padding: 3px 6px; border-radius: 5px;
   background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .15);
 }
+.blitz-presenter-link { color: var(--blitz-ui-accent); font-size: 18px; font-weight: 600; }
+.blitz-dialog-hint { margin: 12px 0 0; color: #97a2b9; }
 .blitz-goto label { display: block; font-weight: 600; margin-bottom: 10px; }
 .blitz-goto-input {
   width: 100%; box-sizing: border-box; font: inherit; font-size: 20px; padding: 10px 12px;

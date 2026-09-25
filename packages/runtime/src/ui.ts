@@ -272,3 +272,26 @@ export function help(doc: Document, host: LayerHost): Layer {
     },
   }
 }
+
+/**
+ * `P` couldn't open a window (a popup blocker: Firefox doesn't count a key
+ * press as permission). A link is a click, which every browser allows, and
+ * `rel="opener"` lets the presenter find this deck.
+ */
+export function presenterBlocked(doc: Document, host: LayerHost, href: string): Layer {
+  const close = h(doc, 'button', { type: 'button', class: 'blitz-dialog-close', 'aria-label': 'Close' }, '×')
+  close.addEventListener('click', () => host.close())
+  const link = h(doc, 'a', { href, target: '_blank', rel: 'opener', class: 'blitz-presenter-link' }, 'Open the presenter view')
+  link.addEventListener('click', () => queueMicrotask(() => host.close()))
+  const el = h(
+    doc,
+    'div',
+    { class: 'blitz-layer blitz-dialog', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Presenter view', tabindex: '-1' },
+    close,
+    h(doc, 'h2', {}, 'The browser blocked the presenter window'),
+    h(doc, 'p', {}, link),
+    h(doc, 'p', { class: 'blitz-dialog-hint' }, 'To use P next time, allow pop-ups for this deck.'),
+  )
+  return { el, focus: link, onKey: () => false }
+}
+

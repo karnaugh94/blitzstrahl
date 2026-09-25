@@ -46,9 +46,74 @@ const KEYFRAMES: Record<string, Keyframe[]> = {
   'slide-in-right': [{ opacity: 0, transform: `translateX(-${S}px)` }, { opacity: 1, offset: 0.3 }, { opacity: 1, transform: 'none' }],
 }
 
+/** A plugin's entrance effect (docs/plugins.md §2.3), as the payload carries it. */
+export interface CustomEffect {
+  keyframes: Keyframe[]
+  box?: boolean
+}
+
+const plugins = new Map<string, CustomEffect>()
+
+/** Register the deck's plugin effects. Built-in names can't be replaced. */
+export function registerEffects(effects: Readonly<Record<string, CustomEffect>> | undefined): void {
+  for (const [name, fx] of Object.entries(effects ?? {})) if (!(name in KEYFRAMES)) plugins.set(name, fx)
+}
+
+/**
+ * A custom entrance effect: a plugin's, else CSS `@keyframes blitz-<name>`
+ * in the page (syntax.md §6.3), read back from the CSSOM as WAAPI keyframes
+ * so it gets the same timing, snapping and reversing as the built-ins.
+ */
+export function customEffect(doc: Document, name: string): CustomEffect | undefined {
+  const own = plugins.get(name)
+  if (own) return own
+  const rule = findKeyframes(doc, `blitz-${name}`)
+  if (!rule) return undefined
+  const keyframes = [...rule.cssRules].flatMap((r) => {
+    const k = r as CSSKeyframeRule
+    const frame: Keyframe = {}
+    for (let i = 0; i < k.style.length; i++) {
+      const prop = k.style[i]!
+      const value = k.style.getPropertyValue(prop)
+      if (prop === 'animation-timing-function') frame.easing = value
+      else frame[prop.startsWith('--') ? prop : prop.replace(/-([a-z])/g, (_, c: string) => c.toUpperCase())] = value
+    }
+    return k.keyText.split(',').map((t) => {
+      const at = t.trim()
+      return { ...frame, offset: at === 'from' ? 0 : at === 'to' ? 1 : parseFloat(at) / 100 }
+    })
+  })
+  keyframes.sort((a, b) => a.offset - b.offset)
+  return { keyframes, box: keyframes.some((f) => 'transform' in f || 'translate' in f || 'scale' in f || 'rotate' in f) }
+}
+
+function findKeyframes(doc: Document, name: string): CSSKeyframesRule | undefined {
+  const search = (rules: CSSRuleList): CSSKeyframesRule | undefined => {
+    for (const r of rules) {
+      // Duck-typed: mirror iframes have their own CSSKeyframesRule constructor.
+      if ('name' in r && (r as CSSKeyframesRule).name === name && 'findRule' in r) return r as CSSKeyframesRule
+      if ('cssRules' in r && !('findRule' in r)) {
+        const inner = search((r as CSSGroupingRule).cssRules)
+        if (inner) return inner
+      }
+    }
+    return undefined
+  }
+  for (const sheet of doc.styleSheets) {
+    try {
+      const hit = search(sheet.cssRules)
+      if (hit) return hit
+    } catch {
+      // cross-origin stylesheet
+    }
+  }
+  return undefined
+}
+
 /** Effects that move the box, so inline elements must become inline-block. */
-export function needsBox(effect: string): boolean {
-  return /^(fade-|slide-in-|pop$|zoom$)/.test(effect)
+export function needsBox(effect: string, doc: Document): boolean {
+  if (/^(fade-|slide-in-|pop$|zoom$)/.test(effect)) return true
+  return !(effect in KEYFRAMES) && !!customEffect(doc, effect)?.box
 }
 
 export interface Played {
@@ -76,7 +141,7 @@ export function playEntrance(el: HTMLElement, anim: AnimSpec, reverse = false): 
     case 'draw':
       return draw(el, timing)
   }
-  const frames = KEYFRAMES[anim.effect] ?? KEYFRAMES.fade!
+  const frames = KEYFRAMES[anim.effect] ?? customEffect(el.ownerDocument, anim.effect)?.keyframes ?? KEYFRAMES.fade!
   return wrap(el.animate(frames, timing))
 }
 

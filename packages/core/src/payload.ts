@@ -29,10 +29,18 @@ export interface DeckPayload {
    * path, for renderers that show one (an embed's fallback, say).
    */
   urls: Record<string, string>
+  /** Plugin entrance effects by name: WAAPI keyframes (docs/plugins.md §2.3). */
+  effects?: Record<string, { keyframes: Array<Record<string, string | number | null>>; box?: boolean }>
+  /** Values of the frontmatter keys plugins register (`RenderCtx.meta`). */
+  meta?: Record<string, unknown>
 }
 
-export function toPayload(deck: Deck, inline: Record<string, string> = {}, assetUrl: (path: string) => string = (p) => p): DeckPayload {
+/** What plugins add to the payload. */
+export type PayloadPlugins = Pick<DeckPayload, 'effects' | 'meta'>
+
+export function toPayload(deck: Deck, inline: Record<string, string> = {}, assetUrl: (path: string) => string = (p) => p, plugins: PayloadPlugins = {}): DeckPayload {
   return {
+    ...plugins,
     title: deck.meta.title,
     lang: deck.meta.lang,
     canvas: deck.meta.canvas,

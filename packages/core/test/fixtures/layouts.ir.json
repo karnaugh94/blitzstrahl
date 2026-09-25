@@ -12,6 +12,7 @@
       "transition": {
         "name": "fade"
       },
+      "plugins": [],
       "extra": {},
       "title": "Slide 1 is a title slide"
     },

@@ -13,6 +13,7 @@
         "name": "push-left",
         "dur": 300
       },
+      "plugins": [],
       "extra": {
         "mystery": 1
       },

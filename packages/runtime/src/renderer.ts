@@ -17,6 +17,8 @@ export interface RenderCtx {
   loadAsset(path: string): Promise<string>
   /** The URL the page serves a deck-relative asset (an image) from. */
   assetUrl(path: string): string
+  /** Values of the deck frontmatter keys plugins register, by name (docs/plugins.md §2.4). */
+  meta: Readonly<Record<string, unknown>>
 }
 
 export interface RenderInstance {

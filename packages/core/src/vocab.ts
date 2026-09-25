@@ -47,6 +47,17 @@ export const RENDERERS: Readonly<Record<string, { body: RendererBody; since: str
   math: { body: 'text', since: 'M4' },
 }
 
+/**
+ * What plugins add to the vocabulary (docs/plugins.md). Names that clash
+ * with built-ins are rejected before they get here.
+ */
+export interface Extensions {
+  renderers?: Readonly<Record<string, { body: RendererBody }>>
+  effects?: Readonly<Record<string, EffectKind>>
+  /** Deck frontmatter keys: no longer "unknown". */
+  keys?: readonly string[]
+}
+
 /** Milestones implemented by this build. */
 export const SUPPORTED_MILESTONES = new Set(['M1', 'M2', 'M3', 'M4'])
 

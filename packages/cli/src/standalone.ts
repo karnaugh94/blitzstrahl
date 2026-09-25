@@ -17,10 +17,21 @@ const ENTRY_ID = 'virtual:blitzstrahl-standalone'
 /** Absolute path of a module, resolved from this package (not the deck's folder). */
 const resolve = (spec: string) => fileURLToPath(import.meta.resolve(spec))
 
-/** Built-in renderers the deck actually uses. */
-export function usedRenderers(deck: Deck): string[] {
+/** Renderer name → module, for a plugin renderer: its browser module's absolute path. */
+export type RendererModules = Record<string, string>
+
+/** The module of every renderer: built in, plus the deck's plugins'. */
+export function allRenderers(plugins: Record<string, { browser: string }> = {}): RendererModules {
+  return {
+    ...Object.fromEntries(BUILTIN_RENDERERS.map((r) => [r, resolve(`@blitzstrahl/renderers/${r}`)])),
+    ...Object.fromEntries(Object.entries(plugins).map(([n, p]) => [n, p.browser])),
+  }
+}
+
+/** The renderers the deck actually uses, and their modules. */
+export function usedRenderers(deck: Deck, plugins: Record<string, { browser: string }> = {}): RendererModules {
   const used = new Set(deck.slides.flatMap((s) => s.blocks.map((b) => b.renderer)))
-  return BUILTIN_RENDERERS.filter((r) => used.has(r))
+  return Object.fromEntries(Object.entries(allRenderers(plugins)).filter(([r]) => used.has(r)))
 }
 
 /**
@@ -29,8 +40,8 @@ export function usedRenderers(deck: Deck): string[] {
  * names them all, since a save can add any.) Without this, every deck would
  * bundle Mermaid's hundred-odd chunks.
  */
-export function staticEntry(renderers: readonly string[]): string {
-  const map = renderers.map((r) => `${JSON.stringify(r)}: () => import(${JSON.stringify(resolve(`@blitzstrahl/renderers/${r}`))})`).join(', ')
+export function staticEntry(renderers: RendererModules): string {
+  const map = Object.entries(renderers).map(([r, file]) => `${JSON.stringify(r)}: () => import(${JSON.stringify(file)})`).join(', ')
   return `import { start } from ${JSON.stringify(resolve('@blitzstrahl/runtime'))}\nstart({ renderers: { ${map} } })\n`
 }
 
@@ -44,16 +55,17 @@ export function virtualEntry(id: string, code: string): Plugin {
 }
 
 /** The standalone entry: `start()` with each used renderer imported statically. */
-export function standaloneEntry(renderers: readonly string[]): string {
+export function standaloneEntry(renderers: RendererModules): string {
   const lines = [`import { start } from ${JSON.stringify(resolve('@blitzstrahl/runtime'))}`]
-  renderers.forEach((r, i) => lines.push(`import r${i} from ${JSON.stringify(resolve(`@blitzstrahl/renderers/${r}`))}`))
-  const map = renderers.map((r, i) => `${JSON.stringify(r)}: async () => r${i}`).join(', ')
+  const files = Object.values(renderers)
+  files.forEach((file, i) => lines.push(`import r${i} from ${JSON.stringify(file)}`))
+  const map = Object.keys(renderers).map((r, i) => `${JSON.stringify(r)}: async () => r${i}`).join(', ')
   lines.push(`start({ renderers: { ${map} } })`)
   return lines.join('\n') + '\n'
 }
 
 /** Bundle the entry into a single ES module, in memory. */
-export async function bundleStandalone(root: string, cacheDir: string, renderers: readonly string[], quiet = false): Promise<string> {
+export async function bundleStandalone(root: string, cacheDir: string, renderers: RendererModules, quiet = false): Promise<string> {
   const plugin = virtualEntry(ENTRY_ID, standaloneEntry(renderers))
   const result = await viteBuild({
     configFile: false,

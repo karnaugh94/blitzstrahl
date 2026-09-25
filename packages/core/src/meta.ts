@@ -6,10 +6,10 @@ import type { Diagnostics } from './diagnostics.js'
 import { keySpan, type Frontmatter } from './split.js'
 import { LAYOUTS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
 
-const DECK_KEYS = new Set(['title', 'author', 'date', 'lang', 'theme', 'canvas', 'transition', 'transition-dur'])
+export const DECK_KEYS = new Set(['title', 'author', 'date', 'lang', 'theme', 'canvas', 'transition', 'transition-dur', 'plugins'])
 export const SLIDE_KEYS = new Set(['id', 'layout', 'transition', 'transition-dur', 'background', 'class', 'style'])
 
-export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics): Omit<DeckMeta, 'title'> & { title?: string } {
+export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics, pluginKeys: readonly string[] = []): Omit<DeckMeta, 'title'> & { title?: string } {
   const data = fm?.data ?? {}
   const none = { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } }
   const meta: Omit<DeckMeta, 'title'> & { title?: string } = {
@@ -17,6 +17,7 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics)
     theme: 'aurora',
     canvas: { width: 1280, height: 720 },
     transition: { name: 'fade' },
+    plugins: [],
     extra: {},
   }
   for (const [key, value] of Object.entries(data)) {
@@ -51,9 +52,18 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics)
         if (d !== undefined) meta.transition.dur = d
         break
       }
+      case 'plugins': {
+        const list = typeof value === 'string' ? [value] : value
+        if (!Array.isArray(list) || !list.every((p) => typeof p === 'string' && p.trim())) {
+          diags.error('frontmatter/plugins', '`plugins` must be a list of module names or paths', span)
+        } else {
+          meta.plugins = list.map((p: string) => p.trim())
+        }
+        break
+      }
       default:
         if (!DECK_KEYS.has(key)) {
-          diags.warn('frontmatter/unknown-key', `unknown deck frontmatter key \`${key}\``, span)
+          if (!pluginKeys.includes(key)) diags.warn('frontmatter/unknown-key', `unknown deck frontmatter key \`${key}\``, span)
           meta.extra[key] = value
         }
     }

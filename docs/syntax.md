@@ -144,8 +144,8 @@ sequence.
 
 ## 3. Frontmatter keys
 
-Unknown keys are warnings, not errors. Plugins may register their own keys
-**(M5)**.
+Unknown keys are warnings, not errors. Plugins may register their own deck
+keys, which are then known (docs/plugins.md §2.4).
 
 ### 3.1 Deck
 
@@ -155,7 +155,8 @@ Unknown keys are warnings, not errors. Plugins may register their own keys
 | `author` | string | — | Shown by themes that display it |
 | `date` | string | — | Free-form, displayed as written |
 | `lang` | string | `en` | BCP 47 tag, `<html lang>` |
-| `theme` | string | `aurora` | Built-in name or `blitzstrahl-theme-<name>` package |
+| `theme` | string | `aurora` | A built-in theme (`aurora`), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` (docs/plugins.md §1) |
+| `plugins` | list | — | Plugin packages or `./paths`, loaded in order (docs/plugins.md) |
 | `canvas` | `WxH` string | `1280x720` | Logical canvas size in CSS pixels |
 | `transition` | transition | `fade` | Default slide transition (§9) |
 | `transition-dur` | ms | theme-defined | Default transition duration |
@@ -446,8 +447,10 @@ Options:
 | `from` | `count-up` | starting number, default `0`. The target is the element's own numeral text |
 | `cps` | `typewriter` | characters per second |
 
-Custom effects register as CSS `@keyframes blitz-<name>` or through the plugin
-API **(M5)**. Using an unknown effect-looking class is not an error, since it
+Custom entrance effects can be defined in CSS, in the theme or a `<style>`
+in the deck: `@keyframes blitz-<name>` makes `.<name>` an effect, with the
+same `dur`, `delay`, `ease` and `reverse` as the built-ins. Plugins can add
+entrance and emphasis effects too (docs/plugins.md §2.3). Using an unknown effect-looking class is not an error, since it
 could be an ordinary CSS class, but `check` lists classes (written as `.name`
 in an attribute block) that are neither a known effect nor styled by the theme
 or a `<style>` in the deck, and suggests the effect you probably meant.

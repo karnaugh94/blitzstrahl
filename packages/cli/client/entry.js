@@ -8,6 +8,7 @@ const deck = start({
     chart: () => import('@blitzstrahl/renderers/chart'),
     embed: () => import('@blitzstrahl/renderers/embed'),
     map: () => import('@blitzstrahl/renderers/map'),
+    mermaid: () => import('@blitzstrahl/renderers/mermaid'),
     table: () => import('@blitzstrahl/renderers/table'),
   },
   // Dev: badge overflowing slides and report them to the terminal.

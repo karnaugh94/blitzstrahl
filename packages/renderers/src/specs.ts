@@ -7,6 +7,7 @@ import { chartOption, validate as validateChart } from './chart-option.js'
 import { parseData } from './data.js'
 import { validate as validateEmbed } from './embed.js'
 import { asFeatureCollection, markersFromGeoJson, markersFromRows, validate as validateMap } from './map-geo.js'
+import { validate as validateMermaid } from './mermaid.js'
 
 /** Text of a deck-relative data file, if it was found. */
 export type ReadData = (path: string) => string | undefined
@@ -52,5 +53,33 @@ export function specProblem(renderer: string, spec: unknown, read: ReadData): st
     }
   } catch (err) {
     return err instanceof Error ? err.message : String(err)
+  }
+}
+
+/**
+ * A Mermaid diagram's syntax error, as Mermaid's own parser reports it.
+ * Some diagram types need a browser just to parse (they sanitise with
+ * DOMPurify); anything that isn't a syntax error gets the benefit of the
+ * doubt, since the slide itself will show it.
+ */
+export async function mermaidProblem(spec: unknown): Promise<string | undefined> {
+  let source: string
+  try {
+    source = validateMermaid(spec)
+  } catch (err) {
+    return err instanceof Error ? err.message : String(err)
+  }
+  const { default: mermaid } = await import('mermaid')
+  try {
+    await mermaid.parse(source)
+    return undefined
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    if (!/^(Parse|Lexical|Syntax) error|No diagram type detected/i.test(message)) return undefined
+    // "Parse error on line 3:", the excerpt and caret, then "Expecting …, got 'EOF'".
+    const lines = message.split('\n').filter((l) => l.trim())
+    const first = lines[0]!.replace(/:$/, '')
+    const last = lines.length > 1 ? lines[lines.length - 1]! : ''
+    return last && last !== lines[0] ? `${first}: ${last.length > 160 ? `${last.slice(0, 157)}…` : last}` : first
   }
 }

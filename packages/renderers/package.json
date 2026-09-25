@@ -24,6 +24,10 @@
       "types": "./dist/map.d.ts",
       "default": "./dist/map.js"
     },
+    "./mermaid": {
+      "types": "./dist/mermaid.d.ts",
+      "default": "./dist/mermaid.js"
+    },
     "./specs": {
       "types": "./dist/specs.d.ts",
       "default": "./dist/specs.js"
@@ -35,6 +39,7 @@
   "dependencies": {
     "@blitzstrahl/core": "workspace:*",
     "@blitzstrahl/runtime": "workspace:*",
-    "echarts": "^6.1.0"
+    "echarts": "^6.1.0",
+    "mermaid": "^12.0.0"
   }
 }

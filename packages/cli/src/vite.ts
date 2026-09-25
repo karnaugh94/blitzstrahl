@@ -39,6 +39,7 @@ export function servedDirs(): string[] {
     renderers,
     packageDir(here, '@blitzstrahl/core'),
     packageDir(join(renderers, 'package.json'), 'echarts'),
+    packageDir(join(renderers, 'package.json'), 'mermaid'),
     // KaTeX's fonts (math.ts).
     packageDir(here, 'katex'),
   ]

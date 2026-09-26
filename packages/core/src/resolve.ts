@@ -11,7 +11,8 @@ import { parseDocument } from 'yaml'
 import type { Attached } from './attach.js'
 import { mathData, type BlitzMath } from './syntax/mdast.js'
 import type { StepSpec } from './attrs.js'
-import { assetKind, isExplicitRelative, isLocalRef, normalizeRelative } from './assets.js'
+import { assetKind, isExplicitRelative, isLocalRef, normalizeRelative, pageAsset } from './assets.js'
+import { cssRefs, htmlRefs } from './html-refs.js'
 import { pointSpan, spanOf, type Diagnostics } from './diagnostics.js'
 import type { AnimSpec, AssetRef, EffectKind, HastNode, RenderBlock, SourceSpan, StepRange } from './ir.js'
 import { milliseconds, notYet } from './meta.js'
@@ -101,6 +102,13 @@ export function resolveSlide(
   /** Visible ranges of stepped (entrance) ancestors, for the nesting check. */
   const ancestors: StepRange[] = []
 
+  const addPageAssets = (urls: string[], span: SourceSpan) => {
+    for (const url of urls) {
+      const a = pageAsset(url, span)
+      if (a) ctx.assets.push(a)
+    }
+  }
+
   const setProps = (node: Nodes, props: Record<string, unknown>) => {
     if (Object.keys(props).length === 0) return
     const data = (node.data ??= {})
@@ -178,6 +186,7 @@ export function resolveSlide(
           diags.error('attr/slide-key', `\`${key}\` is a slide setting: put it in slide frontmatter or on the slide's first heading`, span)
         } else if (PASSTHROUGH_KEYS.has(key) || key.startsWith('data-') || key.startsWith('aria-')) {
           props[key] = value
+          if (key === 'style') addPageAssets(cssRefs(value), span)
         } else {
           diags.error('attr/unknown-key', `unknown attribute \`${key}\`; use \`data-${key}\` for custom data`, span)
         }
@@ -295,6 +304,14 @@ export function resolveSlide(
       }
       if (node.type === 'image' && isLocalRef(node.url)) {
         ctx.assets.push({ ref: node.url, path: normalizeRelative(node.url), kind: assetKind(node.url), span: spanOf(node.position) })
+      } else if (node.type === 'link' || node.type === 'definition') {
+        addPageAssets([node.url], spanOf(node.position))
+      } else if (node.type === 'html') {
+        // Raw HTML's src, srcset, poster, href and CSS url()s (syntax.md §1).
+        addPageAssets(
+          htmlRefs(node.value).map((r) => r.url),
+          spanOf(node.position),
+        )
       }
       if (node.type === 'blitzContainer') {
         node.data = { ...node.data, hName: 'div' }

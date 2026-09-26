@@ -35,8 +35,11 @@ export interface Extras {
   renderers: Record<string, PluginRenderer>
   effects: Record<string, EffectDef & { plugin: string }>
   keys: Record<string, KeyDef & { plugin: string }>
-  /** Folders the dev server must be allowed to serve (browser modules, fonts). */
-  dirs: string[]
+  /**
+   * Files the dev server may serve besides blitzstrahl's own: plugins'
+   * browser modules (Vite lets their imports through) and theme fonts.
+   */
+  served: string[]
   diagnostics: Diagnostic[]
 }
 
@@ -56,7 +59,7 @@ export function toExtensions(x: Extras): Extensions {
 
 /** A deck with no plugins and a built-in theme. */
 export function builtinExtras(theme: Theme = themes.aurora!): Extras {
-  return { theme, fonts: [], renderers: {}, effects: {}, keys: {}, dirs: [], diagnostics: [] }
+  return { theme, fonts: [], renderers: {}, effects: {}, keys: {}, served: [], diagnostics: [] }
 }
 
 /**
@@ -255,7 +258,7 @@ function collectFonts(fonts: unknown, from: string, problems: string[], x: Extra
       continue
     }
     x.fonts.push({ family: f.family, file: path, weight: String(f.weight ?? 400), style: typeof f.style === 'string' ? f.style : 'normal' })
-    x.dirs.push(dirname(path))
+    x.served.push(path)
   }
 }
 
@@ -300,7 +303,7 @@ function addPlugin(value: unknown, file: string, spec: string, x: Extras, proble
     const r: PluginRenderer = { plugin: name, body: def.body, browser }
     if (typeof def.check === 'function') r.check = def.check as PluginRenderer['check'] & object
     x.renderers[n] = r
-    x.dirs.push(dirname(browser))
+    x.served.push(browser)
   }
 
   for (const [n, def] of section('effects')) {

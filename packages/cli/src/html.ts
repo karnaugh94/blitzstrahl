@@ -5,7 +5,7 @@
 import { readFileSync } from 'node:fs'
 import type { Element, ElementContent, Root } from 'hast'
 import { toHtml } from 'hast-util-to-html'
-import { isImageBackground, toPayload, type Deck, type Diagnostic, type HastNode, type PayloadPlugins } from '@blitzstrahl/core'
+import { isImageBackground, rewriteCss, rewriteHtml, toPayload, type Deck, type Diagnostic, type HastNode, type PayloadPlugins } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
 import type { Theme } from '@blitzstrahl/themes'
 
@@ -27,35 +27,69 @@ export const LICENCE_NOTICE = `<!--
 /** Maps a deck-relative asset path to the URL the page should use. */
 export type AssetUrl = (path: string) => string
 
-/** Rewrites local image `src`s to the URLs the page serves them from. */
-function imageRewriter(deck: Deck, assetUrl: AssetUrl) {
+/** The last path segment of a URL: a download's file name. */
+function fileName(url: string): string {
+  const path = url.replace(/[?#].*$/, '')
+  return path.slice(path.lastIndexOf('/') + 1) || 'download'
+}
+
+/**
+ * Rewrites every local URL the deck's HTML uses (images, links, raw HTML,
+ * `style` values) to the URL the page serves that file from.
+ */
+function refRewriter(deck: Deck, assetUrl: AssetUrl) {
   const byRef = new Map(deck.assets.map((a) => [a.ref, a.path]))
+  const url = (ref: string): string | undefined => {
+    const path = byRef.get(ref)
+    return path === undefined ? undefined : assetUrl(path)
+  }
+  const css = (value: string) => rewriteCss(value, url)
   const rewrite = (nodes: HastNode[]): ElementContent[] =>
-    nodes.map((n) => {
+    nodes.map((n): ElementContent => {
+      // Raw HTML (syntax.md §1) stays raw: only its URLs change.
+      const raw = n as unknown as { type: string; value: string }
+      if (raw.type === 'raw') return { ...raw, value: rewriteHtml(raw.value, url) } as unknown as ElementContent
       if (n.type !== 'element') return n
       const el: Element = { ...n, children: rewrite(n.children) }
-      const src = el.properties.src
-      if (el.tagName === 'img' && typeof src === 'string' && byRef.has(src)) {
-        el.properties = { ...el.properties, src: assetUrl(byRef.get(src)!) }
+      const p = el.properties
+      const next: Element['properties'] = {}
+      if (el.tagName === 'img' && typeof p.src === 'string' && url(p.src) !== undefined) next.src = url(p.src)!
+      if (el.tagName === 'a' && typeof p.href === 'string') {
+        const to = url(p.href)
+        if (to !== undefined) {
+          next.href = to
+          // A standalone file's links are data: URLs, which browsers download but won't open.
+          if (to.startsWith('data:') && p.download === undefined) next.download = fileName(p.href)
+        }
       }
+      if (typeof p.style === 'string' && css(p.style) !== p.style) next.style = css(p.style)
+      if (Object.keys(next).length) el.properties = { ...p, ...next }
       return el
     })
-  return { byRef, rewrite }
+  return { byRef, css, rewrite }
 }
 
 /** The `<section>`s, as HTML. Also what dev HMR swaps in. */
 export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
-  const { byRef, rewrite } = imageRewriter(deck, assetUrl)
+  const { byRef, css, rewrite } = refRewriter(deck, assetUrl)
+  // Each background image is named once, as a custom property, however many
+  // slides use it: a standalone file carries it once, not once per slide.
+  const backgrounds = new Map<string, string>()
+  const background = (path: string) => {
+    let name = backgrounds.get(path)
+    if (!name) backgrounds.set(path, (name = `--blitz-bg-${backgrounds.size + 1}`))
+    return `var(${name})`
+  }
 
   const sections: Element[] = deck.slides.map((slide) => {
     const style: string[] = []
     const bg = slide.attrs.background
     if (bg !== undefined) {
-      if (byRef.has(bg)) style.push(`background-image: url("${assetUrl(byRef.get(bg)!)}")`)
+      if (byRef.has(bg)) style.push(`background-image: ${background(byRef.get(bg)!)}`)
       else if (isImageBackground(bg)) style.push(`background-image: url("${bg}")`)
-      else style.push(`background: ${bg}`)
+      else style.push(`background: ${css(bg)}`)
     }
-    if (slide.attrs.style) style.push(slide.attrs.style)
+    if (slide.attrs.style) style.push(css(slide.attrs.style))
     return {
       type: 'element',
       tagName: 'section',
@@ -71,7 +105,9 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
       children: rewrite(slide.content),
     }
   })
-  return toHtml({ type: 'root', children: sections } as Root, { allowDangerousHtml: true })
+  const vars = [...backgrounds].map(([path, name]) => `${name}: url("${assetUrl(path)}");`)
+  const shared = vars.length ? `<style data-blitz-backgrounds>:root { ${vars.join(' ')} }</style>\n` : ''
+  return shared + toHtml({ type: 'root', children: sections } as Root, { allowDangerousHtml: true })
 }
 
 /**
@@ -80,7 +116,7 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
  * A template's content is inert, so the audience never sees it rendered.
  */
 export function renderNotes(deck: Deck, assetUrl: AssetUrl): string {
-  const { rewrite } = imageRewriter(deck, assetUrl)
+  const { rewrite } = refRewriter(deck, assetUrl)
   const divs: Element[] = deck.slides
     .filter((s) => s.notes.length)
     .map((s) => ({ type: 'element', tagName: 'div', properties: { dataFor: s.id }, children: rewrite(s.notes) }))

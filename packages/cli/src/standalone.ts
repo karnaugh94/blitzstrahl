@@ -6,11 +6,11 @@
  * URIs; data files are already inlined in the payload.
  */
 import { readFile } from 'node:fs/promises'
-import { extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build as viteBuild, type Plugin, type Rolldown } from 'vite'
 import { BUILTIN_RENDERERS } from '@blitzstrahl/renderers'
 import type { Deck } from '@blitzstrahl/core'
+import { mimeType } from './mime.js'
 
 const ENTRY_ID = 'virtual:blitzstrahl-standalone'
 
@@ -98,27 +98,12 @@ export function inlineSafe(code: string): string {
   return code.replace(/<(\/script|!--)/gi, '\\x3C$1')
 }
 
-const MIME: Record<string, string> = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-  '.avif': 'image/avif',
-  '.bmp': 'image/bmp',
-  '.ico': 'image/x-icon',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-  '.otf': 'font/otf',
-}
 
 /** A local file as a `data:` URI, or undefined if it can't be read. */
 export async function dataUri(file: string): Promise<string | undefined> {
   try {
     const bytes = await readFile(file)
-    return `data:${MIME[extname(file).toLowerCase()] ?? 'application/octet-stream'};base64,${bytes.toString('base64')}`
+    return `data:${mimeType(file).replace(/;.*$/, '')};base64,${bytes.toString('base64')}`
   } catch {
     return undefined // reported as asset/missing
   }

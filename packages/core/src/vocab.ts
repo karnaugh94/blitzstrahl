@@ -27,6 +27,9 @@ export const EFFECTS: Readonly<Record<string, EffectKind>> = {
   'dim-others': 'emphasis',
 }
 
+/** syntax.md §3.2: what slide frontmatter can set. A block needs one of these to be frontmatter (§2.3). */
+export const SLIDE_KEYS: ReadonlySet<string> = new Set(['id', 'layout', 'transition', 'transition-dur', 'background', 'class', 'style'])
+
 /** syntax.md §4.3 */
 export const ANIM_KEYS = new Set(['dur', 'delay', 'ease', 'reverse', 'from', 'cps'])
 export const SLIDE_SHORTHAND_KEYS = new Set(['transition', 'transition-dur', 'layout', 'background'])

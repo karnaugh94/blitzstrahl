@@ -3,6 +3,7 @@ import { parseArgs } from 'node:util'
 import { build } from './build.js'
 import { dev } from './dev.js'
 import { check } from './check.js'
+import { CliError } from './errors.js'
 import { exportPdf } from './export.js'
 import { hasErrors, printDiagnostics, summary } from './report.js'
 
@@ -136,6 +137,10 @@ async function main(argv: string[]): Promise<number> {
 main(process.argv.slice(2)).then(
   (code) => process.exit(code),
   (err: unknown) => {
+    if (err instanceof CliError) {
+      process.stderr.write(`blitzstrahl: ${err.message}\n`)
+      process.exit(err.exitCode)
+    }
     process.stderr.write(`blitzstrahl: ${err instanceof Error ? (err.stack ?? err.message) : String(err)}\n`)
     process.exit(1)
   },

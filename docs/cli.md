@@ -10,7 +10,8 @@ blitzstrahl check <deck.md> [--offline] [--strict]
 ## `dev`
 
 A live preview. Saving the markdown (or a data file it uses) updates the open
-deck in place, on the same slide and step. Diagnostics print in the terminal
+deck in place, on the same slide and step. Saving a local theme or plugin
+(`theme: ./brand.js`), or a file it imports, reloads the page with the change. Diagnostics print in the terminal
 and in the browser console.
 
 It serves the deck and the files the deck uses, and nothing else in the

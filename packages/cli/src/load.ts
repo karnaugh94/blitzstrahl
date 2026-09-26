@@ -31,13 +31,21 @@ export interface LoadedDeck {
   css: string
 }
 
-export async function loadDeck(path: string, displayName = path): Promise<LoadedDeck> {
+export interface LoadOptions {
+  /**
+   * Imports a local theme or plugin module by its file path. Default: Node's
+   * `import()`. `dev` passes Vite's SSR loader, which picks up edits.
+   */
+  importModule?: (file: string) => Promise<unknown>
+}
+
+export async function loadDeck(path: string, displayName = path, options: LoadOptions = {}): Promise<LoadedDeck> {
   const abs = resolve(path)
   const dir = dirname(abs)
   const source = await readFile(abs, 'utf8')
   // Parse once to find the theme and plugins, then again knowing what they add.
   const first = parseDeck(source, { file: displayName })
-  const extras = await loadExtras(first.deck, dir, first.keySpans)
+  const extras = await loadExtras(first.deck, dir, first.keySpans, options.importModule)
   const extensions = toExtensions(extras)
   const css = cssEffects(extras.theme.stylesheet + '\n' + deckStyles(source))
   if (css.length) extensions.effects = { ...Object.fromEntries(css.map((n) => [n, 'entrance' as const])), ...extensions.effects }

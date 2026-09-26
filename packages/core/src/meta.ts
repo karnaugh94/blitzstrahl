@@ -4,10 +4,10 @@
 import type { DeckMeta, SourceSpan, TransitionName, TransitionSpec } from './ir.js'
 import type { Diagnostics } from './diagnostics.js'
 import { keySpan, type Frontmatter } from './split.js'
-import { LAYOUTS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
+import { LAYOUTS, SLIDE_KEYS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
 
 export const DECK_KEYS = new Set(['title', 'author', 'date', 'lang', 'theme', 'canvas', 'transition', 'transition-dur', 'plugins'])
-export const SLIDE_KEYS = new Set(['id', 'layout', 'transition', 'transition-dur', 'background', 'class', 'style'])
+export { SLIDE_KEYS }
 
 export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics, pluginKeys: readonly string[] = []): Omit<DeckMeta, 'title'> & { title?: string } {
   const data = fm?.data ?? {}

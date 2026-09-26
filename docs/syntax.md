@@ -85,8 +85,12 @@ The rule is exact so it can't be misread:
    line looks like a mapping key (`name:` at the start of the line). Any other
    first line is ordinary slide content.
 2. It runs up to the next separator.
-3. It must parse as a YAML **mapping**. If it doesn't, the block is ordinary
-   slide content and a warning is emitted.
+3. It must parse as a YAML **mapping** that sets at least one slide key
+   (§3.2). Otherwise the block is ordinary slide content. So a slide that
+   starts `Agenda:` over a list, or `Q:` and `A:`, is a slide, not settings.
+   A warning is emitted only where settings were probably meant: invalid
+   YAML whose first key is a slide key, or a lower-case key a letter or two
+   off one (`layuot`).
 4. The `---` that closes a slide frontmatter block starts that slide's
    content. It never starts another frontmatter block.
 
@@ -106,8 +110,8 @@ background: ./cover.jpg
 # Quarterly review
 ```
 
-To start a slide with literal text that looks like `key: value`, leave a blank
-line after the separator.
+To start a slide with literal text that looks like a slide setting
+(`layout: …`), leave a blank line after the separator.
 
 ### 2.4 Slide identity
 

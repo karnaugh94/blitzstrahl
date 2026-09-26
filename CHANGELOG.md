@@ -44,6 +44,11 @@ relied on it will notice.
 - A bar or line chart whose `x` repeats shows each category's sum, as pie
   already did. 1.0 showed the first row and dropped the rest; `check`
   now mentions it.
+- A slide that starts like `key: value` stays a slide: `Agenda:` over a
+  list, or `Q:` and `A:` lines. 1.0 read such a block as settings for the
+  next slide, and the slide vanished with only an "unknown key" warning. A
+  block is slide frontmatter only when it sets a slide key
+  (`docs/syntax.md` §2.3). A near-miss like `layuot:` gets "did you mean".
 - `build` and `dev` check charts, maps, embeds and Mermaid diagrams the way
   `check` always did. A block that would show an error box on its slide
   (an unknown key, a column that isn't in the data) stops the build, and

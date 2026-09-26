@@ -4,9 +4,10 @@
  */
 import type { Root, RootContent } from 'mdast'
 import { parseDocument, isMap } from 'yaml'
-import type { SourceSpan } from './ir.js'
+import type { SourcePoint, SourceSpan } from './ir.js'
 import type { Diagnostics } from './diagnostics.js'
 import type { BlitzContainer } from './syntax/index.js'
+import { SLIDE_KEYS } from './vocab.js'
 
 const SEPARATOR_LINE = /^ {0,3}-{3,}[ \t]*$/
 /** A slide frontmatter candidate must start like a YAML mapping key. */
@@ -75,12 +76,25 @@ export function splitSlides(root: Root, lines: string[], diags: Diagnostics): Sp
       FRONTMATTER_START.test(lines[boundary] ?? '')
     ) {
       const text = lines.slice(boundary, nextSep - 1).join('\n')
-      const parsed = parseYamlMapping(text, boundary + 1, diags, 'slide')
-      if (parsed) {
-        pending = { ...parsed, span: lineSpan(lines, boundary + 1, nextSep - 1) }
+      const read = readYamlMapping(text, boundary + 1)
+      // Frontmatter sets something (§2.3): `Agenda:` over a list is a slide, not settings.
+      if (read.ok && Object.keys(read.data).some((k) => SLIDE_KEYS.has(k))) {
+        pending = { data: read.data, keys: read.keys, span: lineSpan(lines, boundary + 1, nextSep - 1) }
         boundary = nextSep
         i = j + 1
         continue
+      }
+      // It's the slide's content. Say so only where settings were probably meant.
+      if (!read.ok) {
+        const first = FRONTMATTER_START.exec(lines[boundary] ?? '')![0].replace(/[ \t]*:.*$/, '')
+        if (SLIDE_KEYS.has(first) || nearSlideKey(first)) {
+          diags.warn('frontmatter/yaml', `slide frontmatter is not valid YAML: ${read.message}; the block is shown as slide content`, { start: read.at, end: read.at })
+        }
+      } else {
+        for (const [key, span] of Object.entries(read.keys)) {
+          const near = nearSlideKey(key)
+          if (near) diags.warn('frontmatter/near-key', `\`${key}\` isn't a slide setting, so this block is slide content: did you mean \`${near}\`?`, span)
+        }
       }
     }
 
@@ -138,32 +152,20 @@ function cutUnclosedContainers(children: RootContent[], isSeparator: (n: RootCon
   }
 }
 
-/** Parse YAML that must be a mapping. Reports and returns undefined otherwise. */
-export function parseYamlMapping(
-  text: string,
-  firstLine: number,
-  diags: Diagnostics,
-  what: 'deck' | 'slide',
-): { data: Record<string, unknown>; keys: Record<string, SourceSpan> } | undefined {
+type YamlRead =
+  | { ok: true; data: Record<string, unknown>; keys: Record<string, SourceSpan> }
+  | { ok: false; empty: boolean; message: string; at: SourcePoint }
+
+/** Parse YAML that must be a mapping, without reporting anything. */
+function readYamlMapping(text: string, firstLine: number): YamlRead {
   const doc = parseDocument(text, { prettyErrors: false })
   const err = doc.errors[0]
   if (err) {
     const lp = err.linePos?.[0]
-    const at = { line: firstLine + (lp ? lp.line - 1 : 0), column: lp?.col ?? 1 }
-    diags.warn('frontmatter/yaml', `${what} frontmatter is not valid YAML: ${err.message.split('\n')[0]}`, {
-      start: at,
-      end: at,
-    })
-    return undefined
+    return { ok: false, empty: false, message: err.message.split('\n')[0]!, at: { line: firstLine + (lp ? lp.line - 1 : 0), column: lp?.col ?? 1 } }
   }
   if (!isMap(doc.contents)) {
-    if (doc.contents === null && what === 'deck') return { data: {}, keys: {} }
-    const at = { line: firstLine, column: 1 }
-    diags.warn('frontmatter/not-mapping', `${what} frontmatter must be a YAML mapping (key: value)`, {
-      start: at,
-      end: at,
-    })
-    return undefined
+    return { ok: false, empty: doc.contents === null, message: 'it must be a YAML mapping (key: value)', at: { line: firstLine, column: 1 } }
   }
   const keys: Record<string, SourceSpan> = {}
   for (const pair of doc.contents.items) {
@@ -174,7 +176,46 @@ export function parseYamlMapping(
     const column = before[before.length - 1]!.length + 1
     keys[String(key.value)] = { start: { line, column }, end: { line, column: column + (key.range[1] - key.range[0]) } }
   }
-  return { data: doc.toJS() as Record<string, unknown>, keys }
+  return { ok: true, data: doc.toJS() as Record<string, unknown>, keys }
+}
+
+/** Parse YAML that must be a mapping. Reports and returns undefined otherwise. */
+export function parseYamlMapping(
+  text: string,
+  firstLine: number,
+  diags: Diagnostics,
+  what: 'deck' | 'slide',
+): { data: Record<string, unknown>; keys: Record<string, SourceSpan> } | undefined {
+  const read = readYamlMapping(text, firstLine)
+  if (read.ok) return { data: read.data, keys: read.keys }
+  if (read.empty && what === 'deck') return { data: {}, keys: {} }
+  const code = read.message.startsWith('it must be') ? 'frontmatter/not-mapping' : 'frontmatter/yaml'
+  const message = code === 'frontmatter/yaml' ? `${what} frontmatter is not valid YAML: ${read.message}` : `${what} frontmatter must be a YAML mapping (key: value)`
+  diags.warn(code, message, { start: read.at, end: read.at })
+  return undefined
+}
+
+/**
+ * The slide key a lower-case key is a typo of (`layuot`, `transtion`), if
+ * any. Capitalised words (`Background:`) are prose, not typos.
+ */
+function nearSlideKey(key: string): string | undefined {
+  if (key !== key.toLowerCase() || SLIDE_KEYS.has(key)) return undefined
+  return [...SLIDE_KEYS].find((k) => distance(key, k) <= (k.length > 4 ? 2 : 1))
+}
+
+function distance(a: string, b: string): number {
+  const d = Array.from({ length: b.length + 1 }, (_, j) => j)
+  for (let i = 1; i <= a.length; i++) {
+    let prev = d[0]!
+    d[0] = i
+    for (let j = 1; j <= b.length; j++) {
+      const t = d[j]!
+      d[j] = Math.min(d[j]! + 1, d[j - 1]! + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1))
+      prev = t
+    }
+  }
+  return d[b.length]!
 }
 
 function lineSpan(lines: string[], from: number, to: number): SourceSpan {

@@ -16,7 +16,9 @@ let url = ''
 let server: Server
 
 test.beforeAll(async () => {
-  ;({ url, server } = await buildAndServe(deck))
+  // The fixture has a broken block on purpose (the error shown in place is
+  // under test), and `build` stops for errors unless forced (M6.6).
+  ;({ url, server } = await buildAndServe(deck, { force: true }))
 })
 
 test.afterAll(() => server?.close())
@@ -113,7 +115,7 @@ test('a deck without diagrams doesn’t ship Mermaid', async () => {
   const { tmpdir } = await import('node:os')
   const { build } = await import('../dist/index.js')
   const outDir = mkdtempSync(join(tmpdir(), 'blitz-nomermaid-'))
-  const r = await build(join(here, 'fixtures/charts.md'), { outDir, quiet: true, overflowCheck: false })
+  const r = await build(join(here, 'fixtures/charts.md'), { outDir, quiet: true, overflowCheck: false, force: true })
   expect(r.ok).toBe(true)
   const scripts = readdirSync(join(outDir, 'assets')).filter((f) => f.endsWith('.js'))
   expect(scripts.filter((f) => readFileSync(join(outDir, 'assets', f), 'utf8').includes('mermaid'))).toEqual([])

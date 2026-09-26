@@ -13,7 +13,9 @@ let url = ''
 let server: Server
 
 test.beforeAll(async () => {
-  ;({ url, server } = await buildAndServe(join(here, 'fixtures/charts.md')))
+  // The fixture has a broken block on purpose (the error shown in place is
+  // under test), and `build` stops for errors unless forced (M6.6).
+  ;({ url, server } = await buildAndServe(join(here, 'fixtures/charts.md'), { force: true }))
 })
 
 test.afterAll(() => server?.close())

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseData, parseDelimited, pivot } from '../src/data.js'
+import { delimiterOf, parseData, parseDelimited, pivot } from '../src/data.js'
 
 describe('parseDelimited', () => {
   it('reads headers, numbers, quotes and blanks', () => {
@@ -12,6 +12,32 @@ describe('parseDelimited', () => {
   })
   it('keeps numeric-looking identifiers numeric but leaves words alone', () => {
     expect(parseDelimited('a\tb\n2024\tQ1', '\t')).toEqual([{ a: 2024, b: 'Q1' }])
+  })
+
+  it('reads a column with decimal commas as decimals (1.0 read "3,5" as 35)', () => {
+    const csv = 'country,rate,people\nES,"3,5","1.234.567"\nDE,"12,25","12.000"\nFR,"0,5","950"\n'
+    expect(parseDelimited(csv)).toEqual([
+      { country: 'ES', rate: 3.5, people: 1234567 },
+      { country: 'DE', rate: 12.25, people: 12000 },
+      { country: 'FR', rate: 0.5, people: 950 },
+    ])
+  })
+
+  it('leaves a comma that is neither a group of three nor a decimal mark as text', () => {
+    expect(parseDelimited('a,b\n"1,2,3","1,200"\n')).toEqual([{ a: '1,2,3', b: 1200 }])
+  })
+})
+
+describe('delimiters', () => {
+  it("detects Excel's semicolon CSV, where the comma is the decimal mark", () => {
+    const csv = 'Land;Quote;Menschen\nES;3,5;1.234.567\nDE;12,25;12.000\n'
+    expect(delimiterOf(csv)).toBe(';')
+    expect(parseData('x.csv', csv)).toEqual([
+      { Land: 'ES', Quote: 3.5, Menschen: 1234567 },
+      { Land: 'DE', Quote: 12.25, Menschen: 12000 },
+    ])
+    expect(delimiterOf('a,b;c\n1,2\n')).toBe(',')
+    expect(delimiterOf('"x;y",b\n1,2\n')).toBe(',')
   })
 })
 

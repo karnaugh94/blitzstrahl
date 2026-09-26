@@ -20,6 +20,13 @@ describe('table sorting', () => {
     expect(compareCells('Äpfel', 'apfel')).toBe(0)
   })
 
+  it('sorts a column of decimal commas by value (1.0 read "3,25" as 325)', () => {
+    const cells = ['3,25 %', '12,1 %', '4,0 %', '1.234,5 %']
+    expect(sortedOrder(cells, 'ascending').map((i) => cells[i])).toEqual(['3,25 %', '4,0 %', '12,1 %', '1.234,5 %'])
+    expect(cellNumber('11 393')).toBe(11393)
+    expect(cellNumber('1 2')).toBeUndefined()
+  })
+
   it('is stable and keeps empty cells last both ways', () => {
     const cells = ['3', '', '1', '3', '2']
     expect(sortedOrder(cells, 'ascending')).toEqual([2, 4, 0, 3, 1])

@@ -4,7 +4,7 @@
  * GeoJSON. Pure (no ECharts, no DOM), so it's unit-tested directly and
  * `check` can validate specs without a browser.
  */
-import { parseDelimited, rowsFrom, type Row } from './data.js'
+import { delimiterOf, parseDelimited, rowsFrom, type Row } from './data.js'
 
 /** Web mercator's limit: the square world stops here. */
 const MAX_LAT = 85.0511287798
@@ -71,7 +71,7 @@ export function markersFromText(src: string, text: string, label?: string, size?
     return markersFromGeoJson(asFeatureCollection(value, '`markers`'), label, size)
   }
   const tsv = /\.tsv$/i.test(src.replace(/[?#].*$/, ''))
-  return markersFromRows(parseDelimited(text, tsv ? '\t' : ','), label, size)
+  return markersFromRows(parseDelimited(text, tsv ? '\t' : delimiterOf(text)), label, size)
 }
 
 const KEYS = new Set(['center', 'zoom', 'markers', 'regions', 'label', 'size', 'value', 'labels', 'tiles', 'attribution', 'roam'])

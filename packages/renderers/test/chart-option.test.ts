@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chartOption, validate } from '../src/chart-option.js'
+import { chartNotes, chartOption, validate } from '../src/chart-option.js'
 
 const ctx = { dur: 600, reducedMotion: false }
 const rows = [
@@ -69,6 +69,23 @@ describe('chart spec', () => {
     expect(de.label({ value: 11393 })).toBe('11.393')
     // A malformed `lang` falls back to the browser's locale rather than failing the chart.
     expect(() => chartOption(validate({ type: 'bar', data: big }), big, { ...ctx, locale: 'not a tag!' })).not.toThrow()
+  })
+
+  it('bar and line sum a category that repeats, as pie does, and say so', () => {
+    const o = chartOption(validate({ type: 'bar', data: rows, x: 'region', y: 'revenue' }), rows, ctx)
+    expect(series(o)[0]!.data).toEqual([9, 6]) // North 4 + 5; 1.0 showed 4
+    expect(chartNotes(validate({ type: 'bar', data: rows, x: 'region', y: 'revenue' }), rows)).toEqual([
+      '`region` repeats (North is on 2 rows), so each category shows the sum of its rows; set `series` to split them',
+    ])
+    expect(chartNotes(validate({ type: 'bar', data: rows, x: 'region', y: 'revenue', series: 'q' }), rows)).toEqual([])
+    expect(chartNotes(validate({ type: 'pie', data: rows, x: 'region', y: 'revenue' }), rows)).toEqual([])
+  })
+
+  it('horizontal bars run top to bottom in data order', () => {
+    const o = chartOption(validate({ type: 'bar', horizontal: true, data: rows, x: 'q', y: 'units' }), rows, ctx)
+    expect(o.yAxis).toMatchObject({ type: 'category', data: ['Q1', 'Q2'], inverse: true })
+    const v = chartOption(validate({ type: 'bar', data: rows, x: 'q', y: 'units' }), rows, ctx)
+    expect((v.xAxis as { inverse?: boolean }).inverse).toBeUndefined()
   })
 
   it('bar and line are unchanged: one series per numeric column', () => {

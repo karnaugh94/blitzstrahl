@@ -50,3 +50,15 @@ type: bar
 donut: true
 data: [{ a: x, b: 1 }]
 ```
+
+---
+
+# Big numbers
+
+```chart {#big}
+type: bar
+labels: true
+data:
+  - { country: France, cases: 11393 }
+  - { country: Germany, cases: 8420 }
+```

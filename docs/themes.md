@@ -72,6 +72,8 @@ without them shows code in `code-foreground` only.
 
 Every slide gets `color: var(--blitz-fg)`, `background-color:
 var(--blitz-bg)` and body text in `text` / `font-sans`, before the theme's
-own CSS. Layout geometry (where each slot of `two-col` sits) is shared by
+own CSS. Render blocks get `width: 100%` and `height: var(--blitz-block-height)`
+(in a column or beside an image, they fill the space left instead); a theme
+can override either with `.blitz-slide [data-blitz-block]`. Layout geometry (where each slot of `two-col` sits) is shared by
 all themes. Themes style the layouts through `[data-layout="…"]` and the
 slot elements (syntax.md §10).

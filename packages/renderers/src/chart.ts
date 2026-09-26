@@ -50,9 +50,11 @@ function themeFrom(ctx: RenderCtx) {
   }
 }
 
-async function buildOption(spec: ChartSpec, ctx: RenderCtx) {
+async function buildOption(spec: ChartSpec, el: HTMLElement, ctx: RenderCtx) {
   const rows = typeof spec.data === 'string' ? parseData(spec.data, await ctx.loadAsset(spec.data)) : spec.data
-  return chartOption(spec, rows, { dur: ctx.block.anim?.dur ?? 900, reducedMotion: ctx.reducedMotion })
+  // Numbers follow the deck's `lang` (on <html>, or an element's own `lang`).
+  const locale = el.closest('[lang]')?.getAttribute('lang') || undefined
+  return chartOption(spec, rows, { dur: ctx.block.anim?.dur ?? 900, reducedMotion: ctx.reducedMotion, locale })
 }
 
 /** One registered ECharts theme per distinct set of tokens. */
@@ -73,7 +75,7 @@ function themeName(ctx: RenderCtx): string {
 const chart: Renderer = {
   async mount(el: HTMLElement, raw: unknown, ctx: RenderCtx): Promise<RenderInstance> {
     const spec = validate(raw)
-    const option = await buildOption(spec, ctx)
+    const option = await buildOption(spec, el, ctx)
     const instance = echarts.init(el, themeName(ctx), { renderer: 'svg' })
     const ready = new Promise<void>((resolve) => instance.on('finished', () => resolve()))
     instance.setOption(option)

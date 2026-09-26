@@ -97,13 +97,15 @@ export function tokenProblems(tokens: Record<string, string>): { missing: string
   }
 }
 
-/** What every theme gets before its own CSS: the required tokens, applied. */
+/** What every theme gets before its own CSS: the required tokens applied, and render blocks sized. */
 const baseCss = /* css */ `
 .blitz-slide {
   color: var(--blitz-fg);
   background-color: var(--blitz-bg);
   font: 400 var(--blitz-text)/1.45 var(--blitz-font-sans);
 }
+/* Render blocks have no intrinsic size: ECharts, maps and embeds fill the box they're given. */
+.blitz-slide [data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
 `
 
 export function defineTheme(def: ThemeDefinition): Theme {

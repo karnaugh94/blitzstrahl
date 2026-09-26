@@ -254,8 +254,9 @@ export default defineTheme({
 | `fonts` | `@font-face`s: `{ family, src, weight?, style? }`. `src` is a file URL or a path relative to the theme module. Files are copied into static builds and inlined into standalone ones. |
 
 Before the theme's `css`, every slide already gets `color: var(--blitz-fg)`,
-`background-color: var(--blitz-bg)` and the `text` size in `font-sans`, so
-a theme that's only tokens still looks coherent.
+`background-color: var(--blitz-bg)` and the `text` size in `font-sans`, and
+every render block (chart, map, embed) is full width and `block-height`
+tall. A theme that's only tokens still looks coherent.
 
 Layout geometry (where the slots of `two-col` go) is shared by every theme
 and isn't part of a theme. Themes style the layouts through

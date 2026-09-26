@@ -34,6 +34,8 @@ async function exercise(page: Page) {
   await expect(poll).toHaveText('Ship it? yes / no')
   await expect(poll).toHaveAttribute('data-endpoint', 'https://polls.test/launch')
   await expect(poll).toHaveAttribute('data-accent', 'rgb(194, 65, 12)')
+  // The theme doesn't size render blocks; the base CSS does (block-height's default).
+  expect(await page.locator('[data-blitz-block]').evaluate((el) => [el.offsetWidth > 0, el.offsetHeight])).toEqual([true, 420])
 
   // Entrance effect from the plugin: its keyframes, on an inline span made a box.
   await page.keyboard.press('ArrowRight')

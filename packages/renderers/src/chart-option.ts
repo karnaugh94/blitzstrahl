@@ -65,6 +65,19 @@ export interface OptionContext {
   /** Milliseconds for the entrance animation. */
   dur: number
   reducedMotion: boolean
+  /** BCP 47 tag for number formatting (the deck's `lang`). Default: the browser's. */
+  locale?: string | undefined
+}
+
+/** Numbers as the deck's language writes them: `11,393` in `en`, `11.393` in `de`. */
+function numberFormat(locale: string | undefined): (v: unknown) => string {
+  let nf: Intl.NumberFormat
+  try {
+    nf = new Intl.NumberFormat(locale, { maximumFractionDigits: 10 })
+  } catch {
+    nf = new Intl.NumberFormat(undefined, { maximumFractionDigits: 10 })
+  }
+  return (v) => (typeof v === 'number' ? nf.format(v) : v == null ? '' : String(v))
 }
 
 /** Build the ECharts option for validated spec and loaded rows. */
@@ -82,6 +95,7 @@ export function chartOption(spec: ChartSpec, rows: Row[], ctx: OptionContext): R
   const ys = (spec.y === undefined ? columns.filter((c) => c !== x && c !== by && c !== spec.size && numeric(c)) : [spec.y].flat()).map(need)
   if (!ys.length) throw new Error('no numeric column to plot: set `y`')
 
+  const num = numberFormat(ctx.locale)
   const base: Record<string, unknown> = {
     animation: !ctx.reducedMotion,
     animationDuration: ctx.dur,
@@ -89,15 +103,17 @@ export function chartOption(spec: ChartSpec, rows: Row[], ctx: OptionContext): R
   }
   const option: Record<string, unknown> =
     spec.type === 'pie'
-      ? pieOption(spec, rows, x, ys, base)
+      ? pieOption(spec, rows, x, ys, base, num)
       : spec.type === 'scatter'
-        ? scatterOption(spec, rows, x, ys, by, base, need)
-        : cartesianOption(spec, rows, x, ys, by, base)
+        ? scatterOption(spec, rows, x, ys, by, base, need, num)
+        : cartesianOption(spec, rows, x, ys, by, base, num)
   if (spec.title) option.title = { text: spec.title, left: 0, top: 0 }
   return spec.echarts ? merge(option, spec.echarts) : option
 }
 
-function cartesianOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], by: string | undefined, base: Record<string, unknown>) {
+type Format = (v: unknown) => string
+
+function cartesianOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], by: string | undefined, base: Record<string, unknown>, num: Format) {
   let categories: Array<string | number>
   let series: Array<{ name: string; data: Array<number | null> }>
   if (by) {
@@ -119,13 +135,13 @@ function cartesianOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], 
   const showLegend = spec.legend ?? series.length > 1
   const dur = base.animationDuration as number
   const categoryAxis = { type: 'category', data: categories, boundaryGap: spec.type === 'bar' }
-  const valueAxis = { type: 'value' }
+  const valueAxis = { type: 'value', axisLabel: { formatter: num } }
 
   return {
     ...base,
     animationDelay: (i: number) => i * Math.min(60, dur / Math.max(categories.length, 1) / 2),
     grid: grid(spec, showLegend),
-    tooltip: { trigger: 'axis', axisPointer: { type: spec.type === 'bar' ? 'shadow' : 'line' } },
+    tooltip: { trigger: 'axis', axisPointer: { type: spec.type === 'bar' ? 'shadow' : 'line' }, valueFormatter: num },
     legend: { show: showLegend, top: spec.title ? 44 : 0, left: 0 },
     xAxis: horizontal ? valueAxis : categoryAxis,
     yAxis: horizontal ? categoryAxis : valueAxis,
@@ -136,13 +152,13 @@ function cartesianOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], 
       ...(spec.type === 'line'
         ? { smooth: spec.smooth ?? false, showSymbol: categories.length <= 24, ...(spec.area ? { areaStyle: { opacity: 0.18 } } : {}) }
         : { barMaxWidth: 64, itemStyle: { borderRadius: stacked ? 0 : horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0] } }),
-      label: { show: spec.labels ?? false, position: stacked ? 'inside' : horizontal ? 'right' : 'top', fontSize: 16 },
+      label: { show: spec.labels ?? false, position: stacked ? 'inside' : horizontal ? 'right' : 'top', fontSize: 16, formatter: (p: { value: unknown }) => num(p.value) },
       emphasis: { focus: 'series' },
     })),
   }
 }
 
-function pieOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], base: Record<string, unknown>) {
+function pieOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], base: Record<string, unknown>, num: Format) {
   if (ys.length > 1) throw new Error(`a pie shows one \`y\` column (found ${ys.join(', ')}): set \`y\``)
   const y = ys[0]!
   const data = distinct(rows, x).map((name) => ({
@@ -155,7 +171,7 @@ function pieOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], base: 
   const top = (spec.title ? 56 : 0) + (showLegend ? 44 : 0)
   return {
     ...base,
-    tooltip: { trigger: 'item' },
+    tooltip: { trigger: 'item', valueFormatter: num },
     legend: { show: showLegend, top: spec.title ? 44 : 0, left: 0 },
     series: [
       {
@@ -186,6 +202,7 @@ function scatterOption(
   by: string | undefined,
   base: Record<string, unknown>,
   need: (c: string) => string,
+  num: Format,
 ) {
   if (!rows.every((r) => r[x] === null || typeof r[x] === 'number')) throw new Error(`a scatter's \`x\` must be numeric (column \`${x}\` has text)`)
   if (by && ys.length > 1) throw new Error('with `series`, `y` must be a single column')
@@ -197,7 +214,7 @@ function scatterOption(
     : ys.map((y) => ({ name: y, data: rows.map((r) => point(r, y)) }))
   const showLegend = spec.legend ?? groups.length > 1
   // Padded, so points at the extremes don't sit on the axes.
-  const valueAxis = (name: string) => ({ type: 'value', name, nameLocation: 'middle', nameGap: 36, scale: true, boundaryGap: ['8%', '8%'] })
+  const valueAxis = (name: string) => ({ type: 'value', name, nameLocation: 'middle', nameGap: 36, scale: true, boundaryGap: ['8%', '8%'], axisLabel: { formatter: num } })
   return {
     ...base,
     animationDelay: (i: number) => Math.min(i * 12, 600),
@@ -214,7 +231,7 @@ function scatterOption(
         ? (v: number[]) => 8 + 52 * Math.sqrt(Math.abs(Number(v[2]) || 0) / maxSize)
         : 14,
       itemStyle: { opacity: size ? 0.75 : 0.9 },
-      label: { show: spec.labels ?? false, position: 'top', fontSize: 14, formatter: (p: { value: unknown[] }) => String(p.value[1]) },
+      label: { show: spec.labels ?? false, position: 'top', fontSize: 14, formatter: (p: { value: unknown[] }) => num(p.value[1]) },
       emphasis: { focus: 'series' },
     })),
   }

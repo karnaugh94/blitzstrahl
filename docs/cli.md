@@ -43,7 +43,9 @@ deleted:
   folder, stay where they are.
 
 - A deck with **errors** isn't built unless you pass `--force`: an error
-  means blitzstrahl couldn't do what the deck says.
+  means blitzstrahl couldn't do what the deck says. That includes a chart,
+  map, embed or Mermaid diagram that would fail: an unknown key, a column
+  that isn't in the data, a map's latitude and longitude swapped.
 - After building, every slide is measured in a headless browser, and each
   one whose content runs off the canvas, or is cut off inside a box (a
   wide code block, say), is listed as a warning.
@@ -126,8 +128,7 @@ at each problem as `deck.md:line:col`:
 
 | Finds | Level |
 |---|---|
-| Everything `build` reports: syntax errors, unknown keys, missing images and data files | as in `build` |
-| Charts, maps and embeds that would fail: an unknown key, a column that isn't in the data, latitude and longitude swapped | error |
+| Everything `build` reports: syntax errors, unknown keys, missing images and data files, and charts, maps, embeds and diagrams that would fail | as in `build` |
 | Step gaps: a press that changes nothing (`@1`, `@3`, but no `@2`) | warning |
 | A class that's close to an effect name but isn't one (`.fade-in`: did you mean `.fade`?) | warning |
 | A class that nothing styles, so it does nothing | info |

@@ -10,6 +10,7 @@ import { renderPage } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
 import { hasMath, mathCss, mathFont } from './math.js'
 import { checkBuiltOverflow } from './overflow.js'
+import { checkOutDir, checkOutFile, cleanOutDir, writeManifest } from './output.js'
 import { hasErrors, printDiagnostics } from './report.js'
 import { bundleStandalone, dataUri, inlineSafe, staticEntry, usedRenderers, virtualEntry } from './standalone.js'
 import { cacheDir } from './vite.js'
@@ -63,6 +64,9 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   if (options.report !== false) printDiagnostics(loaded.diagnostics)
   const outFile = options.standalone ? resolve(options.outFile ?? join(loaded.dir, `${basename(loaded.path, extname(loaded.path))}.html`)) : undefined
   const outDir = outFile ? dirname(outFile) : resolve(options.outDir ?? join(loaded.dir, 'dist'))
+  // Before anything is written: never over the deck, never into a folder blitzstrahl didn't make.
+  if (outFile) checkOutFile(outFile, loaded.path, 'html')
+  else checkOutDir(outDir, loaded.path)
   if (hasErrors(loaded.diagnostics) && !options.force) {
     return { ok: false, outDir, overflow: [], diagnostics: loaded.diagnostics }
   }
@@ -92,6 +96,8 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     return checkOverflow({ outDir, index: outFile, page: basename(outFile) }, loaded, options)
   }
 
+  // Only what the last build listed goes; Vite itself never empties the folder.
+  await cleanOutDir(outDir)
   const result = await viteBuild({
     configFile: false,
     root: loaded.dir,
@@ -101,7 +107,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     plugins: [virtualEntry(STATIC_ENTRY, staticEntry(renderers))],
     build: {
       outDir,
-      emptyOutDir: true,
+      emptyOutDir: false,
       assetsDir: 'assets',
       target: 'es2022',
       // ECharts is one lazy chunk by design; don't warn about it.
@@ -113,6 +119,13 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   const outputs = (Array.isArray(result) ? result : [result]) as Rolldown.RolldownOutput[]
   const entry = outputs.flatMap((o) => o.output).find((c) => c.type === 'chunk' && c.isEntry)
   if (!entry) throw new Error('vite produced no entry chunk')
+  // Everything this build writes, for the manifest the next build cleans by.
+  const written = outputs.flatMap((o) => o.output).map((o) => o.fileName)
+  const copied = async (name: Promise<string>) => {
+    const n = await name
+    written.push(n)
+    return n
+  }
 
   // Copy local images next to the chunks, content-hashed like them.
   const urls = new Map<string, string>()
@@ -127,15 +140,16 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     } catch {
       continue // reported as asset/missing
     }
-    urls.set(asset.path, await copyHashed(src, outDir, 'assets', bytes))
+    urls.set(asset.path, await copied(copyHashed(src, outDir, 'assets', bytes)))
   }
 
-  const css = [await fontCss(loaded.extras.fonts, (file) => copyHashed(file, outDir, 'assets/fonts')), loaded.css]
+  const css = [await fontCss(loaded.extras.fonts, (file) => copied(copyHashed(file, outDir, 'assets/fonts'))), loaded.css]
   if (hasMath(loaded.deck)) {
     await mkdir(join(outDir, 'assets', 'katex'), { recursive: true })
     css.push(
       await mathCss(async (file) => {
         await copyFile(mathFont(file), join(outDir, 'assets', 'katex', file))
+        written.push(`assets/katex/${file}`)
         return `assets/katex/${file}`
       }),
     )
@@ -151,6 +165,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   })
   const index = join(outDir, 'index.html')
   await writeFile(index, html)
+  await writeManifest(outDir, [...written, 'index.html'])
   return checkOverflow({ outDir, index, page: '' }, loaded, options)
 }
 

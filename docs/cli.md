@@ -23,6 +23,17 @@ Writes a static site to `dist/` next to the deck (or `--out`). Serve it over
 HTTP: module scripts don't run from `file://`. For a file you can simply
 open, use `--standalone` (below).
 
+The output folder is blitzstrahl's alone, and nothing else in it is ever
+deleted:
+
+- `--out` can't be the deck's own folder, or a folder that contains it.
+- A folder that already has files in it is used only if blitzstrahl made it.
+  Otherwise the build stops before writing anything, and says why.
+- Each build lists what it wrote in `.blitzstrahl-build.json`, in the output
+  folder. The next build removes exactly those files before writing new
+  ones. Files you add yourself, such as `CNAME`, `.nojekyll` or a `.git`
+  folder, stay where they are.
+
 - A deck with **errors** isn't built unless you pass `--force`: an error
   means blitzstrahl couldn't do what the deck says.
 - After building, every slide is measured in a headless browser, and each
@@ -52,7 +63,8 @@ only overflows at a later step is caught too.
 Writes the whole deck as **one `.html` file** that opens straight from disk:
 double-click it, email it, put it on a USB stick. By default it's the deck's
 name with `.html`, next to the deck (`talk.md` → `talk.html`); `--out` picks
-another path.
+another path. It must end in `.html`. It never replaces the deck, or an
+existing `.html` file that blitzstrahl didn't write.
 
 - Everything is inside: the runtime, the theme, your images (as data URIs),
   your data files, the presenter view, and the code for only those
@@ -77,7 +89,8 @@ standalone file:
 ## `export`
 
 Writes the deck as a **PDF**: `talk.md` → `talk.pdf` next to it, or
-`--out` to choose.
+`--out` to choose. The path must end in `.pdf`, and a PDF that's already
+there is replaced.
 
 - One page per slide, showing the slide at its **final step**, with
   everything revealed.

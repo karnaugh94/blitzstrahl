@@ -14,6 +14,7 @@ import { pathToFileURL } from 'node:url'
 import type { PrintResult } from '@blitzstrahl/runtime'
 import { NO_BROWSER, launchBrowser } from './browser.js'
 import { build } from './build.js'
+import { checkOutFile } from './output.js'
 import { printDiagnostics } from './report.js'
 
 export interface ExportOptions {
@@ -39,6 +40,7 @@ export interface ExportResult {
 export async function exportPdf(deckPath: string, options: ExportOptions = {}): Promise<ExportResult> {
   const deck = resolve(deckPath)
   const file = resolve(options.outFile ?? join(resolve(deck, '..'), `${basename(deck, extname(deck))}.pdf`))
+  checkOutFile(file, deck, 'pdf')
   const tmp = await mkdtemp(join(tmpdir(), 'blitz-export-'))
   try {
     const page = join(tmp, 'deck.html')

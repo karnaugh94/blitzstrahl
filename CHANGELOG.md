@@ -63,6 +63,9 @@ relied on it will notice.
 - Standalone files carry each image once. 1.0 repeated a background image
   on every slide that used it, and again in the runtime's payload: a
   20-slide deck with three backgrounds went from 1.7 MB to 0.95 MB.
+- Under `dev`, editing a local theme or plugin, or a file it imports,
+  reloads the page with the change. 1.0 kept the first version until
+  `dev` was restarted.
 - `dev` no longer watches the deck's whole folder, which for a deck saved in
   the home folder meant all of it.
 

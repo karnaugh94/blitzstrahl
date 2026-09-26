@@ -67,7 +67,7 @@ export function builtinExtras(theme: Theme = themes.aurora!): Extras {
  * found, loaded or validated is an error diagnostic at its frontmatter key,
  * and a theme that fails falls back to aurora.
  */
-export async function loadExtras(deck: Deck, dir: string, keySpans: Record<string, SourceSpan>): Promise<Extras> {
+export async function loadExtras(deck: Deck, dir: string, keySpans: Record<string, SourceSpan>, importModule?: (file: string) => Promise<unknown>): Promise<Extras> {
   const origin = { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } }
   const x = builtinExtras()
   const error = (key: string, code: string, message: string) =>
@@ -85,7 +85,7 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
     collectFonts(builtin.fonts ?? [], fileURLToPath(import.meta.resolve('@blitzstrahl/themes')), problems, x)
     if (problems.length) throw new Error(`built-in theme \`${themeName}\`: ${problems.join('; ')}`)
   } else {
-    const loaded = await importFrom(themeCandidates(themeName), dir)
+    const loaded = await importFrom(themeCandidates(themeName), dir, importModule)
     if ('error' in loaded) error('theme', 'theme/load', `theme \`${themeName}\` ${loaded.error}; using aurora (built-in: ${Object.keys(themes).join(', ')})`)
     else {
       const problems: string[] = []
@@ -102,7 +102,7 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
 
   // Plugins, in order.
   for (const spec of deck.meta.plugins) {
-    const loaded = await importFrom([spec], dir)
+    const loaded = await importFrom([spec], dir, importModule)
     if ('error' in loaded) {
       error('plugins', 'plugin/load', `plugin \`${spec}\` ${loaded.error}`)
       continue
@@ -181,14 +181,26 @@ function isPath(spec: string): boolean {
   return spec.startsWith('./') || spec.startsWith('../') || isAbsolute(spec)
 }
 
-/** Import the first candidate that resolves from `dir` (as if written in a module there). */
-async function importFrom(candidates: string[], dir: string): Promise<{ value: unknown; file: string } | { error: string }> {
+/**
+ * Import the first candidate that resolves from `dir` (as if written in a
+ * module there). Local files go through `importModule` when given; packages
+ * always load with Node's own `import()`.
+ */
+async function importFrom(candidates: string[], dir: string, importModule?: (file: string) => Promise<unknown>): Promise<{ value: unknown; file: string } | { error: string }> {
   const parent = pathToFileURL(resolve(dir) + '/').href
   for (const spec of candidates) {
     let url: string
     if (isPath(spec)) {
       const file = resolve(dir, spec)
       if (!existsSync(file)) continue
+      if (importModule) {
+        try {
+          const mod = (await importModule(file)) as { default?: unknown }
+          return { value: mod.default ?? mod, file }
+        } catch (err) {
+          return { error: `failed to load: ${(err as Error).message.split('\n')[0]}` }
+        }
+      }
       url = pathToFileURL(file).href
     } else {
       try {

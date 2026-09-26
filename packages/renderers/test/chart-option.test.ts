@@ -53,6 +53,24 @@ describe('chart spec', () => {
     expect(() => chartOption(validate({ type: 'scatter', data: rows, x: 'q', y: 'revenue' }), rows, ctx)).toThrow('must be numeric')
   })
 
+  it('numbers follow the deck language: labels, value axes, tooltips', () => {
+    const big = [{ country: 'FR', cases: 11393 }, { country: 'DE', cases: 2500.5 }]
+    type Fmt = (v: unknown) => string
+    const parts = (o: Record<string, unknown>) => ({
+      label: (series(o)[0] as unknown as { label: { formatter: (p: { value: unknown }) => string } }).label.formatter,
+      axis: (o.yAxis as { axisLabel: { formatter: Fmt } }).axisLabel.formatter,
+      tooltip: (o.tooltip as { valueFormatter: Fmt }).valueFormatter,
+    })
+    const en = parts(chartOption(validate({ type: 'bar', data: big, labels: true }), big, { ...ctx, locale: 'en' }))
+    expect(en.label({ value: 11393 })).toBe('11,393')
+    expect(en.axis(12000)).toBe('12,000')
+    expect(en.tooltip(2500.5)).toBe('2,500.5')
+    const de = parts(chartOption(validate({ type: 'bar', data: big, labels: true }), big, { ...ctx, locale: 'de' }))
+    expect(de.label({ value: 11393 })).toBe('11.393')
+    // A malformed `lang` falls back to the browser's locale rather than failing the chart.
+    expect(() => chartOption(validate({ type: 'bar', data: big }), big, { ...ctx, locale: 'not a tag!' })).not.toThrow()
+  })
+
   it('bar and line are unchanged: one series per numeric column', () => {
     const o = chartOption(validate({ type: 'bar', data: rows, x: 'q' }), rows, ctx)
     expect(series(o).map((s) => s.name)).toEqual(['revenue', 'units', 'share'])

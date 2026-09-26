@@ -135,7 +135,6 @@ export const aurora = defineTheme({
 .blitz-slide .big { font-size: 1.6em; }
 .blitz-slide .center { text-align: center; align-self: center; }
 
-.blitz-slide [data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
 .blitz-slide [data-blitz-block]:has(> .blitz-map-chart) { border-radius: var(--blitz-radius); box-shadow: 0 0 0 1px var(--blitz-rule); }
 .blitz-slide [data-blitz-block]:has(> .blitz-embed) {
   border-radius: var(--blitz-radius); background: var(--blitz-surface);

@@ -38,6 +38,12 @@ test('pie: one slice per category, in the theme palette', async ({ page }) => {
   await expect(page.locator('#pie svg text', { hasText: '50%' })).toHaveCount(1)
 })
 
+test('bar: value labels and axis use thousands separators (deck `lang`)', async ({ page }) => {
+  await open(page, 'big-numbers')
+  await expect(page.locator('#big svg text', { hasText: /^11,393$/ })).toHaveCount(1)
+  await expect(page.locator('#big svg text', { hasText: /^12,000$/ })).toHaveCount(1)
+})
+
 test('donut: a ring, with a hole in the middle', async ({ page }) => {
   await open(page, 'donut')
   const box = (await page.locator('#donut').boundingBox())!

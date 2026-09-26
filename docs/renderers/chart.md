@@ -26,7 +26,7 @@ stack: region
 | `area` | boolean | `false` | Line: fill under lines |
 | `donut` | boolean | `false` | Pie: a ring instead of a disc |
 | `size` | column | — | Scatter: sizes each point by this numeric column (a bubble chart) |
-| `labels` | boolean | `false`; pie `true` | Value labels on bars and points; names and percentages on slices |
+| `labels` | boolean | `false`; pie `true` | Value labels on bars and points; names and percentages on slices. Numbers (labels, value axes, tooltips) are written for the deck's `lang`: `11,393` in `en`, `11.393` in `de` |
 | `legend` | boolean | when >1 series; pie `false` | Show the legend |
 | `title` | string | — | Chart title |
 | `echarts` | mapping | — | Escape hatch: an ECharts option deep-merged over the generated one |

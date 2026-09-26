@@ -1,4 +1,22 @@
-import { defineTheme } from './theme.js'
+import { defineTheme, type ThemeFont } from './theme.js'
+
+const LATIN = 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD'
+const LATIN_EXT = 'U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF'
+
+/** A font with a unicode range: the CLI reads it; it joins `ThemeFont` in 1.1 (PLAN §15, M7.1). */
+type RangedFont = ThemeFont & { unicodeRange: string }
+
+/**
+ * Latin and Latin Extended, as Fontsource subsets Newsreader (5.3.0), so
+ * Polish, Czech, Hungarian, Romanian, Croatian, Turkish and Baltic text stays
+ * in Newsreader instead of falling back mid-word.
+ */
+const fonts: RangedFont[] = [
+  { family: 'Newsreader', src: '../fonts/newsreader-latin-wght-normal.woff2', weight: '200 800', unicodeRange: LATIN },
+  { family: 'Newsreader', src: '../fonts/newsreader-latin-wght-italic.woff2', weight: '200 800', style: 'italic', unicodeRange: LATIN },
+  { family: 'Newsreader', src: '../fonts/newsreader-latin-ext-wght-normal.woff2', weight: '200 800', unicodeRange: LATIN_EXT },
+  { family: 'Newsreader', src: '../fonts/newsreader-latin-ext-wght-italic.woff2', weight: '200 800', style: 'italic', unicodeRange: LATIN_EXT },
+]
 
 /**
  * broadsheet — light, editorial (PLAN §5). Newsprint: a serif for reading
@@ -62,10 +80,7 @@ export const broadsheet = defineTheme({
     'code-token-link': '#2f6db5',
     'map-tiles': 'sepia(.25) saturate(.75) contrast(.95)',
   },
-  fonts: [
-    { family: 'Newsreader', src: '../fonts/newsreader-latin-wght-normal.woff2', weight: '200 800' },
-    { family: 'Newsreader', src: '../fonts/newsreader-latin-wght-italic.woff2', weight: '200 800', style: 'italic' },
-  ],
+  fonts,
   css: /* css */ `
 .blitz-slide {
   font-family: var(--blitz-font-serif);

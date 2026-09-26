@@ -60,6 +60,9 @@ relied on it will notice.
 
 ### Fixed
 
+- broadsheet's Newsreader covers Latin Extended, upright and italic, so
+  Polish, Czech, Hungarian, Romanian, Croatian, Turkish and Baltic letters no
+  longer switch to another typeface mid-word.
 - Standalone files carry each image once. 1.0 repeated a background image
   on every slide that used it, and again in the runtime's payload: a
   20-slide deck with three backgrounds went from 1.7 MB to 0.95 MB.

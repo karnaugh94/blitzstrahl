@@ -26,6 +26,8 @@ export interface ThemeFontFile {
   file: string
   weight: string
   style: string
+  /** CSS `unicode-range`: the characters this file covers, when a family comes in subsets. */
+  unicodeRange?: string
 }
 
 /** Everything a deck's `theme` and `plugins` add. */
@@ -152,7 +154,7 @@ export async function fontCss(fonts: ThemeFontFile[], url: (file: string) => str
     const ext = f.file.split('.').pop()!.toLowerCase()
     const format = ({ woff2: 'woff2', woff: 'woff', ttf: 'truetype', otf: 'opentype' } as Record<string, string>)[ext]
     const src = `url("${await url(f.file)}")${format ? ` format("${format}")` : ''}`
-    faces.push(`@font-face { font-family: ${JSON.stringify(f.family)}; src: ${src}; font-weight: ${f.weight}; font-style: ${f.style}; font-display: block; }`)
+    faces.push(`@font-face { font-family: ${JSON.stringify(f.family)}; src: ${src}; font-weight: ${f.weight}; font-style: ${f.style};${f.unicodeRange ? ` unicode-range: ${f.unicodeRange};` : ''} font-display: block; }`)
   }
   return faces.join('\n')
 }
@@ -269,7 +271,10 @@ function collectFonts(fonts: unknown, from: string, problems: string[], x: Extra
       problems.push(`font file not found: ${path}`)
       continue
     }
-    x.fonts.push({ family: f.family, file: path, weight: String(f.weight ?? 400), style: typeof f.style === 'string' ? f.style : 'normal' })
+    const font: ThemeFontFile = { family: f.family, file: path, weight: String(f.weight ?? 400), style: typeof f.style === 'string' ? f.style : 'normal' }
+    // Not yet in `ThemeFont` (1.1), but read already so a family can come in subsets.
+    if (typeof f.unicodeRange === 'string' && /^\s*U\+[0-9A-F?]+(-[0-9A-F]+)?(\s*,\s*U\+[0-9A-F?]+(-[0-9A-F]+)?)*\s*$/i.test(f.unicodeRange)) font.unicodeRange = f.unicodeRange
+    x.fonts.push(font)
     x.served.push(path)
   }
 }

@@ -11,7 +11,7 @@ Built-in themes:
 - **aurora**: dark, technical. Inter-style sans, mint and periwinkle
   accents. The default.
 - **broadsheet**: light, editorial. Newsprint paper, Newsreader serif
-  (shipped with the theme, OFL), sans for tables, a masthead rule, newspaper
+  (shipped with the theme, OFL, Latin and Latin Extended), sans for tables, a masthead rule, newspaper
   red. Its source (`packages/themes/src/broadsheet.ts`) uses only the public
   contract, so it's a good model for writing your own.
 

@@ -1,7 +1,8 @@
 import { slug } from 'github-slugger'
 import type { Nodes, Root, RootContent } from 'mdast'
 import { attachAttributes } from './attach.js'
-import { assetKind, isImageBackground, isLocalRef, normalizeRelative } from './assets.js'
+import { assetKind, isImageBackground, isLocalRef, normalizeRelative, pageAsset } from './assets.js'
+import { cssRefs } from './html-refs.js'
 import { Diagnostics } from './diagnostics.js'
 import { IR_VERSION, type Deck, type Diagnostic, type Slide, type SlideAttrs, type SourceSpan, type TransitionName } from './ir.js'
 import { SLIDE_KEYS, layoutName, mergeTransition, milliseconds, resolveDeckMeta, scalarString, transitionName } from './meta.js'
@@ -83,10 +84,22 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
       attrs.background = value
       if (isImageBackground(value) && isLocalRef(value)) {
         ctx.assets.push({ ref: value, path: normalizeRelative(value), kind: assetKind(value), span: bg.span })
+      } else {
+        // A CSS value: its url()s are files the page loads.
+        for (const url of cssRefs(value)) {
+          const a = pageAsset(url, bg.span)
+          if (a) ctx.assets.push(a)
+        }
       }
     }
     if (fm.class !== undefined) attrs.class = String(fm.class).split(/\s+/).filter(Boolean)
-    if (fm.style !== undefined) attrs.style = String(fm.style)
+    if (fm.style !== undefined) {
+      attrs.style = String(fm.style)
+      for (const url of cssRefs(attrs.style)) {
+        const a = pageAsset(url, fmSpan('style'))
+        if (a) ctx.assets.push(a)
+      }
+    }
 
     const explicit = scalarString(fm.id) || r.headingId
     let id = explicit || (r.title && slug(r.title)) || `slide-${index + 1}`

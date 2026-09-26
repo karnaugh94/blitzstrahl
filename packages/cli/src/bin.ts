@@ -126,6 +126,7 @@ async function main(argv: string[]): Promise<number> {
       if (values.open) opts.open = true
       const server = await dev(deck, opts)
       server.printUrls()
+      if (opts.host) process.stdout.write('  Anyone on this network can open the deck and the files it uses; nothing else in its folder is served.\n')
       return new Promise<number>(() => {}) // run until interrupted
     }
     default:

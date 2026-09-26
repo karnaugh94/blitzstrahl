@@ -4,7 +4,8 @@
  * keeping the current slide and step (PLAN §7).
  */
 import { createReadStream } from 'node:fs'
-import { dirname, extname, relative, resolve } from 'node:path'
+import { mkdir } from 'node:fs/promises'
+import { dirname, join, relative, resolve } from 'node:path'
 import { createServer, type Plugin, type ViteDevServer } from 'vite'
 import { toPayload } from '@blitzstrahl/core'
 import type { Overflow } from '@blitzstrahl/runtime/overflow-report'
@@ -14,6 +15,7 @@ import { loadDeck, type LoadedDeck } from './load.js'
 import { overflowDiagnostics } from './overflow.js'
 import { printDiagnostics, summary } from './report.js'
 import { mathCss, mathFont } from './math.js'
+import { mimeType } from './mime.js'
 import { allRenderers } from './standalone.js'
 import { ENTRY, cacheDir, servedDirs } from './vite.js'
 
@@ -28,18 +30,6 @@ const RENDERERS_ID = 'virtual:blitzstrahl-renderers'
 const fsUrl = (file: string) => '/@fs/' + file.replace(/^\//, '')
 const assetUrl = (path: string) => ASSET_PREFIX + encodeURIComponent(path)
 
-const TYPES: Record<string, string> = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-  '.avif': 'image/avif',
-  '.csv': 'text/csv; charset=utf-8',
-  '.tsv': 'text/tab-separated-values; charset=utf-8',
-  '.json': 'application/json',
-}
 
 export async function dev(deckPath: string, options: DevOptions = {}): Promise<ViteDevServer> {
   const abs = resolve(deckPath)
@@ -56,7 +46,14 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
     const map = Object.entries(allRenderers(loaded.extras.renderers)).map(([r, file]) => `${JSON.stringify(r)}: () => import(${JSON.stringify(file)})`)
     return `export default { ${map.join(', ')} }\n`
   }
-  const allowed = () => [dirname(abs), ...servedDirs(), cacheDir(dirname(abs)), ...loaded.extras.dirs]
+  // The deck's files are reachable only through /_blitz/asset/, and only
+  // those the deck uses (PLAN §15, M6.2): its folder isn't in `fs.allow`,
+  // which Vite's static serving obeys too. Vite's root is an empty folder of
+  // our own, so Vite doesn't watch the deck's folder recursively either (a
+  // deck at ~/talk.md would have it watching the whole home directory).
+  const root = join(cacheDir(dirname(abs)), 'root')
+  await mkdir(root, { recursive: true })
+  const allowed = () => [...servedDirs(), cacheDir(dirname(abs)), ...loaded.extras.served]
 
   const plugin: Plugin = {
     name: 'blitzstrahl:dev',
@@ -83,7 +80,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
           const b = before.deck.meta
           if (m.theme !== b.theme || m.lang !== b.lang || String(m.plugins) !== String(b.plugins) || loaded.css !== before.css) {
             // New plugins: new renderer modules, and folders to serve them from.
-            for (const dir of loaded.extras.dirs) if (!server.config.server.fs.allow.includes(dir)) server.config.server.fs.allow.push(dir)
+            for (const file of loaded.extras.served) if (!server.config.server.fs.allow.includes(file)) server.config.server.fs.allow.push(file)
             const mod = server.moduleGraph.getModuleById(`\0${RENDERERS_ID}`)
             if (mod) server.moduleGraph.invalidateModule(mod)
             server.ws.send({ type: 'full-reload' })
@@ -153,7 +150,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             res.statusCode = 404
             res.end()
           })
-          res.setHeader('content-type', TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream')
+          res.setHeader('content-type', mimeType(file))
           stream.pipe(res)
           return
         }
@@ -164,7 +161,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
 
   const server = await createServer({
     configFile: false,
-    root: dirname(abs),
+    root,
     cacheDir: cacheDir(dirname(abs)),
     publicDir: false,
     appType: 'custom',

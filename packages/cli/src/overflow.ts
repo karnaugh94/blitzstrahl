@@ -5,10 +5,11 @@
  */
 import { createReadStream, existsSync, statSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
-import { extname, join, normalize, sep } from 'node:path'
+import { join, normalize, sep } from 'node:path'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
 import { describeOverflow, type Overflow } from '@blitzstrahl/runtime/overflow-report'
 import { INSTALL_BROWSER, launchBrowser } from './browser.js'
+import { mimeType } from './mime.js'
 
 export interface OverflowCheck {
   diagnostics: Diagnostic[]
@@ -41,18 +42,6 @@ export function overflowDiagnostics(deck: Deck, found: Overflow[], source?: stri
   })
 }
 
-const TYPES: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.avif': 'image/avif',
-}
 
 /** Serve `root` on a free local port (module scripts need HTTP, not file://). */
 async function serve(root: string): Promise<{ server: Server; url: string }> {
@@ -65,7 +54,7 @@ async function serve(root: string): Promise<{ server: Server; url: string }> {
       res.end()
       return
     }
-    res.setHeader('content-type', TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream')
+    res.setHeader('content-type', mimeType(file))
     createReadStream(file).pipe(res)
   })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))

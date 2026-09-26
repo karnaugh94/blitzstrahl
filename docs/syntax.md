@@ -24,8 +24,12 @@ blitzstrahl makes these changes to that base:
 | **`:::` containers** (§5). | Grouping, presenter notes and layout slots. |
 | **Renderer fences** (§8). | Charts, maps, embeds. |
 
-Raw HTML is passed through unchanged. Decks are written by their authors and are
-not treated as untrusted input. HTML comments (`<!-- -->`) are dropped from the
+Raw HTML is passed through unchanged, except that the local files it refers
+to ship with every build, as Markdown images do. Those are the files in
+`src`, `srcset`, `poster`, `href` and `data` attributes, and in CSS `url()`s
+in `style` attributes and `<style>` elements. So are the targets of
+Markdown links to local files (`[report](./report.pdf)`). Decks are written
+by their authors and are not treated as untrusted input. HTML comments (`<!-- -->`) are dropped from the
 output. They are **not** presenter notes (see §7).
 
 Line endings are normalised to `\n` before parsing. Diagnostics report

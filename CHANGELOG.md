@@ -27,6 +27,20 @@ relied on it will notice.
   that blitzstrahl didn't write. An export must end in `.pdf`.
 - Refusals like these are one line and exit with code 2, instead of a stack
   trace.
+- `dev` serves only the deck and the files it uses. 1.0 served everything in
+  the deck's folder, and with `--host` that was everyone on the network.
+- Files referred to from raw HTML (`src`, `srcset`, `poster`, `href`,
+  `data`), CSS `url()`s (in `<style>`, `style=`, a slide's `background` or
+  `style`) and links to local files ship with every build. In 1.0 they
+  worked in `dev` only. Linked files keep their own name.
+
+### Fixed
+
+- Standalone files carry each image once. 1.0 repeated a background image
+  on every slide that used it, and again in the runtime's payload: a
+  20-slide deck with three backgrounds went from 1.7 MB to 0.95 MB.
+- `dev` no longer watches the deck's whole folder, which for a deck saved in
+  the home folder meant all of it.
 
 ## [1.0.0] — 2026-09-25
 

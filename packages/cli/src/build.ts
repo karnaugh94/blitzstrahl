@@ -80,6 +80,8 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
       const uri = await dataUri(file)
       if (uri) uris.set(asset.path, uri)
     }
+    // The files that weigh most, for the size warning.
+    const heaviest = [...uris].sort((a, b) => b[1].length - a[1].length).slice(0, 3)
     const css = [
       await fontCss(loaded.extras.fonts, async (file) => (await dataUri(file))!),
       loaded.css,
@@ -91,7 +93,8 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     const size = Buffer.byteLength(html)
     if (!options.quiet) process.stdout.write(`${relative(process.cwd(), outFile) || outFile}: ${formatSize(size)}\n`)
     if (size > STANDALONE_WARN_BYTES) {
-      process.stderr.write(`blitzstrahl: ${basename(outFile)} is ${formatSize(size)}; large images are the usual cause (they're inlined as data)\n`)
+      const biggest = heaviest.map(([path, uri]) => `${path} (${formatSize((uri.length * 3) / 4)})`).join(', ')
+      process.stderr.write(`blitzstrahl: ${basename(outFile)} is ${formatSize(size)}; every file the deck uses is inside it${biggest ? `, the largest being ${biggest}` : ''}\n`)
     }
     return checkOverflow({ outDir, index: outFile, page: basename(outFile) }, loaded, options)
   }
@@ -140,7 +143,8 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     } catch {
       continue // reported as asset/missing
     }
-    urls.set(asset.path, await copied(copyHashed(src, outDir, 'assets', bytes)))
+    // Images keep 1.0's names; other files keep their own name, which is what a download is saved as.
+    urls.set(asset.path, await copied(copyHashed(src, outDir, 'assets', bytes, asset.kind !== 'image')))
   }
 
   const css = [await fontCss(loaded.extras.fonts, (file) => copied(copyHashed(file, outDir, 'assets/fonts'))), loaded.css]
@@ -171,13 +175,17 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
 
 const STATIC_ENTRY = 'virtual:blitzstrahl-deck'
 
-/** Copy `src` into `outDir/folder`, content-hashed like the chunks; returns its page-relative URL. */
-async function copyHashed(src: string, outDir: string, folder: string, bytes?: Buffer): Promise<string> {
+/**
+ * Copy `src` into `outDir/folder`, content-hashed like the chunks: as
+ * `name-hash.ext`, or with `keepName` as `hash/name.ext`. Returns its
+ * page-relative URL.
+ */
+async function copyHashed(src: string, outDir: string, folder: string, bytes?: Buffer, keepName = false): Promise<string> {
   bytes ??= await readFile(src)
   const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 8)
   const ext = extname(src)
-  const name = `${folder}/${basename(src, ext)}-${hash}${ext}`
-  await mkdir(join(outDir, folder), { recursive: true })
+  const name = keepName ? `${folder}/${hash}/${basename(src)}` : `${folder}/${basename(src, ext)}-${hash}${ext}`
+  await mkdir(dirname(join(outDir, name)), { recursive: true })
   await writeFile(join(outDir, name), bytes)
   return name
 }

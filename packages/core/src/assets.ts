@@ -1,4 +1,4 @@
-import type { AssetKind } from './ir.js'
+import type { AssetKind, AssetRef, SourceSpan } from './ir.js'
 
 const SCHEME = /^[A-Za-z][A-Za-z0-9+.-]*:/
 
@@ -34,6 +34,18 @@ export function normalizeRelative(path: string): string {
     else out.push(seg)
   }
   return out.join('/') || '.'
+}
+
+/**
+ * A file the page itself loads or links to (an image, a link's target, a
+ * video, a font in a `url()`), or undefined if `url` isn't local. Its kind
+ * is never `data`: data kind means "inlined for a renderer", and a CSV the
+ * page links to has to ship as a file.
+ */
+export function pageAsset(url: string, span: SourceSpan): AssetRef | undefined {
+  if (!isLocalRef(url)) return undefined
+  const kind = assetKind(url)
+  return { ref: url, path: normalizeRelative(url), kind: kind === 'data' ? 'other' : kind, span }
 }
 
 /** Whether a slide `background` value names an image rather than a CSS value (§3.2). */

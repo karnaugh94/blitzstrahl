@@ -13,6 +13,9 @@ A live preview. Saving the markdown (or a data file it uses) updates the open
 deck in place, on the same slide and step. Diagnostics print in the terminal
 and in the browser console.
 
+It serves the deck and the files the deck uses, and nothing else in the
+deck's folder, so `--host` shares only the talk with the network.
+
 Slides that overflow get a red badge, and the elements responsible get a
 dashed outline. The same overflow warnings print in the terminal at
 `deck.md:line:col`.
@@ -22,6 +25,11 @@ dashed outline. The same overflow warnings print in the terminal at
 Writes a static site to `dist/` next to the deck (or `--out`). Serve it over
 HTTP: module scripts don't run from `file://`. For a file you can simply
 open, use `--standalone` (below).
+
+Every local file the deck refers to is copied in: images, videos, fonts, and
+the targets of links. Images are renamed with a content hash (`logo-1a2b3c4d.svg`).
+Other files keep their own name in a hashed folder (`1a2b3c4d/report.pdf`),
+so a download is saved under its real name.
 
 The output folder is blitzstrahl's alone, and nothing else in it is ever
 deleted:
@@ -66,14 +74,15 @@ name with `.html`, next to the deck (`talk.md` → `talk.html`); `--out` picks
 another path. It must end in `.html`. It never replaces the deck, or an
 existing `.html` file that blitzstrahl didn't write.
 
-- Everything is inside: the runtime, the theme, your images (as data URIs),
-  your data files, the presenter view, and the code for only those
-  renderers the deck uses. A deck without charts or maps is about 70 kB.
+- Everything is inside: the runtime, the theme, every local file the deck
+  refers to (images, videos, fonts, linked files, as data URIs, each one
+  once), your data files, the presenter view, and the code for only those
+  renderers the deck uses. A link to a local file downloads it. A deck without charts or maps is about 70 kB.
   One with a chart is about 650 kB, most of it the charting library.
 - The presenter view works from the file too (`P`, or open it with
   `#presenter` on the end).
-- `build` prints the file's size, and warns when it's over 8 MB. Large
-  images are the usual cause.
+- `build` prints the file's size, and warns when it's over 8 MB, naming the
+  largest files inside it.
 
 What still needs the network, and so won't work offline, even from a
 standalone file:

@@ -21,7 +21,7 @@ stack: region
 | `y` | column or list | every other numeric column | One series per column. A pie takes exactly one |
 | `series` | column | — | Long data: one series per distinct value of this column (`y` must be a single column). Not for pies |
 | `stack` | `true` or column | — | Bar and line. `true` stacks the series. A column name does what `series` does, and stacks |
-| `horizontal` | boolean | `false` | Bar: bars run left to right |
+| `horizontal` | boolean | `false` | Bar: bars run left to right, categories top to bottom in the data's order |
 | `smooth` | boolean | `false` | Line: curved lines |
 | `area` | boolean | `false` | Line: fill under lines |
 | `donut` | boolean | `false` | Pie: a ring instead of a disc |
@@ -33,6 +33,10 @@ stack: region
 
 A key that doesn't apply to the chart's type (`donut` on a bar chart, say)
 is an error, not silently ignored.
+
+**Repeated categories.** When `x` has the same value on several rows and
+there's no `series`, a bar or line shows the sum of those rows, as a pie
+does. `check` mentions it, in case you meant `series`.
 
 **Pie.** One slice per distinct value of `x`, sized by the sum of `y` over
 its rows, so long data works as it is. Negative values are an error.
@@ -51,9 +55,18 @@ y: people
 axes start near the data rather than at zero. With `series`, each group gets
 its own colour; with several `y` columns, each column does.
 
-**Data.** CSV and TSV need a header row. Cells that look like numbers become
-numbers (`1,200` is 1200). JSON must be a list of objects. Inline rows are the
-same shape:
+**Data.** CSV and TSV need a header row. A CSV separated by semicolons (as
+Excel writes it where the comma is the decimal mark) is recognised by its
+header. Cells that look like numbers become numbers, each column read one
+way:
+
+- A comma groups thousands: `1,200` is 1200.
+- If a column has numbers that can only mean a decimal comma, such as `3,5`,
+  `12,25`, `1.234,5` or `1.234.567`, its commas are decimal marks and its
+  dots group thousands.
+- A comma that fits neither reading (`1,2,3`) leaves the cell as text.
+
+JSON must be a list of objects. Inline rows are the same shape:
 
 ```yaml
 data:

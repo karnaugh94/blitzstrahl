@@ -129,3 +129,19 @@ describe('check: maps', () => {
     )
   })
 })
+
+describe('check: chart notes', () => {
+  it('says when a bar chart sums a category that repeats', async () => {
+    const { mkdtempSync, writeFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const { tmpdir } = await import('node:os')
+    const { check } = await import('../src/check.js')
+    const dir = mkdtempSync(join(tmpdir(), 'blitz-check-notes-'))
+    const deck = join(dir, 'deck.md')
+    writeFileSync(deck, '# S\n\n```chart\ntype: bar\nx: region\ny: v\ndata:\n  - { region: North, v: 4 }\n  - { region: North, v: 5 }\n  - { region: South, v: 6 }\n```\n')
+    const r = await check(deck, { offline: true, overflow: false })
+    expect(r.diagnostics).toEqual([
+      expect.objectContaining({ severity: 'info', code: 'renderer/chart-note', message: expect.stringContaining('`region` repeats (North is on 2 rows)'), span: expect.objectContaining({ start: { line: 3, column: 1 } }) }),
+    ])
+  })
+})

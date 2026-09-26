@@ -1,7 +1,21 @@
 /**
  * Tabular data for renderers: CSV/TSV/JSON parsing and shaping. Pure.
  */
+import { decimalMark, readNumber, type DecimalMark } from '@blitzstrahl/core/numbers'
+
 export type Row = Record<string, string | number | null>
+
+/**
+ * The separator a delimited file uses: `;` when its header has more
+ * semicolons than commas (Excel's CSV where the comma is the decimal mark),
+ * else `fallback`.
+ */
+export function delimiterOf(text: string, fallback = ','): string {
+  const header = text.replace(/^\uFEFF/, '').split(/\r?\n/).find((l) => l.trim()) ?? ''
+  const outside = header.replace(/"[^"]*"/g, '')
+  const count = (c: string) => outside.split(c).length - 1
+  return fallback === ',' && count(';') > count(',') ? ';' : fallback
+}
 
 /** RFC 4180 CSV (quotes, doubled quotes, newlines in quotes). */
 export function parseDelimited(text: string, delimiter = ','): Row[] {
@@ -36,21 +50,22 @@ export function parseDelimited(text: string, delimiter = ','): Row[] {
   const [header, ...body] = records.filter((r) => r.length > 1 || r[0] !== '')
   if (!header) return []
   const keys = header.map((h) => h.trim())
-  return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, coerce(r[i])])))
+  // Each column reads its numbers one way: `3,5` makes a column's commas decimal marks.
+  const marks = keys.map((_, i) => decimalMark(body.map((r) => r[i] ?? '')))
+  return body.map((r) => Object.fromEntries(keys.map((k, i) => [k, coerce(r[i], marks[i]!)])))
 }
 
-function coerce(v: string | undefined): string | number | null {
+function coerce(v: string | undefined, mark: DecimalMark): string | number | null {
   if (v === undefined) return null
   const t = v.trim()
   if (t === '') return null
-  const n = Number(t.replace(/,/g, ''))
-  return /^[-+]?[\d,]*\.?\d+(e[-+]?\d+)?$/i.test(t) && Number.isFinite(n) ? n : t
+  return readNumber(t, mark) ?? t
 }
 
 /** Parse a data asset by its extension. */
 export function parseData(path: string, text: string): Row[] {
   const ext = /\.([a-z0-9]+)$/i.exec(path)?.[1]?.toLowerCase()
-  if (ext === 'csv') return parseDelimited(text, ',')
+  if (ext === 'csv') return parseDelimited(text, delimiterOf(text))
   if (ext === 'tsv') return parseDelimited(text, '\t')
   if (ext === 'json') return rowsFrom(JSON.parse(text), path)
   throw new Error(`can't read \`${path}\`: use .csv, .tsv or .json`)

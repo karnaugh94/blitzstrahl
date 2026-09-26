@@ -443,7 +443,7 @@ Options:
 | `delay` | all | milliseconds, after the step is triggered |
 | `ease` | all | `linear`, `in`, `out`, `in-out`, `out-expo`, `in-out-expo`, `out-back`, or a quoted CSS easing, e.g. `ease="cubic-bezier(.2,0,0,1)"` |
 | `reverse` | all | `true`: stepping *backwards* plays the effect in reverse instead of snapping (the default) |
-| `from` | `count-up` | starting number, default `0`. The target is the element's own numeral text |
+| `from` | `count-up` | starting number, default `0`. The target is the element's own numeral text, and it counts in that numeral's style: `4,2 %` counts through `2,1 %`, and `1.234.567` keeps its dots |
 | `cps` | `typewriter` | characters per second |
 
 Custom entrance effects can be defined in CSS, in the theme or a `<style>`

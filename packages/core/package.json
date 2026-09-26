@@ -7,6 +7,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./numbers": {
+      "types": "./dist/numbers.d.ts",
+      "default": "./dist/numbers.js"
     }
   },
   "files": [

@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import type { Deck, Diagnostic, HastNode, SourceSpan } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
-import { asFeatureCollection, isUrl, markersFromText, mermaidProblem, specProblem, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
+import { asFeatureCollection, isUrl, markersFromText, mermaidProblem, specNotes, specProblem, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
 import { build } from './build.js'
 import { deckStyles, loadDeck, type LoadedDeck } from './load.js'
 import { checkBuiltOverflow } from './overflow.js'
@@ -45,6 +45,7 @@ export async function check(deckPath: string, options: CheckOptions = {}): Promi
     if (Object.hasOwn(loaded.extras.renderers, block.renderer)) continue // checked when loaded
     const problem = block.renderer === 'mermaid' ? await mermaidProblem(block.spec) : specProblem(block.renderer, block.spec, (p) => loaded.inline[p])
     if (problem) add('error', `renderer/${block.renderer}`, `\`${block.renderer}\` block: ${problem}`, block.span)
+    else for (const note of specNotes(block.renderer, block.spec, (p) => loaded.inline[p])) add('info', `renderer/${block.renderer}-note`, `\`${block.renderer}\` block: ${note}`, block.span)
   }
 
   for (const slide of deck.slides) {

@@ -10,18 +10,29 @@
  * leaving, and `destroy` puts the table back as written, so a table always
  * starts a visit in its authored order.
  */
+import { decimalMark, readNumber, type DecimalMark } from '@blitzstrahl/core/numbers'
 import type { RenderCtx, RenderInstance, Renderer } from '@blitzstrahl/runtime'
 
 type Direction = 'ascending' | 'descending'
 
 const SUFFIX: Record<string, number> = { '%': 1, k: 1e3, K: 1e3, M: 1e6, B: 1e9, bn: 1e9 }
-const NUMBER = /^([-+−]?)\s*[$€£¥]?\s*(\d[\d,]*(?:\.\d+)?|\.\d+)\s*(%|k|K|M|B|bn)?$/
+const NUMBER = /^([-+−]?)\s*[$€£¥]?\s*(\d(?:[\d.,\u0020\u00a0\u2009\u202f]*\d)?|[.,]\d+)\s*(%|k|K|M|B|bn)?$/
 
-/** A cell's numeric value (`1,200`, `-3.5%`, `$4.1M`), or undefined for text. */
-export function cellNumber(text: string): number | undefined {
-  const m = NUMBER.exec(text.trim().replace(/[   ]/g, ''))
+/** The numeral in a cell, without its sign, currency or suffix ('' for text). */
+function numeral(text: string): string {
+  return NUMBER.exec(text.trim())?.[2] ?? ''
+}
+
+/**
+ * A cell's numeric value (`1,200`, `-3.5%`, `$4.1M`, `11 393`; with `mark`
+ * `,` also `3,5 %` and `1.234,5`), or undefined for text.
+ */
+export function cellNumber(text: string, mark: DecimalMark = '.'): number | undefined {
+  const m = NUMBER.exec(text.trim())
   if (!m) return undefined
-  const n = Number(m[2]!.replace(/,/g, '')) * (SUFFIX[m[3] ?? ''] ?? 1)
+  const value = readNumber(m[2]!, mark)
+  if (value === undefined) return undefined
+  const n = value * (SUFFIX[m[3] ?? ''] ?? 1)
   return m[1] === '-' || m[1] === '−' ? -n : n
 }
 
@@ -30,9 +41,9 @@ export function cellNumber(text: string): number | undefined {
  * natural order (`item 2` before `item 10`). Empty cells go last in either
  * direction, so they're handled by the caller.
  */
-export function compareCells(a: string, b: string): number {
-  const x = cellNumber(a)
-  const y = cellNumber(b)
+export function compareCells(a: string, b: string, mark: DecimalMark = '.'): number {
+  const x = cellNumber(a, mark)
+  const y = cellNumber(b, mark)
   if (x !== undefined && y !== undefined) return x - y
   if (x !== undefined) return -1
   if (y !== undefined) return 1
@@ -43,9 +54,11 @@ export function compareCells(a: string, b: string): number {
 export function sortedOrder(cells: readonly string[], dir: Direction): number[] {
   const idx = cells.map((_, i) => i)
   const empty = (i: number) => cells[i]!.trim() === ''
+  // A column writes its numbers one way: `3,25` makes its commas decimal marks.
+  const mark = decimalMark(cells.map(numeral))
   return idx.sort((i, j) => {
     if (empty(i) || empty(j)) return Number(empty(i)) - Number(empty(j))
-    const c = compareCells(cells[i]!, cells[j]!)
+    const c = compareCells(cells[i]!, cells[j]!, mark)
     return (dir === 'ascending' ? c : -c) || i - j
   })
 }

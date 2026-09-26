@@ -3,7 +3,7 @@
  * (PLAN §7): the same validation and data shaping the renderers do, minus
  * the drawing. No ECharts, no DOM.
  */
-import { chartOption, validate as validateChart } from './chart-option.js'
+import { chartNotes, chartOption, validate as validateChart } from './chart-option.js'
 import { parseData } from './data.js'
 import { validate as validateEmbed } from './embed.js'
 import { asFeatureCollection, markersFromRows, markersFromText, validate as validateMap } from './map-geo.js'
@@ -50,6 +50,23 @@ export function specProblem(renderer: string, spec: unknown, read: ReadData): st
     }
   } catch (err) {
     return err instanceof Error ? err.message : String(err)
+  }
+}
+
+/**
+ * What's worth knowing about a block that isn't a problem, as the renderer
+ * would say it (info). Empty for a block with problems: those are reported
+ * by `specProblem`.
+ */
+export function specNotes(renderer: string, spec: unknown, read: ReadData): string[] {
+  if (renderer !== 'chart') return []
+  try {
+    const s = validateChart(spec)
+    if (typeof s.data !== 'string') return chartNotes(s, s.data)
+    const text = read(s.data)
+    return text === undefined ? [] : chartNotes(s, parseData(s.data, text))
+  } catch {
+    return []
   }
 }
 

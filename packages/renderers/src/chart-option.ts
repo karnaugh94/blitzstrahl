@@ -80,6 +80,20 @@ function numberFormat(locale: string | undefined): (v: unknown) => string {
   return (v) => (typeof v === 'number' ? nf.format(v) : v == null ? '' : String(v))
 }
 
+/**
+ * Things worth saying about a chart that aren't problems: bars and lines
+ * sum a category that repeats (a pie always does). Empty if nothing.
+ */
+export function chartNotes(spec: ChartSpec, rows: Row[]): string[] {
+  if ((spec.type !== 'bar' && spec.type !== 'line') || spec.series || typeof spec.stack === 'string' || !rows.length) return []
+  const x = spec.x ?? Object.keys(rows[0]!)[0]!
+  const count = new Map<unknown, number>()
+  for (const r of rows) count.set(r[x], (count.get(r[x]) ?? 0) + 1)
+  const repeated = [...count].find(([, n]) => n > 1)
+  if (!repeated) return []
+  return [`\`${x}\` repeats (${String(repeated[0])} is on ${repeated[1]} rows), so each category shows the sum of its rows; set \`series\` to split them`]
+}
+
 /** Build the ECharts option for validated spec and loaded rows. */
 export function chartOption(spec: ChartSpec, rows: Row[], ctx: OptionContext): Record<string, unknown> {
   if (!rows.length) throw new Error('no rows in `data`')
@@ -121,11 +135,12 @@ function cartesianOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], 
     ;({ categories, series } = pivot(rows, x, ys[0]!, by))
   } else {
     categories = distinct(rows, x)
+    // A category written on several rows shows their sum, as a pie slice does.
     series = ys.map((y) => ({
       name: y,
       data: categories.map((c) => {
-        const v = rows.find((r) => r[x] === c)?.[y]
-        return typeof v === 'number' ? v : null
+        const values = rows.filter((r) => r[x] === c).map((r) => r[y])
+        return values.some((v) => typeof v === 'number') ? values.reduce<number>((a, v) => a + (typeof v === 'number' ? v : 0), 0) : null
       }),
     }))
   }
@@ -134,7 +149,8 @@ function cartesianOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], 
   const horizontal = spec.type === 'bar' && spec.horizontal === true
   const showLegend = spec.legend ?? series.length > 1
   const dur = base.animationDuration as number
-  const categoryAxis = { type: 'category', data: categories, boundaryGap: spec.type === 'bar' }
+  // Horizontal bars list categories top to bottom, in the data's order (ECharts starts at the bottom).
+  const categoryAxis = { type: 'category', data: categories, boundaryGap: spec.type === 'bar', ...(horizontal ? { inverse: true } : {}) }
   const valueAxis = { type: 'value', axisLabel: { formatter: num } }
 
   return {

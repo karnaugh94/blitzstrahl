@@ -34,6 +34,20 @@ relied on it will notice.
   `style`) and links to local files ship with every build. In 1.0 they
   worked in `dev` only. Linked files keep their own name.
 
+- Numbers with decimal commas are read as written. A CSV cell `"3,5"`
+  became 35 in 1.0, and `"12,25"` became 1225: now a column that can only
+  mean decimal commas reads them as decimals. Semicolon-separated CSVs
+  (Excel's in much of Europe) are recognised. Sortable tables and map
+  markers read numbers the same way.
+- `count-up` counts in the numeral's own style. 1.0 counted `4,2 %` up to
+  `42 %`, then snapped back to `4,2 %`.
+- A bar or line chart whose `x` repeats shows each category's sum, as pie
+  already did. 1.0 showed the first row and dropped the rest; `check`
+  now mentions it.
+- Horizontal bar charts list categories top to bottom, in the data's order.
+  1.0 started at the bottom. `echarts: {yAxis: {inverse: false}}` restores
+  that.
+
 ### Fixed
 
 - Standalone files carry each image once. 1.0 repeated a background image

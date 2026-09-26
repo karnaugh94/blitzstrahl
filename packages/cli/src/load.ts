@@ -7,6 +7,7 @@ import { existsSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { EFFECTS, parseDeck, type Deck, type Diagnostic, type Extensions, type PayloadPlugins } from '@blitzstrahl/core'
+import { mermaidProblem, specNotes, specProblem } from '@blitzstrahl/renderers/specs'
 import { loadExtras, pluginCss, pluginPayload, toExtensions, type Extras } from './extend.js'
 import { highlightDeck } from './highlight.js'
 import { renderMath } from './math.js'
@@ -65,16 +66,28 @@ export async function loadDeck(path: string, displayName = path): Promise<Loaded
     }
     if (asset.kind === 'data' && !(asset.path in inline)) inline[asset.path] = await readFile(file, 'utf8')
   }
+  // Every render block is checked the way its renderer would read it, built-in
+  // or plugin, so `dev` lists a broken chart and `build` stops for it
+  // (1.0 left built-in blocks to `check`, and shipped the error box).
+  const read = (p: string) => inline[p]
   for (const block of deck.slides.flatMap((s) => s.blocks)) {
+    const at = (severity: Diagnostic['severity'], code: string, message: string) =>
+      diagnostics.push({ severity, code, message: `\`${block.renderer}\` block: ${message}`, file: displayName, span: block.span })
     const r = extras.renderers[block.renderer]
-    if (!r?.check) continue
-    let problem: string | undefined
-    try {
-      problem = await r.check(block.spec, { readData: (p) => inline[p] })
-    } catch (err) {
-      problem = `check failed: ${(err as Error).message}`
+    if (r) {
+      if (!r.check) continue
+      let problem: string | undefined
+      try {
+        problem = await r.check(block.spec, { readData: read })
+      } catch (err) {
+        problem = `check failed: ${(err as Error).message}`
+      }
+      if (problem) at('error', `renderer/${block.renderer}`, problem)
+      continue
     }
-    if (problem) diagnostics.push({ severity: 'error', code: `renderer/${block.renderer}`, message: `\`${block.renderer}\` block: ${problem}`, file: displayName, span: block.span })
+    const problem = block.renderer === 'mermaid' ? await mermaidProblem(block.spec) : specProblem(block.renderer, block.spec, read)
+    if (problem) at('error', `renderer/${block.renderer}`, problem)
+    else for (const note of specNotes(block.renderer, block.spec, read)) at('info', `renderer/${block.renderer}-note`, note)
   }
   diagnostics.push(...(await highlightDeck(deck, source)))
   diagnostics.push(...renderMath(deck, source))

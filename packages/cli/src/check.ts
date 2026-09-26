@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import type { Deck, Diagnostic, HastNode, SourceSpan } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
-import { asFeatureCollection, isUrl, markersFromText, mermaidProblem, specNotes, specProblem, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
+import { asFeatureCollection, isUrl, markersFromText, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
 import { build } from './build.js'
 import { deckStyles, loadDeck, type LoadedDeck } from './load.js'
 import { checkBuiltOverflow } from './overflow.js'
@@ -40,13 +40,7 @@ export async function check(deckPath: string, options: CheckOptions = {}): Promi
   const add = (severity: Diagnostic['severity'], code: string, message: string, span: SourceSpan) =>
     found.push({ severity, code, message, file: deck.source, span })
 
-  // Render blocks, checked against their data the way the renderer would.
-  for (const block of deck.slides.flatMap((s) => s.blocks)) {
-    if (Object.hasOwn(loaded.extras.renderers, block.renderer)) continue // checked when loaded
-    const problem = block.renderer === 'mermaid' ? await mermaidProblem(block.spec) : specProblem(block.renderer, block.spec, (p) => loaded.inline[p])
-    if (problem) add('error', `renderer/${block.renderer}`, `\`${block.renderer}\` block: ${problem}`, block.span)
-    else for (const note of specNotes(block.renderer, block.spec, (p) => loaded.inline[p])) add('info', `renderer/${block.renderer}-note`, `\`${block.renderer}\` block: ${note}`, block.span)
-  }
+  // Render blocks are checked by loadDeck, for build and dev too.
 
   for (const slide of deck.slides) {
     for (const s of stepGaps(slide.content, slide.steps)) {

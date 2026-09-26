@@ -44,6 +44,11 @@ relied on it will notice.
 - A bar or line chart whose `x` repeats shows each category's sum, as pie
   already did. 1.0 showed the first row and dropped the rest; `check`
   now mentions it.
+- `build` and `dev` check charts, maps, embeds and Mermaid diagrams the way
+  `check` always did. A block that would show an error box on its slide
+  (an unknown key, a column that isn't in the data) stops the build, and
+  `--force` builds anyway. 1.0 built such a deck without a word. A deck that
+  built in 1.0 may now stop: that block was broken.
 - Horizontal bar charts list categories top to bottom, in the data's order.
   1.0 started at the bottom. `echarts: {yAxis: {inverse: false}}` restores
   that.

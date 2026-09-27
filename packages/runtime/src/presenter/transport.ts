@@ -18,6 +18,13 @@ export interface PresenterTransport {
  * reloaded page has lost the handle it held, but its peer still has one).
  * Any message, not just `hello`: the first key pressed in the presenter
  * after the deck reloads must not be lost waiting for a heartbeat.
+ *
+ * Only a window related to this one by opening may talk to it (PLAN §15,
+ * M6.14): its opener, or a window it opened (whose opener it is, even after
+ * this page reloads and loses the handle). So never a
+ * frame inside the deck, such as an embedded page, which could otherwise
+ * drive the talk and take the presenter's place. The origin check can't
+ * stop that on `file://`, nor for a same-origin frame.
  */
 export class WindowTransport implements PresenterTransport {
   private peer: Window | null
@@ -63,6 +70,16 @@ export class WindowTransport implements PresenterTransport {
     this.peer = null
   }
 
+  /** This window's opener, or a window whose opener it is (`opener` is readable across origins). */
+  private related(source: Window): boolean {
+    if (source === this.win.opener) return true
+    try {
+      return source.opener === this.win
+    } catch {
+      return false
+    }
+  }
+
   private targetOrigin(): string {
     // file:// pages have an opaque origin ("null"), which can't be targeted.
     return this.win.location.protocol === 'file:' ? '*' : this.win.location.origin
@@ -72,7 +89,7 @@ export class WindowTransport implements PresenterTransport {
     if (!isEnvelope(e.data)) return
     if (this.win.location.protocol !== 'file:' && e.origin !== this.win.location.origin) return
     const source = e.source as Window | null
-    if (!source || source === this.win) return
+    if (!source || source === this.win || !this.related(source)) return
     // Mirrors only ever talk to the presenter view that embeds them.
     if (e.data.type === 'hello' && e.data.role === 'mirror') return
     if (source !== this.peer) this.peer = source

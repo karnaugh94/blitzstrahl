@@ -65,6 +65,10 @@ relied on it will notice.
 
 ### Fixed
 
+- Only the presenter window may drive the deck: the window that opened it,
+  or one it opened. In 1.0 any page able to message it could, including an
+  embedded page on a standalone deck, which then took the presenter's
+  place.
 - The command line explains its mistakes in one line: an unknown option or
   command (with "did you mean"), a deck that isn't there or is a folder, a
   port that isn't a number, an option missing its value. 1.0 printed Node's

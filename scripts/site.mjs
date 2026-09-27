@@ -48,6 +48,7 @@ const GALLERY = [
   ['auto-animate', 'deck.md', 'Elements that glide between slides, and code that morphs.'],
   ['layouts', 'deck.md', 'All twelve built-in layouts.'],
   ['editorial', 'deck.md', 'An annual report in the light, editorial broadsheet theme.'],
+  ['european', 'deck.md', 'Polish, Czech, Greek and Bulgarian text, German numbers: a deck in the languages of Europe.'],
 ]
 
 rmSync(out, { recursive: true, force: true })

@@ -82,7 +82,8 @@ deck starts with clean slides).
 ### Limits
 
 - Both windows must be in the same browser, on the same computer: they talk
-  through the window that opened the other. Controlling a deck from a phone
+  through the window that opened the other. Nothing else can drive the deck,
+  not another tab and not a page embedded in a slide. Controlling a deck from a phone
   or another machine isn't supported yet.
 - Some browsers block the window `P` opens (Firefox doesn't count a key
   press as permission for a pop-up). The deck then shows an **Open the

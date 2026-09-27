@@ -17,6 +17,7 @@ import { pointSpan, spanOf, type Diagnostics } from './diagnostics.js'
 import type { AnimSpec, AssetRef, EffectKind, HastNode, RenderBlock, SourceSpan, StepRange } from './ir.js'
 import { milliseconds, notYet } from './meta.js'
 import { ANIM_KEYS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES, type RendererBody } from './vocab.js'
+import { fill, strings } from './i18n.js'
 
 /** Deck-wide state threaded through every slide. */
 export interface DeckContext {
@@ -27,6 +28,8 @@ export interface DeckContext {
   /** Built-in renderers plus plugins' (`since` absent: always supported). */
   renderers: Readonly<Record<string, { body: RendererBody; since?: string }>>
   effects: Readonly<Record<string, EffectKind>>
+  /** The deck's `lang`: the footnotes' labels are written in it (§3.3). */
+  lang: string
 }
 
 /** A placeholder left where a render fence was. */
@@ -340,8 +343,8 @@ export function resolveSlide(
     layout,
     shorthand,
     steps: maxStep,
-    notes: toHastContent(notesNodes, `s${index}-notes-`, []),
-    content: toHastContent(slotted(nodes), `s${index}-`, propTable),
+    notes: toHastContent(notesNodes, `s${index}-notes-`, [], ctx.lang),
+    content: toHastContent(slotted(nodes), `s${index}-`, propTable, ctx.lang),
     anims,
     blocks,
   }
@@ -543,10 +546,14 @@ function rewritePaths(value: unknown, onPath: (ref: string) => string): unknown 
   return value
 }
 
-function toHastContent(nodes: RootContent[], clobberPrefix: string, propTable: Array<Record<string, unknown>>): HastNode[] {
+function toHastContent(nodes: RootContent[], clobberPrefix: string, propTable: Array<Record<string, unknown>>, lang: string): HastNode[] {
+  const words = strings(lang).deck
   const tree = toHast({ type: 'root', children: nodes } as Root, {
     allowDangerousHtml: true,
     clobberPrefix,
+    // Screen readers read these out, so they're in the deck's language.
+    footnoteLabel: words.footnotes,
+    footnoteBackLabel: (ref, again) => fill(words.backToReference, { ref: `${ref + 1}${again > 1 ? `-${again}` : ''}` }),
   }) as HastRoot
   applyProps(tree, undefined, propTable)
   return clean(tree.children).filter((n): n is ElementContent => n.type !== 'doctype')

@@ -35,6 +35,19 @@ While the screen is black you can still move through the deck: the audience
 sees the new position when you bring the screen back. Slides change without
 their transition while it's black.
 
+## Languages
+
+The overview, the go-to box, the key help and the presenter view are in the
+browser's language, when it's one blitzstrahl knows (English, German,
+French, Spanish, Italian, Polish, Swedish), and in English otherwise. The
+little the audience hears or reads from blitzstrahl itself follows the
+deck's `lang` instead (syntax.md §3.3).
+
+Translations are JSON files in `packages/core/src/i18n/`, one per
+language, with English as the fallback for anything missing. To add a
+language, copy `en.json`, translate the values (keep each `{placeholder}`),
+and open a pull request.
+
 ## Laser pointer and drawing
 
 `L` turns the pointer into a glowing red dot with a short trail, for the

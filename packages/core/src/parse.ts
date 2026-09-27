@@ -46,6 +46,7 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
     blockCount: 0,
     renderers: { ...RENDERERS, ...ext.renderers },
     effects: { ...EFFECTS, ...ext.effects },
+    lang: meta.lang,
   }
   const slideIds = new Set<string>()
 

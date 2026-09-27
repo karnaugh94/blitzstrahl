@@ -4,6 +4,7 @@
  * renderers (PLAN §3).
  */
 import type { AnimSpec, DeckPayload, EffectKind, PayloadSlide, StepRange } from '@blitzstrahl/core'
+import { fill, strings } from '@blitzstrahl/core/i18n'
 import { dataNumerals, readNumber } from '@blitzstrahl/core/numbers'
 import { needsBox, playEntrance, playExit, registerEffects, type CustomEffect, type Played } from './effects.js'
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
@@ -548,7 +549,9 @@ export class Deck implements NavTarget {
     for (const s of view.stepped) delete s.phase
     if (this.live && this.mode === 'audience') {
       const i = this.views.indexOf(view)
-      this.live.textContent = `${view.data.title ?? `Slide ${i + 1}`} (${i + 1} of ${this.views.length})`
+      // For the audience, so in the deck's language (syntax.md §3.3).
+      const words = strings(this.payload.lang).deck
+      this.live.textContent = fill(words.announce, { title: view.data.title ?? fill(words.slide, { n: i + 1 }), n: i + 1, total: this.views.length })
     }
   }
 

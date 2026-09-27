@@ -42,7 +42,8 @@ test('the file holds everything: no scripts, styles or images to fetch', async (
   expect(html).not.toMatch(/<script[^>]+src=/)
   expect(html).not.toMatch(/<link[^>]+stylesheet/)
   expect(html).not.toContain('assets/')
-  expect(html).not.toContain('can’t run from a file')
+  // The page that says it needs a server (its words are data in every page now).
+  expect(html).not.toContain("location.protocol === 'file:'")
 
   const requests = await open(page)
   await expect.poll(() => page.locator('#logo').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(640)
@@ -126,5 +127,8 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * Raised 2026-09-25 (M4): 91.5 kB bare, now carrying auto-animate, magic move,
  * `lines=` and the laser/pen in every deck's runtime (of which 26 kB is CSS,
  * unminified; minifying it would save ~5 kB).
+ * Raised 2026-09-27 (M7.4): 116.8 kB bare. The overlays and the presenter
+ * view speak the browser's language even offline, so every page carries
+ * all seven languages' strings (21 kB of JSON).
  */
-const BUDGET = { minimal: 110_000, withChart: 800_000 }
+const BUDGET = { minimal: 120_000, withChart: 800_000 }

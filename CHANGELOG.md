@@ -38,6 +38,11 @@ relied on it will notice.
 - A map's choropleth legend writes numbers in the deck's language.
 - Plugins: `RenderCtx.lang`, and `RenderCtx.number(text, thousands?)` to
   read data the way the built-in renderers do.
+- blitzstrahl speaks English, German, French, Spanish, Italian, Polish and
+  Swedish. What the audience hears or reads from it (the screen reader's
+  slide announcements, footnote labels, embed notices) follows the deck's
+  `lang`; the overview, go-to box, key help and presenter view follow the
+  browser's language. A bare standalone file grows by 21 kB for them.
 
 ## [1.0.1] — 2026-09-27
 

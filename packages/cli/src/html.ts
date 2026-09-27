@@ -6,6 +6,7 @@ import { readFileSync } from 'node:fs'
 import type { Element, ElementContent, Root } from 'hast'
 import { toHtml } from 'hast-util-to-html'
 import { isImageBackground, rewriteCss, rewriteHtml, toPayload, type Deck, type Diagnostic, type HastNode, type PayloadPlugins } from '@blitzstrahl/core'
+import { strings } from '@blitzstrahl/core/i18n'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
 import type { Theme } from '@blitzstrahl/themes'
 
@@ -138,12 +139,12 @@ export interface PageOptions {
   plugins?: PayloadPlugins
 }
 
-/** A deck with external chunks can't run from a file (module scripts need HTTP); say so. */
-const FILE_WARNING = `<script>
+/** A deck with external chunks can't run from a file (module scripts need HTTP); say so, in the deck's language. */
+const fileWarning = (lang: string) => `<script>
 if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', function () {
   var p = document.createElement('p')
   p.style.cssText = 'position:fixed;inset:auto 16px 16px;margin:0;padding:12px 16px;font:15px/1.4 system-ui,sans-serif;background:#fff;color:#111;border-radius:8px;z-index:9'
-  p.textContent = 'This deck was built for a web server and can\\u2019t run from a file. Serve the folder over HTTP (for example: npx serve dist), build it with --standalone, or use blitzstrahl dev.'
+  p.textContent = ${JSON.stringify(strings(lang).deck.needsServer).replace(/</g, '\\u003c')}
   document.body.appendChild(p)
 })
 </script>
@@ -175,7 +176,7 @@ ${renderStage(o.deck, o.assetUrl)}
 <div class="blitz-sr" aria-live="polite"></div>
 </div>
 <template id="blitz-notes">${renderNotes(o.deck, o.assetUrl)}</template>
-${'src' in o.entry ? FILE_WARNING : ''}<script type="application/json" id="blitz-payload">${json(payload)}</script>
+${'src' in o.entry ? fileWarning(o.deck.meta.lang) : ''}<script type="application/json" id="blitz-payload">${json(payload)}</script>
 ${o.diagnostics ? `<script type="application/json" id="blitz-diagnostics">${json(o.diagnostics)}</script>\n` : ''}${
     'src' in o.entry ? `<script type="module" src="${esc(o.entry.src)}"></script>` : `<script type="module">\n${o.entry.code}\n</script>`
   }

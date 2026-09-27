@@ -46,6 +46,15 @@ test('bar: value labels and axis use thousands separators (deck `lang`)', async 
   await expect(page.locator('#big svg text', { hasText: /^12,000$/ })).toHaveCount(1)
 })
 
+test('value labels beside bars are in the theme\'s text colour, with no halo', async ({ page }) => {
+  await open(page, 'big-numbers')
+  const label = page.locator('#big svg text', { hasText: /^11,393$/ })
+  await expect(label).toHaveCount(1)
+  const fg = await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue('--blitz-fg').trim().toLowerCase())
+  // ECharts' own: fill #333 with a 2px white stroke, which reads as outlined text on a dark theme.
+  expect(await label.evaluate((t) => [t.getAttribute('fill')?.toLowerCase(), Number(t.getAttribute('stroke-width') ?? 0)])).toEqual([fg, 0])
+})
+
 test('donut: a ring, with a hole in the middle', async ({ page }) => {
   await open(page, 'donut')
   const box = (await page.locator('#donut').boundingBox())!

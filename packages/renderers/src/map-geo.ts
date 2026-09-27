@@ -183,8 +183,17 @@ export interface Tile {
 }
 
 /** The tiles that cover a `width`×`height` box, and where each goes. */
-export function tilesFor(p: Placement, width: number, height: number, template: string): Tile[] {
-  const z = Math.max(0, Math.min(MAX_ZOOM, Math.round(Math.log2(p.scale))))
+/**
+ * The tiles that cover the map, at the zoom that's sharp where it's shown.
+ * `density` is screen pixels per canvas pixel (the canvas's CSS scale ×
+ * `devicePixelRatio`): a projector or a 2× screen gets the next zoom level
+ * rather than stretched tiles. `{r}` in a template (Leaflet's convention)
+ * becomes `@2x` on a dense screen, for providers with 512px tiles.
+ */
+export function tilesFor(p: Placement, width: number, height: number, template: string, density = 1): Tile[] {
+  const retina = template.includes('{r}') && density >= 1.5
+  // A 512px tile covers twice the screen pixels of a 256px one at the same zoom.
+  const z = Math.max(0, Math.min(MAX_ZOOM, Math.round(Math.log2((p.scale * density) / (retina ? 2 : 1)))))
   const n = 2 ** z
   const size = (WORLD / n) * p.scale
   const tx0 = Math.floor(-p.dx / size)
@@ -200,6 +209,7 @@ export function tilesFor(p: Placement, width: number, height: number, template: 
         .replace('{x}', String(x))
         .replace('{y}', String(ty))
         .replace('{s}', 'abc'[(x + ty) % 3]!)
+        .replace('{r}', retina ? '@2x' : '')
       out.push({ key: `${z}/${tx}/${ty}`, url, left: p.dx + tx * size, top: p.dy + ty * size, size })
     }
   }

@@ -48,6 +48,9 @@ relied on it will notice.
   pies; `time: true` for a time axis of ISO dates, labelled in the deck's
   language; `delimiter` for CSVs whose header doesn't make it clear.
 - A map's choropleth legend writes numbers in the deck's language.
+- Street maps stay sharp on projectors and high-resolution screens: tiles
+  are loaded for the size the map is shown at. `{r}` in a tile template
+  asks a provider for its high-resolution (`@2x`) tiles.
 - Plugins: `RenderCtx.lang`, and `RenderCtx.number(text, thousands?)` to
   read data the way the built-in renderers do.
 - blitzstrahl speaks English, German, French, Spanish, Italian, Polish and

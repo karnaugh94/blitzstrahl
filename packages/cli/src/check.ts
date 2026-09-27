@@ -10,7 +10,7 @@ import { tmpdir } from 'node:os'
 import { join, relative, resolve } from 'node:path'
 import type { Deck, Diagnostic, HastNode, SourceSpan } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
-import { asFeatureCollection, isUrl, markersFromText, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
+import { asFeatureCollection, dataOptions, isUrl, markersFromText, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
 import { build } from './build.js'
 import { deckStyles, loadDeck, type LoadedDeck } from './load.js'
 import { checkBuiltOverflow } from './overflow.js'
@@ -262,7 +262,7 @@ export async function probeGeometry(deck: Deck, timeout: number): Promise<Diagno
         warn('map/cors', cors ? `${url} only lets ${cors} read it (CORS), so the deck's page can't` : `${url} doesn't let other pages read it (no Access-Control-Allow-Origin header), so the browser will refuse it`)
       }
       try {
-        if (key === 'markers') markersFromText(url, text, spec.label, spec.size)
+        if (key === 'markers') markersFromText(url, text, spec.label, spec.size, dataOptions(spec, deck.meta))
         else asFeatureCollection(JSON.parse(text), '`regions`')
       } catch (err) {
         out.push({ severity: 'error', code: 'map/data', message: `\`${key}\` from ${url}: ${(err as Error).message}`, file: deck.source, span })

@@ -9,6 +9,7 @@
  * below refer to it.
  */
 import type { ElementContent } from 'hast'
+import type { Thousands } from './numbers.js'
 
 export const IR_VERSION = 1
 
@@ -41,6 +42,8 @@ export interface DeckMeta {
   author?: string
   date?: string
   lang: string
+  /** How the deck's data groups thousands, if not plainly (§3.1, 1.1). */
+  thousands?: Thousands
   theme: string
   canvas: { width: number; height: number }
   transition: TransitionSpec

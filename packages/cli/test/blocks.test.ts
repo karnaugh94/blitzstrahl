@@ -1,6 +1,6 @@
 import { mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { build } from '../src/build.js'
 import { loadDeck } from '../src/load.js'
@@ -34,5 +34,16 @@ describe('render blocks are checked on every load (M6.6)', () => {
   it('a map, an embed and a mermaid diagram are checked too', async () => {
     const loaded = await loadDeck(deck('```map\nzoom: 3\n```\n\n```embed\nsrc: ftp://example.org\n```\n\n```mermaid\nflowchart LR\n  A --> \n```\n'), 'deck.md')
     expect(loaded.diagnostics.map((d) => d.code)).toEqual(['renderer/map', 'renderer/embed', 'renderer/mermaid'])
+  })
+
+  it('data with thousands marks stops build, and `thousands` reads it (D3′)', async () => {
+    const file = deck('# Chart\n\n```chart\ntype: bar\ndata: ./d.csv\n```\n')
+    writeFileSync(join(dirname(file), 'd.csv'), 'k,v\na,"1,200"\n')
+    const loaded = await loadDeck(file, 'deck.md')
+    expect(loaded.diagnostics.map((d) => d.message)).toEqual([
+      expect.stringMatching(/^`chart` block: `d\.csv`, line 2: `1,200` in `v` isn't a number as data writes them .*`thousands: ","`$/),
+    ])
+    writeFileSync(file, `---\nthousands: ","\n---\n\n# Title\n\n---\n\n# Chart\n\n\`\`\`chart\ntype: bar\ndata: ./d.csv\n\`\`\`\n`)
+    expect((await loadDeck(file, 'deck.md')).diagnostics).toEqual([])
   })
 }, 60_000)

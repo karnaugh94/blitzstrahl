@@ -12,6 +12,33 @@ relied on it will notice.
 
 ## [Unreleased]
 
+### Changed
+
+- **Numbers in data are written plainly, in every language**: a dot for
+  decimals and nothing between the thousands (`1200`, `3.5`; `2.000` is
+  2). A data cell written any other way (`1,200`, `3,5`, `1.234,5`) stops
+  the build with its file and line, instead of being guessed. 1.0 read
+  `1,200` as 1200, and 1.0.1's column-by-column detection of decimal
+  commas is gone. Data written with thousands marks says so with the new
+  `thousands` key (deck, chart or map): `thousands: "."` reads a German
+  Excel export (`1.234,5`, `3,5`). The error suggests the right value.
+- Sortable tables and `count-up` read numbers the way the deck's `lang`
+  (or the element's own `lang=`) writes them: `1.234,5` in `de`,
+  `1 234,5` in `fr`. In an English deck, `4,2` is text. Spaces group
+  digits in every language.
+- Pie percentages are written in the deck's language (`43 %` in `de`).
+
+### Added
+
+- Charts: `format` (`"0.0"`, `"0%"`, `compact`, …), `prefix` and `suffix`
+  for every number shown; `aggregate` (`sum`, `mean`, `min`, `max`,
+  `count`) for rows that share a category; `sort: asc | desc` for bars and
+  pies; `time: true` for a time axis of ISO dates, labelled in the deck's
+  language; `delimiter` for CSVs whose header doesn't make it clear.
+- A map's choropleth legend writes numbers in the deck's language.
+- Plugins: `RenderCtx.lang`, and `RenderCtx.number(text, thousands?)` to
+  read data the way the built-in renderers do.
+
 ## [1.0.1] — 2026-09-27
 
 The first release on npm: every fix below is against 1.0.0, which was on

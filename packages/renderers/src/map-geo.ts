@@ -4,7 +4,8 @@
  * GeoJSON. Pure (no ECharts, no DOM), so it's unit-tested directly and
  * `check` can validate specs without a browser.
  */
-import { delimiterOf, parseDelimited, rowsFrom, type Row } from './data.js'
+import { THOUSANDS, type Thousands } from '@blitzstrahl/core/numbers'
+import { DELIMITERS, delimiterOf, parseDelimited, rowsFrom, type DataOptions, type Row } from './data.js'
 
 /** Web mercator's limit: the square world stops here. */
 const MAX_LAT = 85.0511287798
@@ -33,6 +34,10 @@ export interface MapSpec {
   attribution?: string
   /** Pan and zoom with the pointer. */
   roam?: boolean
+  /** How `markers` data groups thousands, if not plainly (D3′). */
+  thousands?: Thousands
+  /** What separates a `markers` CSV's cells, when its header doesn't say. */
+  delimiter?: string
 }
 
 export const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -58,7 +63,7 @@ export const isUrl = (s: string): boolean => /^https?:\/\//i.test(s)
  * is recognised by its content, since a URL often has no extension (an
  * ArcGIS `query?f=geojson`); anything else is CSV, or TSV by extension.
  */
-export function markersFromText(src: string, text: string, label?: string, size?: string): Marker[] {
+export function markersFromText(src: string, text: string, label?: string, size?: string, data: DataOptions = {}): Marker[] {
   const t = text.trimStart()
   if (t.startsWith('{') || t.startsWith('[')) {
     let value: unknown
@@ -71,10 +76,10 @@ export function markersFromText(src: string, text: string, label?: string, size?
     return markersFromGeoJson(asFeatureCollection(value, '`markers`'), label, size)
   }
   const tsv = /\.tsv$/i.test(src.replace(/[?#].*$/, ''))
-  return markersFromRows(parseDelimited(text, tsv ? '\t' : delimiterOf(text)), label, size)
+  return markersFromRows(parseDelimited(text, data.delimiter ?? (tsv ? '\t' : delimiterOf(text)), data.read, `\`${src}\``), label, size)
 }
 
-const KEYS = new Set(['center', 'zoom', 'markers', 'regions', 'label', 'size', 'value', 'labels', 'tiles', 'attribution', 'roam'])
+const KEYS = new Set(['center', 'zoom', 'markers', 'regions', 'label', 'size', 'value', 'labels', 'tiles', 'attribution', 'roam', 'thousands', 'delimiter'])
 
 export function validate(spec: unknown): MapSpec {
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('the block must be a YAML mapping')
@@ -102,6 +107,8 @@ export function validate(spec: unknown): MapSpec {
   for (const k of ['labels', 'roam'] as const) {
     if (s[k] !== undefined && typeof s[k] !== 'boolean') throw new Error(`\`${k}\` must be true or false`)
   }
+  if (s.thousands !== undefined && !THOUSANDS.includes(s.thousands as never)) throw new Error('`thousands` must be one of ",", ".", " "')
+  if (s.delimiter !== undefined && !DELIMITERS.includes(s.delimiter as never)) throw new Error('`delimiter` must be one of ",", ";", "\\t"')
   if (s.value !== undefined && s.regions === undefined) throw new Error('`value` colours `regions`: add a regions file')
   if (s.size !== undefined && s.markers === undefined) throw new Error('`size` sizes `markers`: add markers')
   if (typeof s.tiles === 'string' && s.tiles !== 'none' && !Object.hasOwn(TILE_PRESETS, s.tiles) && !/\{z\}/.test(s.tiles)) {

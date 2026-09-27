@@ -4,6 +4,7 @@
  * needs to drive it. Derived from the IR, never from markdown.
  */
 import type { AnimSpec, Deck, RenderBlock, TransitionSpec } from './ir.js'
+import type { Thousands } from './numbers.js'
 
 export interface PayloadSlide {
   id: string
@@ -17,6 +18,8 @@ export interface PayloadSlide {
 export interface DeckPayload {
   title: string
   lang: string
+  /** The deck's `thousands`, for `RenderCtx.number`. */
+  thousands?: Thousands
   canvas: { width: number; height: number }
   slides: PayloadSlide[]
   /**
@@ -48,6 +51,7 @@ export function toPayload(deck: Deck, inline: Record<string, string> = {}, asset
     ...plugins,
     title: deck.meta.title,
     lang: deck.meta.lang,
+    ...(deck.meta.thousands ? { thousands: deck.meta.thousands } : {}),
     canvas: deck.meta.canvas,
     slides: deck.slides.map((s) => {
       const slide: PayloadSlide = {

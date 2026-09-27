@@ -1,66 +1,86 @@
 /**
- * Numerals as decks write them (PLAN §15, M6.4): `1,234.5` in English,
- * `1.234,5` in German, `1 234,5` in French. Pure. The renderers use it for
+ * Numerals (PLAN D3′, user 2026-09-27). Pure. The renderers use it for
  * data files and sortable tables, and the runtime for `count-up`, through
  * `@blitzstrahl/core/numbers`, which carries nothing else of core into the
  * page.
  *
- * The rule, from the chart docs (`1,200` is twelve hundred): a comma groups
- * thousands, unless the numerals can't be read that way (`3,5`, `12,25`, or
- * dots that group, `1.234.567`). Then the comma is the decimal mark. One
- * case stays ambiguous, `12,250`, and is read as twelve thousand two hundred
- * and fifty.
+ * Two ways a number is written, and nothing is guessed between them:
+ * - **data** is plain in every language (`1200`, `3.5`, and `2.000` is 2),
+ *   unless the deck or the block says how it groups thousands
+ *   (`thousands: "."` reads `1.200,5`);
+ * - **text for the audience** (table cells, `count-up`) is read the way
+ *   the deck's `lang` writes numbers (`1.200,5` in `de`).
  */
 
 /** The character between a numeral's whole part and its fraction. */
 export type DecimalMark = '.' | ','
 
+/** How data may group thousands (syntax.md §3.1 `thousands`). */
+export type Thousands = ',' | '.' | ' '
+export const THOUSANDS: readonly Thousands[] = [',', '.', ' ']
+
+/** How numerals are written: the decimal mark, and the characters that may group thousands ('' for none). */
+export interface Numerals {
+  decimal: DecimalMark
+  group: string
+}
+
 const SIGN = /^[-+−]/
 /** Spaces that group digits: a space, no-break space, thin space and narrow no-break space. */
-const SPACES = ' \\u00a0\\u2009\\u202f'
+const SPACES = ' \u00a0\u2009\u202f'
+
+/** Data as written in every language: `.` decimal, no grouping. */
+export const PLAIN: Numerals = { decimal: '.', group: '' }
+
+/** How data declared with `thousands` is written; plain without it. */
+export function dataNumerals(thousands?: Thousands): Numerals {
+  if (thousands === ',') return { decimal: '.', group: ',' }
+  if (thousands === '.') return { decimal: ',', group: '.' }
+  if (thousands === ' ') return { decimal: ',', group: SPACES }
+  return PLAIN
+}
+
+/** How `lang` writes numbers (`Intl`); English for a tag `Intl` doesn't know. */
+export function langNumerals(lang: string | undefined): Numerals {
+  let parts: Intl.NumberFormatPart[]
+  try {
+    parts = new Intl.NumberFormat(lang || 'en', { useGrouping: true }).formatToParts(1234567.5)
+  } catch {
+    parts = new Intl.NumberFormat('en').formatToParts(1234567.5)
+  }
+  const decimal = parts.find((p) => p.type === 'decimal')?.value === ',' ? ',' : '.'
+  const g = parts.find((p) => p.type === 'group')?.value ?? ''
+  // Spaces group digits in every language (the SI style), and a language that groups with one accepts any: authors type a plain one.
+  const group = (/\s|\u202f/.test(g) || g === decimal ? '' : g) + SPACES
+  return { decimal, group }
+}
 
 function body(text: string): string {
   return text.trim().replace(SIGN, '')
 }
 
-/** One separator between groups of three, then maybe a fraction after `mark`. */
-function grouped(mark: DecimalMark): RegExp {
-  const group = mark === '.' ? `,${SPACES}` : `.${SPACES}`
-  return new RegExp(`^\\d{1,3}([${group}])\\d{3}(?:\\1\\d{3})*(?:\\${mark}\\d+)?$`)
-}
+const escape = (chars: string) => chars.replace(/[\\\]^-]/g, '\\$&')
 
-const GROUPED = { '.': grouped('.'), ',': grouped(',') }
-const PLAIN = {
-  '.': /^(?:\d+(?:\.\d*)?|\.\d+)(?:e[-+]?\d+)?$/i,
-  ',': /^(?:\d+(?:,\d*)?|,\d+)$/,
+/** A numeral's value, written as `numerals` says, or undefined if it isn't one written that way. */
+export function readNumber(text: string, numerals: Numerals = PLAIN): number | undefined {
+  const t = text.trim()
+  let b = body(t)
+  const d = `\\${numerals.decimal}`
+  const grouped = numerals.group && new RegExp(`^\\d{1,3}([${escape(numerals.group)}])\\d{3}(?:\\1\\d{3})*(?:${d}\\d+)?$`)
+  if (grouped && grouped.test(b)) b = b.replace(new RegExp(`[${escape(numerals.group)}]`, 'g'), '')
+  else if (!new RegExp(`^(?:\\d+(?:${d}\\d*)?|${d}\\d+)${numerals.decimal === '.' ? '(?:e[-+]?\\d+)?' : ''}$`, 'i').test(b)) return undefined
+  const n = Number(numerals.decimal === ',' ? b.replace(',', '.') : b)
+  if (!Number.isFinite(n)) return undefined
+  return /^[-−]/.test(t) ? -n : n
 }
 
 /**
- * The decimal mark some numerals imply: `,` when some of them can only be
- * read that way and none can only be read the English way; `.` otherwise.
+ * The `thousands` that would read a numeral that plain data doesn't
+ * (`1,200` → `,`), for an error to suggest; undefined if none would.
  */
-export function decimalMark(values: Iterable<string>): DecimalMark {
-  let comma = false
-  let dot = false
-  for (const v of values) {
-    const b = body(v)
-    if ((/^\d+,\d+$/.test(b) && !/^\d{1,3},\d{3}$/.test(b)) || /^\d{1,3}(\.\d{3}){2,}$/.test(b)) comma = true
-    else if (new RegExp(`^\\d{1,3}([.${SPACES}])\\d{3}(?:\\1\\d{3})*,\\d+$`).test(b)) comma = true
-    else if ((/^\d+\.\d+$/.test(b) && !/^\d{1,3}\.\d{3}$/.test(b)) || /^\d{1,3}(,\d{3}){2,}$/.test(b)) dot = true
-    else if (new RegExp(`^\\d{1,3}([,${SPACES}])\\d{3}(?:\\1\\d{3})*\\.\\d+$`).test(b)) dot = true
-  }
-  return comma && !dot ? ',' : '.'
-}
-
-/** A numeral's value with `mark` as its decimal mark, or undefined if it isn't one. */
-export function readNumber(text: string, mark: DecimalMark = '.'): number | undefined {
-  const t = text.trim()
-  let b = body(t)
-  if (GROUPED[mark].test(b)) b = b.replace(new RegExp(`[${mark === '.' ? ',' : '.'}${SPACES}]`, 'g'), '')
-  else if (!PLAIN[mark].test(b)) return undefined
-  const n = Number(mark === ',' ? b.replace(',', '.') : b)
-  if (!Number.isFinite(n)) return undefined
-  return /^[-−]/.test(t) ? -n : n
+export function thousandsFor(text: string, prefer?: Thousands): Thousands | undefined {
+  const order = prefer ? [prefer, ...THOUSANDS.filter((t) => t !== prefer)] : THOUSANDS
+  return order.find((t) => readNumber(text, dataNumerals(t)) !== undefined)
 }
 
 /** How a numeral is written, to write other values the same way. */
@@ -74,14 +94,15 @@ export interface NumberStyle {
   minus: string
 }
 
-export function numberStyle(numeral: string, mark: DecimalMark): NumberStyle {
+export function numberStyle(numeral: string, numerals: Numerals): NumberStyle {
   const t = numeral.trim()
   const b = body(t)
-  const m = GROUPED[mark].exec(b)
+  const mark = numerals.decimal
   const at = b.indexOf(mark)
+  const whole = at < 0 ? b : b.slice(0, at)
   return {
     mark,
-    group: m ? m[1]! : '',
+    group: /\D/.exec(whole)?.[0] ?? '',
     decimals: at < 0 ? 0 : b.length - at - 1,
     minus: t.startsWith('−') ? '−' : '-',
   }

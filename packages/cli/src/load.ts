@@ -93,9 +93,9 @@ export async function loadDeck(path: string, displayName = path, options: LoadOp
       if (problem) at('error', `renderer/${block.renderer}`, problem)
       continue
     }
-    const problem = block.renderer === 'mermaid' ? await mermaidProblem(block.spec) : specProblem(block.renderer, block.spec, read)
+    const problem = block.renderer === 'mermaid' ? await mermaidProblem(block.spec) : specProblem(block.renderer, block.spec, read, deck.meta)
     if (problem) at('error', `renderer/${block.renderer}`, problem)
-    else for (const note of specNotes(block.renderer, block.spec, read)) at('info', `renderer/${block.renderer}-note`, note)
+    else for (const note of specNotes(block.renderer, block.spec, read, deck.meta)) at('info', `renderer/${block.renderer}-note`, note)
   }
   diagnostics.push(...(await highlightDeck(deck, source)))
   diagnostics.push(...renderMath(deck, source))

@@ -51,7 +51,10 @@ function themeFrom(ctx: RenderCtx) {
 }
 
 async function buildOption(spec: ChartSpec, el: HTMLElement, ctx: RenderCtx) {
-  const rows = typeof spec.data === 'string' ? parseData(spec.data, await ctx.loadAsset(spec.data)) : spec.data
+  const rows =
+    typeof spec.data === 'string'
+      ? parseData(spec.data, await ctx.loadAsset(spec.data), { read: (t) => ctx.number(t, spec.thousands), delimiter: spec.delimiter })
+      : spec.data
   // Numbers follow the deck's `lang` (on <html>, or an element's own `lang`).
   const locale = el.closest('[lang]')?.getAttribute('lang') || undefined
   return chartOption(spec, rows, { dur: ctx.block.anim?.dur ?? 900, reducedMotion: ctx.reducedMotion, locale })

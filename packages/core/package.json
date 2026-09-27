@@ -11,6 +11,10 @@
     "./numbers": {
       "types": "./dist/numbers.d.ts",
       "default": "./dist/numbers.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n.d.ts",
+      "default": "./dist/i18n.js"
     }
   },
   "files": [

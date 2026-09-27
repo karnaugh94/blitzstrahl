@@ -6,6 +6,7 @@
  * A browser gives the page no way to tell, so `blitzstrahl check` asks each
  * site before the talk instead (CLAUDE.md: catch it, don't engineer around it).
  */
+import { fill, strings } from '@blitzstrahl/core/i18n'
 import type { RenderCtx, RenderInstance, Renderer } from '@blitzstrahl/runtime'
 
 export interface EmbedSpec {
@@ -47,6 +48,8 @@ const embed: Renderer = {
     const spec = validate(raw)
     const doc = el.ownerDocument
     const host = new URL(spec.src).host
+    // Notices are for the audience, so in the deck's (or the block's) language.
+    const words = strings(el.closest('[lang]')?.getAttribute('lang') || ctx.lang).deck
     const box = doc.createElement('div')
     box.className = 'blitz-embed'
     // PDF export prints this if the page doesn't load.
@@ -59,13 +62,13 @@ const embed: Renderer = {
         const img = doc.createElement('img')
         img.className = 'blitz-embed-fallback'
         img.src = fallbackUrl(spec.fallback, ctx)
-        img.alt = spec.title ?? `${host} (offline copy)`
+        img.alt = spec.title ?? fill(words.offlineCopy, { host })
         box.append(img)
         return done(img.decode().catch(() => {}))
       }
       const note = doc.createElement('p')
       note.className = 'blitz-embed-offline'
-      note.textContent = `${host} needs a network connection`
+      note.textContent = fill(words.needsNetwork, { host })
       box.append(note)
       return done(Promise.resolve())
     }

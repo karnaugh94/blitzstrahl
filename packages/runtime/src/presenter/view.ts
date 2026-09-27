@@ -10,7 +10,8 @@ import type { DeckPayload } from '@blitzstrahl/core'
 import { InkBook, bindInk, type Tool } from '../ink.js'
 import { bindKeyboard, type NavTarget } from '../input.js'
 import { next, type Position } from '../steps.js'
-import { LayerHost, gotoPrompt, help, overview, slideLabel } from '../ui.js'
+import { fill } from '@blitzstrahl/core/i18n'
+import { LayerHost, gotoPrompt, help, overview, slideLabel, uiWords } from '../ui.js'
 import { PROTOCOL, elapsed, formatElapsed, isEnvelope, type PresenterMsg } from './protocol.js'
 import { WindowTransport } from './transport.js'
 import { presenterCss } from './view-css.js'
@@ -42,6 +43,8 @@ export class PresenterView implements NavTarget {
   private readonly upcoming: Mirror
   private lastHeard = 0
   private notesSize: number
+  /** For the presenter, so in the browser's language. */
+  private readonly words: ReturnType<typeof uiWords>
   private readonly timers: number[] = []
   /** The talk's drawing, as the deck last told it, to hand to a preview that (re)loads. */
   private readonly book = new InkBook()
@@ -56,8 +59,9 @@ export class PresenterView implements NavTarget {
     this.payload = payload
     this.win = doc.defaultView!
     this.layers = new LayerHost(doc)
+    this.words = uiWords(doc)
     this.notesSize = readNumber(this.win, NOTES_SIZE_KEY) ?? 24
-    doc.title = `Presenter · ${payload.title}`
+    doc.title = fill(this.words.presenter.windowTitle, { title: payload.title })
 
     const style = doc.createElement('style')
     style.textContent = presenterCss
@@ -278,33 +282,34 @@ export class PresenterView implements NavTarget {
     const s = this.state
     const slides = this.payload.slides
     this.el.status!.dataset.status = status
-    this.el.status!.textContent = status === 'connected' ? 'Connected' : status === 'waiting' ? 'Waiting for the audience window…' : 'No audience window'
+    const w = this.words.presenter
+    this.el.status!.textContent = status === 'connected' ? w.connected : status === 'waiting' ? w.waiting : w.noAudience
     this.el.connect!.hidden = status !== 'none'
     this.el.root!.dataset.status = status
 
     if (!s) {
-      this.el.position!.textContent = `${slides.length} slides`
-      this.el.notes!.replaceChildren(note(this.doc, status === 'none' ? 'Open the audience window to start.' : 'Connecting…'))
+      this.el.position!.textContent = fill(w.slideCount, { total: slides.length })
+      this.el.notes!.replaceChildren(note(this.doc, status === 'none' ? w.openToStart : w.connecting))
       this.tick()
       return
     }
     const slide = slides[s.slide]
     const steps = slide?.steps ?? 0
-    this.el.position!.textContent = `Slide ${s.slide + 1} of ${slides.length}${steps ? ` · Step ${s.step} of ${steps}` : ''}`
-    this.el.title!.textContent = slide ? slideLabel(slide, s.slide) : ''
+    this.el.position!.textContent = fill(w.position, { n: s.slide + 1, total: slides.length }) + (steps ? ` · ${fill(w.step, { n: s.step, total: steps })}` : '')
+    this.el.title!.textContent = slide ? slideLabel(slide, s.slide, this.words) : ''
     this.el.blackout!.setAttribute('aria-pressed', String(s.blackout))
     this.el.root!.toggleAttribute('data-blackout', s.blackout)
-    this.el.timerToggle!.textContent = s.timer.running ? 'Pause' : 'Start'
+    this.el.timerToggle!.textContent = s.timer.running ? w.pause : w.start
 
     this.show(this.current, s)
     const n = next(s, slides.map((x) => x.steps))
-    this.el.nextLabel!.textContent = !n ? 'End of deck' : n.slide === s.slide ? `Next: step ${n.step} of ${steps}` : `Next: ${slideLabel(slides[n.slide]!, n.slide)}`
+    this.el.nextLabel!.textContent = !n ? w.endOfDeck : n.slide === s.slide ? fill(w.nextStep, { n: n.step, total: steps }) : fill(w.nextSlide, { title: slideLabel(slides[n.slide]!, n.slide, this.words) })
     this.el.root!.toggleAttribute('data-at-end', !n)
     if (n) this.show(this.upcoming, n)
 
     const tpl = this.doc.getElementById('blitz-notes')
     const body = tpl instanceof HTMLTemplateElement && slide ? tpl.content.querySelector(`[data-for="${CSS.escape(slide.id)}"]`) : null
-    this.el.notes!.replaceChildren(...(body ? [...body.cloneNode(true).childNodes] : [note(this.doc, 'No notes for this slide.')]))
+    this.el.notes!.replaceChildren(...(body ? [...body.cloneNode(true).childNodes] : [note(this.doc, w.noNotes)]))
     this.tick()
   }
 
@@ -320,6 +325,7 @@ export class PresenterView implements NavTarget {
 
   private build(): HTMLElement {
     const d = this.doc
+    const w = this.words.presenter
     const button = (label: string, title: string, onClick: () => void, name?: string) => {
       const b = d.createElement('button')
       b.type = 'button'
@@ -349,36 +355,36 @@ export class PresenterView implements NavTarget {
       'header',
       'bp-bar',
       undefined,
-      button('←', 'Previous', () => this.retreat()),
-      button('→', 'Next', () => this.advance()),
+      button('←', w.previous, () => this.retreat()),
+      button('→', w.next, () => this.advance()),
       el('div', 'bp-where', undefined, el('span', 'bp-position', 'position'), el('span', 'bp-title', 'title')),
       el('div', 'bp-spacer'),
       el('span', 'bp-elapsed', 'elapsed', '00:00'),
-      button('Start', 'Start or pause the timer', () => this.transport.send({ type: 'timer', action: this.state?.timer.running ? 'pause' : 'start' }), 'timerToggle'),
-      button('Reset', 'Reset the timer', () => this.transport.send({ type: 'timer', action: 'reset' })),
+      button(w.start, w.timerToggle, () => this.transport.send({ type: 'timer', action: this.state?.timer.running ? 'pause' : 'start' }), 'timerToggle'),
+      button(w.reset, w.resetTitle, () => this.transport.send({ type: 'timer', action: 'reset' })),
       el('span', 'bp-clock', 'clock'),
-      button('Slides', 'All slides (Esc)', () => this.showGrid()),
-      button('Black out', 'Black out the audience screen (B)', () => this.toggleBlackout(), 'blackout'),
-      button('Laser', 'Laser pointer on the current slide (L)', () => this.setTool(this.tool === 'laser' ? 'none' : 'laser'), 'laser'),
-      button('Pen', 'Draw on the current slide (D)', () => this.setTool(this.tool === 'pen' ? 'none' : 'pen'), 'pen'),
-      button('Clear', 'Clear the drawing on this slide (C)', () => this.clearInk()),
+      button(w.slides, w.slidesTitle, () => this.showGrid()),
+      button(w.blackout, w.blackoutTitle, () => this.toggleBlackout(), 'blackout'),
+      button(w.laser, w.laserTitle, () => this.setTool(this.tool === 'laser' ? 'none' : 'laser'), 'laser'),
+      button(w.pen, w.penTitle, () => this.setTool(this.tool === 'pen' ? 'none' : 'pen'), 'pen'),
+      button(w.clear, w.clearTitle, () => this.clearInk()),
       el('span', 'bp-status', 'status'),
     )
     const connect = el(
       'div',
       'bp-connect',
       'connect',
-      el('p', '', undefined, 'This presenter view isn’t connected to an audience window. Open the deck from here, or press P in the deck.'),
-      button('Open audience window', 'Open audience window', () => this.openAudience()),
+      el('p', '', undefined, w.notConnected),
+      button(w.openAudience, w.openAudience, () => this.openAudience()),
     )
-    const current = el('section', 'bp-current', undefined, el('div', 'bp-frame', 'currentBox', frame('currentFrame', 'Current slide'), el('div', 'bp-black', undefined, 'Audience sees black')), connect)
+    const current = el('section', 'bp-current', undefined, el('div', 'bp-frame', 'currentBox', frame('currentFrame', w.currentSlide), el('div', 'bp-black', undefined, w.audienceBlack)), connect)
     const notesTools = el(
       'div',
       'bp-notes-tools',
       undefined,
-      el('h2', '', undefined, 'Notes'),
-      button('A−', 'Smaller notes', () => this.setNotesSize(this.notesSize - 2)),
-      button('A+', 'Larger notes', () => this.setNotesSize(this.notesSize + 2)),
+      el('h2', '', undefined, w.notes),
+      button('A−', w.smaller, () => this.setNotesSize(this.notesSize - 2)),
+      button('A+', w.larger, () => this.setNotesSize(this.notesSize + 2)),
     )
     const notes = el('div', 'bp-notes', 'notes')
     notes.style.fontSize = `${this.notesSize}px`
@@ -386,12 +392,12 @@ export class PresenterView implements NavTarget {
       'aside',
       'bp-side',
       undefined,
-      el('section', 'bp-next', undefined, el('h2', '', 'nextLabel', 'Next'), el('div', 'bp-frame', undefined, frame('nextFrame', 'Next slide'), el('div', 'bp-end', undefined, 'End of deck'))),
+      el('section', 'bp-next', undefined, el('h2', '', 'nextLabel', w.nextHeading), el('div', 'bp-frame', undefined, frame('nextFrame', w.nextSlideFrame), el('div', 'bp-end', undefined, w.endOfDeck))),
       el('section', 'bp-notes-pane', undefined, notesTools, notes),
     )
     const root = el('div', 'bp', 'root', bar, current, side)
     root.setAttribute('role', 'application')
-    root.setAttribute('aria-label', 'Presenter view')
+    root.setAttribute('aria-label', this.words.presenterView)
     for (const f of root.querySelectorAll<HTMLElement>('.bp-frame')) f.style.aspectRatio = `${this.payload.canvas.width} / ${this.payload.canvas.height}`
     return root
   }

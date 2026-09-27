@@ -158,7 +158,7 @@ blitzstrahl 1.1 will use (listed there).
 | `title` | string | first slide's title | Document title, `<title>` |
 | `author` | string | — | The page's `<meta name="author">`. No built-in theme shows it on a slide yet |
 | `date` | string | — | Free-form. Not shown on a slide yet |
-| `lang` | string | `en` | BCP 47 tag, `<html lang>`. Also how charts and maps write numbers, and how numbers in tables and `count-up` are read (`3,5` is 3.5 in `de`) |
+| `lang` | string | `en` | BCP 47 tag, `<html lang>`. Also the language of the text blitzstrahl writes for the audience (§3.3), how charts and maps write numbers, and how numbers in tables and `count-up` are read (`3,5` is 3.5 in `de`) |
 | `thousands` | `","`, `"."` or `" "` | — | How numbers are written in the deck's data files, when not plainly (`1200`, `3.5`): `thousands: "."` reads `1.200,5` as 1200.5. Charts and maps can set their own (docs/renderers/chart.md, *Data*). Quote it |
 | `theme` | string | `aurora` | A built-in theme (`aurora`, `broadsheet`), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` (docs/plugins.md §1) |
 | `plugins` | list | — | Plugin packages or `./paths`, loaded in order (docs/plugins.md) |
@@ -189,6 +189,27 @@ hoisted to the slide:
 On any other element these keys are an error. Classes and `#id` on the first
 heading stay on the heading. If a key is set both in frontmatter and on the
 heading, frontmatter wins and a warning is emitted.
+
+### 3.3 The deck's language
+
+The few words blitzstrahl adds to a deck for its audience are written in
+the deck's `lang`:
+
+- what a screen reader announces on each slide change ("Results (3 of
+  12)", or "Slide 3 (3 of 12)" for a slide without a title);
+- the footnotes' heading and the labels of their back-links, which screen
+  readers read out;
+- an embed's notices ("needs a network connection", "offline copy");
+- the note a static build shows when it's opened from a file, not a web
+  server.
+
+Built in: English, German, French, Spanish, Italian, Polish and Swedish
+(`en`, `de`, `fr`, `es`, `it`, `pl`, `sv`). A region is ignored
+(`de-AT` is `de`), and any other language gets English. The overview, the
+go-to box, the key help and the presenter view are for whoever's
+presenting, so they follow the browser's language instead
+(docs/presenting.md). Your own text is never translated, and error
+messages (in the console, and in place of a broken block) stay English.
 
 ---
 

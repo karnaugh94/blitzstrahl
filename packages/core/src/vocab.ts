@@ -30,6 +30,12 @@ export const EFFECTS: Readonly<Record<string, EffectKind>> = {
 /** syntax.md §3.2: what slide frontmatter can set. A block needs one of these to be frontmatter (§2.3). */
 export const SLIDE_KEYS: ReadonlySet<string> = new Set(['id', 'layout', 'transition', 'transition-dur', 'background', 'class', 'style'])
 
+/**
+ * Deck keys blitzstrahl 1.1 will give meaning to (PLAN §16). Reserved from
+ * 1.0.1, so no plugin registers one first and breaks when it arrives.
+ */
+export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set(['decimal', 'css', 'background', 'footer', 'slide-numbers', 'logo', 'duration', 'public'])
+
 /** syntax.md §4.3 */
 export const ANIM_KEYS = new Set(['dur', 'delay', 'ease', 'reverse', 'from', 'cps'])
 export const SLIDE_SHORTHAND_KEYS = new Set(['transition', 'transition-dur', 'layout', 'background'])

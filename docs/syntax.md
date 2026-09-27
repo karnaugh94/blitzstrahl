@@ -148,15 +148,16 @@ sequence.
 ## 3. Frontmatter keys
 
 Unknown keys are warnings, not errors. Plugins may register their own deck
-keys, which are then known (docs/plugins.md §2.4).
+keys, which are then known (docs/plugins.md §2.4), except the names
+blitzstrahl 1.1 will use (listed there).
 
 ### 3.1 Deck
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `title` | string | first slide's title | Document title, `<title>` |
-| `author` | string | — | Shown by themes that display it |
-| `date` | string | — | Free-form, displayed as written |
+| `author` | string | — | The page's `<meta name="author">`. No built-in theme shows it on a slide yet |
+| `date` | string | — | Free-form. Not shown on a slide yet |
 | `lang` | string | `en` | BCP 47 tag, `<html lang>` |
 | `theme` | string | `aurora` | A built-in theme (`aurora`, `broadsheet`), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` (docs/plugins.md §1) |
 | `plugins` | list | — | Plugin packages or `./paths`, loaded in order (docs/plugins.md) |
@@ -492,7 +493,7 @@ Remember to mention the Q3 dip. **Don't** read the chart aloud.
 :::
 ```
 
-- Full markdown, rendered in the presenter view and the `--notes` handout.
+- Full markdown, rendered in the presenter view.
   Never rendered to the audience.
 - A slide may have several `notes` containers. They are concatenated in order.
 - Allowed anywhere in a slide, including inside other containers.

@@ -228,6 +228,10 @@ A registered key is no longer an "unknown key" warning. Its value is passed to e
 in the page. Don't put secrets in frontmatter. Only deck frontmatter can be
 extended in 1.0; slide frontmatter can't.
 
+**Reserved names.** blitzstrahl 1.1 gives meaning to these deck keys, so a
+plugin can't register them: `decimal`, `css`, `background`, `footer`,
+`slide-numbers`, `logo`, `duration` and `public`.
+
 ---
 
 ## 3. Writing a theme
@@ -239,7 +243,7 @@ import { defineTheme } from 'blitzstrahl/theme'
 export default defineTheme({
   name: 'acme',
   tokens: { bg: '#fbfaf7', fg: '#1a1a1a', 'fg-muted': '#6b6b6b', accent: '#c2410c', /* chart-1 … chart-8 */ },
-  css: `.blitz-slide h1 { font-family: var(--blitz-font-display); }`,
+  css: `.blitz-slide h1 { font-family: var(--blitz-font-serif); }`,
   fonts: [
     { family: 'Fraunces', src: new URL('./fonts/fraunces.woff2', import.meta.url), weight: '300 900' },
   ],

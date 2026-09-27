@@ -160,7 +160,7 @@ ${LICENCE_NOTICE}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="blitzstrahl">
-<title>${esc(o.deck.meta.title)}</title>
+${o.deck.meta.author ? `<meta name="author" content="${esc(o.deck.meta.author)}">\n` : ''}<title>${esc(o.deck.meta.title)}</title>
 <style>
 ${runtimeCss}
 ${o.theme.stylesheet}

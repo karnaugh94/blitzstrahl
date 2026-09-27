@@ -31,6 +31,12 @@ export interface ThemeFont {
   weight?: string | number
   /** CSS `font-style`. Default `normal`. */
   style?: string
+  /**
+   * CSS `unicode-range`: the characters this file covers, when a family
+   * comes in subsets (docs/plugins.md §3.2). Standalone files carry only
+   * the subsets their text uses. Default: every character. *(1.1)*
+   */
+  unicodeRange?: string
 }
 
 export interface Theme extends ThemeDefinition {

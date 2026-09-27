@@ -130,5 +130,9 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * Raised 2026-09-27 (M7.4): 116.8 kB bare. The overlays and the presenter
  * view speak the browser's language even offline, so every page carries
  * all seven languages' strings (21 kB of JSON).
+ * Raised 2026-09-27 (M7.1): 181.4 kB bare. aurora ships Inter, and an
+ * English deck carries its Latin face, inlined (48 kB, 64 kB as base64).
+ * Nothing else of the shipped fonts: no italics, code font or other scripts.
+ * With a chart and inline code: 803 kB, JetBrains Mono's Latin face included.
  */
-const BUDGET = { minimal: 120_000, withChart: 800_000 }
+const BUDGET = { minimal: 185_000, withChart: 870_000 }

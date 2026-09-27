@@ -257,7 +257,7 @@ export default defineTheme({
 | `name` | Required |
 | `tokens` | Become `:root { --blitz-<name>: value }`. The **token names are the contract** (§3.1). A missing required token is an error, and an unknown one is a warning. |
 | `css` | Styles for slide content. Scope every rule to `.blitz-slide` or `[data-layout]`: bare `h1` or `table` would also style the overlays and the presenter view. |
-| `fonts` | `@font-face`s: `{ family, src, weight?, style? }`. `src` is a file URL or a path relative to the theme module. Files are copied into static builds and inlined into standalone ones. |
+| `fonts` | `@font-face`s: `{ family, src, weight?, style?, unicodeRange? }`. `src` is a file URL or a path relative to the theme module. Files are copied into static builds. `unicodeRange` (CSS syntax, `U+0000-00FF, U+0131`) says which characters a file covers: split a family into subsets, one file each, and a standalone file inlines only the subsets its text uses (§3.2). *(`unicodeRange`: 1.1)* |
 
 Before the theme's `css`, every slide already gets `color: var(--blitz-fg)`,
 `background-color: var(--blitz-bg)` and the `text` size in `font-sans`, and
@@ -275,6 +275,27 @@ The complete list, with defaults and what reads each token, is in
 palette `chart-1` … `chart-8`. Renderers read these from script, so they
 need real colours. Every other token has a default. New tokens can be added
 in minor versions, always with a default, so an older theme keeps working.
+
+### 3.2 Fonts
+
+Ship the fonts your theme names. A font that isn't shipped is whatever the
+presenting machine has, or a fallback, so line breaks and overflow change
+from one computer to the next. `check` says so (docs/cli.md).
+
+Split each family into subsets with `unicodeRange`, as the built-in themes
+do (Fontsource publishes the files and their ranges). Browsers download only
+the subsets a page uses, and standalone files inline only those. Put the
+shipped families first in your font tokens:
+
+```js
+fonts: [
+  { family: 'Fraunces', src: './fonts/fraunces-latin.woff2', weight: '300 900', unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, …' },
+  { family: 'Fraunces', src: './fonts/fraunces-latin-ext.woff2', weight: '300 900', unicodeRange: 'U+0100-02BA, …' },
+],
+tokens: { 'font-serif': 'Fraunces, Georgia, serif', /* … */ },
+```
+
+Ship each font's licence with the theme.
 
 ---
 

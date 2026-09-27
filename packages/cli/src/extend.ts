@@ -272,8 +272,10 @@ function collectFonts(fonts: unknown, from: string, problems: string[], x: Extra
       continue
     }
     const font: ThemeFontFile = { family: f.family, file: path, weight: String(f.weight ?? 400), style: typeof f.style === 'string' ? f.style : 'normal' }
-    // Not yet in `ThemeFont` (1.1), but read already so a family can come in subsets.
-    if (typeof f.unicodeRange === 'string' && /^\s*U\+[0-9A-F?]+(-[0-9A-F]+)?(\s*,\s*U\+[0-9A-F?]+(-[0-9A-F]+)?)*\s*$/i.test(f.unicodeRange)) font.unicodeRange = f.unicodeRange
+    if (f.unicodeRange !== undefined) {
+      if (typeof f.unicodeRange === 'string' && /^\s*U\+[0-9A-F?]+(-[0-9A-F]+)?(\s*,\s*U\+[0-9A-F?]+(-[0-9A-F]+)?)*\s*$/i.test(f.unicodeRange)) font.unicodeRange = f.unicodeRange
+      else problems.push(`font \`${f.family}\`: \`unicodeRange\` must be a CSS unicode-range, e.g. "U+0000-00FF, U+0131"`)
+    }
     x.fonts.push(font)
     x.served.push(path)
   }

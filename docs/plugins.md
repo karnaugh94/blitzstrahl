@@ -176,6 +176,8 @@ export default poll
 | `loadAsset(path)` | The text of a deck-relative asset (inlined by builds) |
 | `assetUrl(path)` | The URL an asset (an image) is served from |
 | `meta` | The values of frontmatter keys registered by plugins, by name |
+| `lang` | The deck's `lang` (default `en`). Write numbers and dates for it: `new Intl.NumberFormat(ctx.lang)` *(1.1)* |
+| `number(text, thousands?)` | A number from data, read as the built-in renderers read it (`'3.5'` is 3.5; the deck's `thousands`, or the one given), or `undefined` if the text isn't one *(1.1)* |
 
 The rules the built-in renderers follow apply to plugins too. They're
 requirements, not suggestions:
@@ -229,7 +231,7 @@ in the page. Don't put secrets in frontmatter. Only deck frontmatter can be
 extended in 1.0; slide frontmatter can't.
 
 **Reserved names.** blitzstrahl 1.1 gives meaning to these deck keys, so a
-plugin can't register them: `decimal`, `css`, `background`, `footer`,
+plugin can't register them: `css`, `background`, `footer`,
 `slide-numbers`, `logo`, `duration` and `public`.
 
 ---

@@ -4,6 +4,7 @@
  * renderers (PLAN §3).
  */
 import type { AnimSpec, DeckPayload, EffectKind, PayloadSlide, StepRange } from '@blitzstrahl/core'
+import { dataNumerals, readNumber } from '@blitzstrahl/core/numbers'
 import { needsBox, playEntrance, playExit, registerEffects, type CustomEffect, type Played } from './effects.js'
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
 import type { BlockData, RenderCtx, RenderInstance, Renderer, RendererLoader } from './renderer.js'
@@ -718,6 +719,8 @@ export class Deck implements NavTarget {
       loadAsset: (path) => this.loadAsset(path),
       assetUrl: (path) => new URL(this.payload.urls[path] ?? path, this.doc.baseURI).href,
       meta: this.payload.meta ?? {},
+      lang: this.payload.lang,
+      number: (text, thousands) => readNumber(text, dataNumerals(thousands ?? this.payload.thousands)),
     }
   }
 

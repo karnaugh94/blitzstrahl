@@ -4,9 +4,10 @@
 import type { DeckMeta, SourceSpan, TransitionName, TransitionSpec } from './ir.js'
 import type { Diagnostics } from './diagnostics.js'
 import { keySpan, type Frontmatter } from './split.js'
+import { THOUSANDS, type Thousands } from './numbers.js'
 import { LAYOUTS, SLIDE_KEYS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
 
-export const DECK_KEYS = new Set(['title', 'author', 'date', 'lang', 'theme', 'canvas', 'transition', 'transition-dur', 'plugins'])
+export const DECK_KEYS = new Set(['title', 'author', 'date', 'lang', 'thousands', 'theme', 'canvas', 'transition', 'transition-dur', 'plugins'])
 export { SLIDE_KEYS }
 
 export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics, pluginKeys: readonly string[] = []): Omit<DeckMeta, 'title'> & { title?: string } {
@@ -31,6 +32,11 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         const s = scalarString(value)
         if (s === undefined) diags.warn('frontmatter/type', `\`${key}\` should be a string`, span)
         else meta[key] = s
+        break
+      }
+      case 'thousands': {
+        if (THOUSANDS.includes(value as Thousands)) meta.thousands = value as Thousands
+        else diags.error('frontmatter/thousands', '`thousands` must be ",", "." or " " (quoted), the mark that groups thousands in the deck\'s data', span)
         break
       }
       case 'canvas': {

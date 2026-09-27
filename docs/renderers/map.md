@@ -19,9 +19,11 @@ tiles: osm
 | `zoom` | number | fits the data | `0` shows the whole world, `12` a city, `16` a few streets, `19` a building. Fractions are fine |
 | `markers` | path, URL or list | — | Points: GeoJSON Point features, a list of rows as JSON, or a `.csv`/`.tsv` with `lat` and `lng` columns; from a `./file`, an `https://` URL, or rows written inline |
 | `regions` | path or URL | — | GeoJSON polygons, from a `./file.geojson` or an `https://` URL, drawn as outlines, or coloured by `value` |
+| `delimiter` | `","`, `";"` or `"\t"` | from the header | What separates the cells of a `markers` CSV, when the header doesn't make it clear |
+| `thousands` | `","`, `"."` or `" "` | the deck's | How numbers in `markers` and `regions` are written, if not plainly (docs/renderers/chart.md, *Data*) |
 | `label` | property | `name` | Which column or property names each marker or region (tooltips, `labels`) |
 | `size` | column | — | Sizes each marker by this number (a bubble map) |
-| `value` | property | — | Colours each region by this number (a choropleth), from the theme's surface colour to its first chart colour |
+| `value` | property | — | Colours each region by this number (a choropleth), from the theme's surface colour to its first chart colour. The legend writes numbers in the deck's `lang` |
 | `labels` | boolean | `false` | Show marker names beside the markers |
 | `tiles` | provider, URL template or `none` | `none` | The street map under your data. **There is none unless you name one**: `osm` (OpenStreetMap), or any provider's URL template, e.g. `https://tile.example.com/{z}/{x}/{y}.png` (`{s}` picks a subdomain a/b/c; ArcGIS's `{z}/{y}/{x}` order works too) |
 | `attribution` | string | the provider's, for `osm` | Credit shown in the corner. Tile providers require it, and `check` warns when a URL template has none |

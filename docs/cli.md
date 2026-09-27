@@ -149,6 +149,7 @@ at each problem as `deck.md:line:col`:
 | Map data from a URL that isn't what the map expects | error |
 | A map with a tile provider but no `attribution` | warning |
 | A map with no street map (no `tiles`) | info |
+| A bar or line chart that sums repeated categories, without `aggregate` or `series` | info |
 | Classes from plugins' effects and a theme's CSS count as styled; plugin renderers run their own checks | — |
 
 - The exit code is 1 when there are errors. With `--strict`, warnings

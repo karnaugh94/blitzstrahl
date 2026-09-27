@@ -4,6 +4,7 @@
  * built-in chart — is in the main bundle.
  */
 import type { PayloadSlide } from '@blitzstrahl/core'
+import type { Thousands } from '@blitzstrahl/core/numbers'
 
 export type BlockData = PayloadSlide['blocks'][number]
 
@@ -19,6 +20,14 @@ export interface RenderCtx {
   assetUrl(path: string): string
   /** Values of the deck frontmatter keys plugins register, by name (docs/plugins.md §2.4). */
   meta: Readonly<Record<string, unknown>>
+  /** The deck's `lang` (default `en`): write numbers and dates for it. */
+  lang: string
+  /**
+   * A number from data, read as the built-in renderers read it: plain
+   * (`3.5`), or as `thousands` (default: the deck's) says. Undefined if
+   * `text` isn't one written that way.
+   */
+  number(text: string, thousands?: Thousands): number | undefined
 }
 
 export interface RenderInstance {

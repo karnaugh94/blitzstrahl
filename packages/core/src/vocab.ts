@@ -32,9 +32,10 @@ export const SLIDE_KEYS: ReadonlySet<string> = new Set(['id', 'layout', 'transit
 
 /**
  * Deck keys blitzstrahl 1.1 will give meaning to (PLAN §16). Reserved from
- * 1.0.1, so no plugin registers one first and breaks when it arrives.
+ * 1.0.1, so no plugin registers one first and breaks when it arrives. Each
+ * leaves this list for `DECK_KEYS` when it's built.
  */
-export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set(['decimal', 'css', 'background', 'footer', 'slide-numbers', 'logo', 'duration', 'public'])
+export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set(['css', 'background', 'footer', 'slide-numbers', 'logo', 'duration', 'public'])
 
 /** syntax.md §4.3 */
 export const ANIM_KEYS = new Set(['dur', 'delay', 'ease', 'reverse', 'from', 'cps'])

@@ -158,7 +158,8 @@ blitzstrahl 1.1 will use (listed there).
 | `title` | string | first slide's title | Document title, `<title>` |
 | `author` | string | — | The page's `<meta name="author">`. No built-in theme shows it on a slide yet |
 | `date` | string | — | Free-form. Not shown on a slide yet |
-| `lang` | string | `en` | BCP 47 tag, `<html lang>` |
+| `lang` | string | `en` | BCP 47 tag, `<html lang>`. Also how charts and maps write numbers, and how numbers in tables and `count-up` are read (`3,5` is 3.5 in `de`) |
+| `thousands` | `","`, `"."` or `" "` | — | How numbers are written in the deck's data files, when not plainly (`1200`, `3.5`): `thousands: "."` reads `1.200,5` as 1200.5. Charts and maps can set their own (docs/renderers/chart.md, *Data*). Quote it |
 | `theme` | string | `aurora` | A built-in theme (`aurora`, `broadsheet`), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` (docs/plugins.md §1) |
 | `plugins` | list | — | Plugin packages or `./paths`, loaded in order (docs/plugins.md) |
 | `canvas` | `WxH` string | `1280x720` | Logical canvas size in CSS pixels |
@@ -448,7 +449,7 @@ Options:
 | `delay` | all | milliseconds, after the step is triggered |
 | `ease` | all | `linear`, `in`, `out`, `in-out`, `out-expo`, `in-out-expo`, `out-back`, or a quoted CSS easing, e.g. `ease="cubic-bezier(.2,0,0,1)"` |
 | `reverse` | all | `true`: stepping *backwards* plays the effect in reverse instead of snapping (the default) |
-| `from` | `count-up` | starting number, default `0`. The target is the element's own numeral text, and it counts in that numeral's style: `4,2 %` counts through `2,1 %`, and `1.234.567` keeps its dots |
+| `from` | `count-up` | starting number, default `0`. The target is the element's own numeral text, read the way the deck's `lang` (or the element's own `lang=`) writes numbers, and it counts in the same style: in `de`, `4,2 %` counts through `2,1 %`, and `1.234.567` keeps its dots |
 | `cps` | `typewriter` | characters per second |
 
 Custom entrance effects can be defined in CSS, in the theme or a `<style>`

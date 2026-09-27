@@ -1,4 +1,6 @@
 #!/usr/bin/env node
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
+import { basename, dirname, join, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { build } from './build.js'
 import { dev } from './dev.js'
@@ -36,38 +38,156 @@ Options:
   --port, -p     dev: server port
   --host         dev: listen on all addresses (present from another device)
   --open         dev: open the browser
-  --help, -h     Show this help
+  --help, -h     Show this help, or a command's (blitzstrahl build --help)
+  --version, -v  Show the version
+
+Exit codes: 0 fine, 1 the deck has problems, 2 the command line is wrong.
 
 Environment:
   BLITZSTRAHL_SKIP_OVERFLOW_CHECK=1   build: skip the overflow check (needs no
                                       browser); --strict still checks
 `
 
-async function main(argv: string[]): Promise<number> {
-  const { values, positionals } = parseArgs({
-    args: argv,
-    allowPositionals: true,
-    options: {
-      out: { type: 'string', short: 'o' },
-      force: { type: 'boolean' },
-      strict: { type: 'boolean' },
-      standalone: { type: 'boolean' },
-      steps: { type: 'boolean' },
-      offline: { type: 'boolean' },
-      port: { type: 'string', short: 'p' },
-      host: { type: 'boolean' },
-      open: { type: 'boolean' },
-      help: { type: 'boolean', short: 'h' },
-    },
-  })
-  const [command, deck] = positionals
-  if (values.help || !command) {
-    process.stdout.write(HELP)
-    return values.help ? 0 : 1
+/** Each command's usage, and the options it takes. */
+const COMMANDS: Record<string, { usage: string; options: string[]; help: string }> = {
+  dev: {
+    usage: 'blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]',
+    options: ['port', 'host', 'open'],
+    help: `A live preview. Saving the deck, a file it uses, or a local theme or plugin
+updates the open deck.
+
+  --port, -p     server port (default 5173, or the next free one)
+  --host         listen on all addresses, to show the deck on another device;
+                 only the deck and the files it uses are served
+  --open         open the browser`,
+  },
+  build: {
+    usage: 'blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]',
+    options: ['out', 'standalone', 'force', 'strict'],
+    help: `A static site in dist/ next to the deck (serve it over HTTP), or with
+--standalone one .html file that opens straight from disk.
+
+  --out, -o      the folder (default dist/ next to the deck); with --standalone,
+                 the .html file (default <deck>.html next to the deck)
+  --standalone   everything in one self-contained .html file
+  --force        build even if the deck has errors
+  --strict       fail if a slide overflows the canvas, or if that can't be checked`,
+  },
+  export: {
+    usage: 'blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]',
+    options: ['out', 'steps', 'force'],
+    help: `A PDF, one page per slide at its final step.
+
+  --out, -o      the .pdf (default <deck>.pdf next to the deck)
+  --steps        a page for every build step (handouts)
+  --force        export even if the deck has errors`,
+  },
+  check: {
+    usage: 'blitzstrahl check <deck.md> [--offline] [--strict]',
+    options: ['offline', 'strict'],
+    help: `Find problems before the talk: errors, missing files, broken charts and
+maps, step gaps, overflow, embeds that refuse to be framed.
+
+  --offline      don't contact embedded sites or map data URLs
+  --strict       exit 1 on warnings, not just errors`,
+  },
+}
+
+const OPTIONS = {
+  out: { type: 'string', short: 'o' },
+  force: { type: 'boolean' },
+  strict: { type: 'boolean' },
+  standalone: { type: 'boolean' },
+  steps: { type: 'boolean' },
+  offline: { type: 'boolean' },
+  port: { type: 'string', short: 'p' },
+  host: { type: 'boolean' },
+  open: { type: 'boolean' },
+  help: { type: 'boolean', short: 'h' },
+  version: { type: 'boolean', short: 'v' },
+} as const
+
+const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
+
+/** The closest name to `word`, if one is close enough to be a typo of it. */
+function closest(word: string, names: readonly string[]): string | undefined {
+  const d = (a: string, b: string) => {
+    const row = Array.from({ length: b.length + 1 }, (_, j) => j)
+    for (let i = 1; i <= a.length; i++) {
+      let prev = row[0]!
+      row[0] = i
+      for (let j = 1; j <= b.length; j++) {
+        const t = row[j]!
+        row[j] = Math.min(row[j]! + 1, row[j - 1]! + 1, prev + (a[i - 1] === b[j - 1] ? 0 : 1))
+        prev = t
+      }
+    }
+    return row[b.length]!
   }
-  if (!deck) {
-    process.stderr.write(`blitzstrahl ${command}: which deck? e.g. \`blitzstrahl ${command} talk.md\`\n`)
-    return 1
+  const best = names.map((n) => [n, d(word, n)] as const).sort((a, b) => a[1] - b[1])[0]
+  return best && best[1] <= Math.max(1, Math.floor(word.length / 3)) ? best[0] : undefined
+}
+
+function parse(argv: string[]) {
+  try {
+    return parseArgs({ args: argv, allowPositionals: true, options: OPTIONS })
+  } catch (err) {
+    const message = (err as Error).message
+    const unknown = /Unknown option '(-{1,2})([^']+)'/.exec(message)
+    if (unknown) {
+      const near = closest(unknown[2]!, Object.keys(OPTIONS))
+      throw new CliError(`unknown option \`${unknown[1]}${unknown[2]}\`${near ? `: did you mean \`--${near}\`?` : ''} (see \`blitzstrahl --help\`)`)
+    }
+    const missing = /Option '(?:-\w, )?(--[\w-]+)[^']*' argument missing/.exec(message)
+    if (missing) throw new CliError(`\`${missing[1]}\` needs a value`)
+    throw new CliError(message.split('\n')[0]!)
+  }
+}
+
+/** The deck file, or a CliError that says what's wrong with it. */
+function deckFile(deck: string): string {
+  const file = resolve(deck)
+  if (!existsSync(file)) {
+    const dir = dirname(file)
+    const near = existsSync(dir) ? closest(basename(file), readdirSync(dir).filter((f) => /\.(md|markdown)$/i.test(f))) : undefined
+    throw new CliError(`can't find ${deck}${near ? `: did you mean ${join(dirname(deck), near)}?` : ''}`)
+  }
+  if (statSync(file).isDirectory()) {
+    const decks = readdirSync(file).filter((f) => /\.(md|markdown)$/i.test(f))
+    throw new CliError(`${deck} is a folder: name the deck's .md file${decks.length === 1 ? `, e.g. ${join(deck, decks[0]!)}` : ''}`)
+  }
+  return deck
+}
+
+async function main(argv: string[]): Promise<number> {
+  const { values, positionals } = parse(argv)
+  const [command, deck] = positionals
+  if (values.version) {
+    process.stdout.write(`blitzstrahl ${VERSION}\n`)
+    return 0
+  }
+  if (command !== undefined && !Object.hasOwn(COMMANDS, command)) {
+    const near = closest(command, Object.keys(COMMANDS))
+    throw new CliError(`unknown command \`${command}\`${near ? `: did you mean \`${near}\`?` : ''} (see \`blitzstrahl --help\`)`)
+  }
+  if (values.help || !command) {
+    const c = command && COMMANDS[command]
+    process.stdout.write(c ? `Usage: ${c.usage}\n\n${c.help}\n` : HELP)
+    return values.help ? 0 : 2
+  }
+  const spec = COMMANDS[command]!
+  for (const [name, value] of Object.entries(values)) {
+    if (value === undefined || name === 'help') continue
+    if (!spec.options.includes(name)) {
+      const owner = Object.entries(COMMANDS).find(([, c]) => c.options.includes(name))?.[0]
+      throw new CliError(`\`--${name}\` is an option of \`${owner}\`, not \`${command}\` (see \`blitzstrahl ${command} --help\`)`)
+    }
+  }
+  if (!deck) throw new CliError(`which deck? e.g. \`blitzstrahl ${command} talk.md\``)
+  if (positionals.length > 2) throw new CliError(`one deck at a time: \`blitzstrahl ${command} ${deck}\``)
+  deckFile(deck)
+  if (values.port !== undefined && !(/^\d+$/.test(values.port) && Number(values.port) <= 65535)) {
+    throw new CliError(`\`--port\` must be a number from 0 to 65535, not \`${values.port}\``)
   }
 
   switch (command) {

@@ -5,7 +5,17 @@ blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
 blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
 blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
 blitzstrahl check <deck.md> [--offline] [--strict]
+blitzstrahl --version
 ```
+
+`blitzstrahl <command> --help` shows one command's options. Each option
+belongs to the commands above that list it, and giving one to another
+command (`build --steps`) is an error, not something quietly ignored.
+
+**Exit codes:** `0` all is well; `1` the deck has problems (errors, or with
+`--strict`, overflow or warnings); `2` the command line asked for something
+blitzstrahl won't do (an unknown option, a deck that isn't there, an output
+path that would overwrite something), said in one line.
 
 ## `dev`
 

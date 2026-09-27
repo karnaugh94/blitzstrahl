@@ -49,6 +49,11 @@ relied on it will notice.
   next slide, and the slide vanished with only an "unknown key" warning. A
   block is slide frontmatter only when it sets a slide key
   (`docs/syntax.md` §2.3). A near-miss like `layuot:` gets "did you mean".
+- With `reveal=rows`, rows still to come show nothing, not even their
+  rules. 1.0 drew an empty ruled line for each (collapsed tables paint a
+  hidden cell's borders).
+- An option given to a command it doesn't belong to (`build --steps`) is an
+  error, exit code 2. 1.0 ignored it.
 - `build` and `dev` check charts, maps, embeds and Mermaid diagrams the way
   `check` always did. A block that would show an error box on its slide
   (an unknown key, a column that isn't in the data) stops the build, and
@@ -60,6 +65,17 @@ relied on it will notice.
 
 ### Fixed
 
+- The command line explains its mistakes in one line: an unknown option or
+  command (with "did you mean"), a deck that isn't there or is a folder, a
+  port that isn't a number, an option missing its value. 1.0 printed Node's
+  stack trace. Usage mistakes exit with code 2.
+- `blitzstrahl --version`, and `blitzstrahl <command> --help` for one
+  command's options.
+- A deck's `author` is the page's `<meta name="author">`. The docs no longer
+  promise a notes handout (it comes in 1.1) or that themes show `author` and
+  `date`.
+- Plugins can't register the deck keys 1.1 will use: `decimal`, `css`,
+  `background`, `footer`, `slide-numbers`, `logo`, `duration`, `public`.
 - broadsheet's Newsreader covers Latin Extended, upright and italic, so
   Polish, Czech, Hungarian, Romanian, Croatian, Turkish and Baltic letters no
   longer switch to another typeface mid-word.

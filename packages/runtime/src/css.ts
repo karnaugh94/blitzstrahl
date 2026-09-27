@@ -98,6 +98,8 @@ html[data-blitz-printing] body > :not(.blitz-print, .blitz-viewport, .blitz-blac
 }
 
 [data-blitz-hidden] { visibility: hidden !important; }
+/* A collapsed table paints a hidden cell's borders anyway: a row still to come must leave no rule. */
+tr[data-blitz-hidden] > *, [data-blitz-hidden] :is(tr, td, th) { border-color: transparent !important; }
 [data-blitz-box] { display: inline-block; }
 [data-blitz-block] { position: relative; }
 

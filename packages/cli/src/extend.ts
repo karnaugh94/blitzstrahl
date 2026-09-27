@@ -8,7 +8,7 @@ import { existsSync } from 'node:fs'
 import { dirname, isAbsolute, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolve as resolveModule } from 'import-meta-resolve'
-import { DECK_KEYS, EFFECTS, RENDERERS, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
+import { DECK_KEYS, EFFECTS, RENDERERS, RESERVED_DECK_KEYS, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
 import { BUILTIN_RENDERERS } from '@blitzstrahl/renderers'
 import { defineTheme, themes, tokenProblems, type Theme } from '@blitzstrahl/themes'
 import type { CheckCtx, EffectDef, KeyDef } from './plugin.js'
@@ -339,6 +339,10 @@ function addPlugin(value: unknown, file: string, spec: string, x: Extras, proble
   }
 
   for (const [n, def] of section('frontmatter')) {
+    if (RESERVED_DECK_KEYS.has(n)) {
+      problems.push(`frontmatter key \`${n}\` is reserved: blitzstrahl 1.1 uses it (docs/plugins.md §2.4)`)
+      continue
+    }
     if (taken('frontmatter key', n, DECK_KEYS.has(n), x.keys[n]?.plugin)) continue
     const extra = Object.keys(def).filter((k) => k !== 'check')
     if (extra.length) problems.push(`frontmatter key \`${n}\`: unknown field \`${extra[0]}\``)

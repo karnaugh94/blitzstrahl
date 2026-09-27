@@ -59,6 +59,7 @@ for (const name of INTERNAL) {
 
 copyPackage(join(root, 'packages/cli'), stage)
 cpSync(join(root, 'README.md'), join(stage, 'README.md'))
+cpSync(join(root, 'CHANGELOG.md'), join(stage, 'CHANGELOG.md'))
 // The user docs the README links to. Never decisions.md or STATUS.md: those are local notes.
 for (const doc of ['syntax.md', 'cli.md', 'presenting.md', 'plugins.md', 'themes.md', 'renderers']) {
   cpSync(join(root, 'docs', doc), join(stage, 'docs', doc), { recursive: true })
@@ -82,7 +83,7 @@ const pkg = {
     './renderer': pub('renderer'),
     './package.json': './package.json',
   },
-  files: ['dist', 'src', 'client', 'docs', 'README.md', 'LICENSE', 'node_modules/@blitzstrahl'],
+  files: ['dist', 'src', 'client', 'docs', 'README.md', 'CHANGELOG.md', 'LICENSE', 'node_modules/@blitzstrahl'],
   dependencies: { ...Object.fromEntries(Object.entries(deps).sort()), ...Object.fromEntries(bundled.map((n) => [n, version])) },
   bundleDependencies: bundled,
 }

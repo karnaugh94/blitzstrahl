@@ -12,6 +12,11 @@ relied on it will notice.
 
 ## [Unreleased]
 
+## [1.0.1] — 2026-09-27
+
+The first release on npm: every fix below is against 1.0.0, which was on
+GitHub only.
+
 ### Fixed (visible)
 
 - `build --out` never deletes files blitzstrahl didn't write. 1.0 emptied
@@ -33,7 +38,6 @@ relied on it will notice.
   `data`), CSS `url()`s (in `<style>`, `style=`, a slide's `background` or
   `style`) and links to local files ship with every build. In 1.0 they
   worked in `dev` only. Linked files keep their own name.
-
 - Numbers with decimal commas are read as written. A CSV cell `"3,5"`
   became 35 in 1.0, and `"12,25"` became 1225: now a column that can only
   mean decimal commas reads them as decimals. Semicolon-separated CSVs

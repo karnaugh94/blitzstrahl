@@ -6,8 +6,9 @@ import { build as viteBuild, type Rolldown } from 'vite'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
 import { isUrl, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
 import { fontCss } from './extend.js'
+import { deckText, standaloneFonts } from './fonts.js'
 import { renderPage } from './html.js'
-import { loadDeck, type LoadedDeck } from './load.js'
+import { deckStyles, loadDeck, type LoadedDeck } from './load.js'
 import { hasMath, mathCss, mathFont } from './math.js'
 import { checkBuiltOverflow } from './overflow.js'
 import { checkOutDir, checkOutFile, cleanOutDir, writeManifest } from './output.js'
@@ -83,7 +84,8 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     // The files that weigh most, for the size warning.
     const heaviest = [...uris].sort((a, b) => b[1].length - a[1].length).slice(0, 3)
     const css = [
-      await fontCss(loaded.extras.fonts, async (file) => (await dataUri(file))!),
+      // Only the faces this deck's text uses: scripts, italics, code (fonts.ts).
+      await fontCss(standaloneFonts(loaded.extras.fonts, deckText(loaded.deck), theme.tokens, `${theme.stylesheet}\n${deckStyles(loaded.source)}`), async (file) => (await dataUri(file))!),
       loaded.css,
       hasMath(loaded.deck) ? await mathCss(async (file) => (await dataUri(mathFont(file)))!, loaded.deck) : '',
     ].join('\n')

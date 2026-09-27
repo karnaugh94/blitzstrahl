@@ -93,7 +93,7 @@ test('a diagram Mermaid can’t read says why, on the slide, and leaves nothing 
 test('`check` reports the syntax error at its block', async () => {
   const r = await check(deck, { offline: true, overflow: false })
   expect(r.diagnostics.filter((d) => d.code === 'renderer/mermaid').map((d) => [d.span.start.line, d.message])).toEqual([
-    [56, expect.stringMatching(/^`mermaid` block: Parse error on line \d+: Expecting .*got 'EOF'$/)],
+    [58, expect.stringMatching(/^`mermaid` block: Parse error on line \d+: Expecting .*got 'EOF'$/)],
   ])
 })
 

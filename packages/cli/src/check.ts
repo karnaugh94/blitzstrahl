@@ -12,6 +12,7 @@ import type { Deck, Diagnostic, HastNode, SourceSpan } from '@blitzstrahl/core'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
 import { asFeatureCollection, dataOptions, isUrl, markersFromText, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
 import { build } from './build.js'
+import { fontDiagnostics } from './fonts.js'
 import { deckStyles, loadDeck, type LoadedDeck } from './load.js'
 import { checkBuiltOverflow } from './overflow.js'
 
@@ -49,6 +50,8 @@ export async function check(deckPath: string, options: CheckOptions = {}): Promi
   }
 
   found.push(...unusedClasses(deck, loaded.source, theme.stylesheet + runtimeCss + loaded.css))
+
+  found.push(...fontDiagnostics(deck, loaded.extras.fonts, theme.tokens, deck.meta.theme, (i) => firstLine(deck.slides[i]!.span, loaded.source)))
 
   found.push(...mapNotes(deck))
   if (!options.offline) found.push(...(await probeEmbeds(deck, options.timeout ?? 8000)), ...(await probeGeometry(deck, options.timeout ?? 8000)))

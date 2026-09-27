@@ -150,6 +150,8 @@ at each problem as `deck.md:line:col`:
 | A map with a tile provider but no `attribution` | warning |
 | A map with no street map (no `tiles`) | info |
 | A bar or line chart that sums repeated categories, without `aggregate` or `series` | info |
+| The theme's text font isn't shipped with it, so the deck looks different on each computer | info |
+| Text that no font the theme ships can show (Arabic in aurora, say): it's set in whatever the presenting machine has | warning |
 | Classes from plugins' effects and a theme's CSS count as styled; plugin renderers run their own checks | — |
 
 - The exit code is 1 when there are errors. With `--strict`, warnings

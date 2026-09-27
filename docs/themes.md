@@ -8,12 +8,35 @@ may be added in minor versions, always with a default.
 
 Built-in themes:
 
-- **aurora**: dark, technical. Inter-style sans, mint and periwinkle
-  accents. The default.
-- **broadsheet**: light, editorial. Newsprint paper, Newsreader serif
-  (shipped with the theme, OFL, Latin and Latin Extended), sans for tables, a masthead rule, newspaper
-  red. Its source (`packages/themes/src/broadsheet.ts`) uses only the public
-  contract, so it's a good model for writing your own.
+- **aurora**: dark, technical. Inter for text, JetBrains Mono for code,
+  mint and periwinkle accents. The default.
+- **broadsheet**: light, editorial. Newsprint paper, Newsreader serif, Inter
+  for tables and captions, JetBrains Mono for code, a masthead rule, newspaper red. Its source
+  (`packages/themes/src/broadsheet.ts`) uses only the public contract, so
+  it's a good model for writing your own.
+
+## Fonts
+
+The built-in themes ship every font they name, so a deck breaks its lines
+the same way on every computer. The fonts are under the SIL Open Font
+Licence, and their licences ship with them.
+
+| Family | Themes | Scripts |
+|---|---|---|
+| Inter | aurora, broadsheet | Latin, Latin Extended, Greek, Cyrillic, Vietnamese; upright and italic |
+| JetBrains Mono | aurora, broadsheet | Latin, Latin Extended, Greek, Cyrillic, Vietnamese; upright and italic |
+| Newsreader | broadsheet | Latin, Latin Extended, Vietnamese; upright and italic |
+
+Newsreader has no Greek or Cyrillic letters, so broadsheet sets those in
+Inter, also where the rest of the heading is serif. Other scripts (Arabic,
+Hebrew, Chinese, …) and emoji come from the presenting machine; `check`
+warns about text no shipped font covers.
+
+Each font is split by script. A browser downloads only the parts a slide
+uses, and a standalone file carries only the parts its text uses: a deck in
+English carries Inter's Latin part (48 kB) and nothing else of Inter.
+Italics come along when something on the slides is italic, and the code
+font when there's code.
 
 ## Required
 
@@ -47,9 +70,9 @@ are plain `var()`s, which computed styles resolve to real colours.
 | `letterbox` | `#000` | Around the canvas when the window's shape differs |
 | `ink` ● | `var(--blitz-accent)` | The pen (`D`) |
 | `laser` | `#ff3344` | The laser pointer (`L`) |
-| `font-sans` ● | system UI stack | Body text, charts |
+| `font-sans` ● | system UI stack (aurora and broadsheet: Inter) | Body text, charts |
 | `font-serif` | Charter, Georgia, … | Display type in themes that use it |
-| `font-mono` | `ui-monospace`, … | Code |
+| `font-mono` | `ui-monospace`, … (aurora and broadsheet: JetBrains Mono) | Code |
 | `text` | `30px` | Body size |
 | `text-small` ● | `22px` | Captions, tables, chart labels |
 | `h1`, `h2`, `h3` | `60px`, `46px`, `34px` | Headings |

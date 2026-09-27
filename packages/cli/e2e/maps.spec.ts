@@ -118,6 +118,20 @@ test('without center and zoom, the map fits the markers; size makes bubbles', as
   expect(near(biggest, barcelona)).toBeLessThan(1.5)
 })
 
+test.describe('on a 2x screen', () => {
+  test.use({ deviceScaleFactor: 2 })
+
+  test('the street map loads the next zoom level, so it stays sharp, and markers stay on it', async ({ page }) => {
+    await open(page, 'stores')
+    await expect.poll(async () => (await markers(page, '#stores')).length).toBe(3)
+    await expect(page.locator('#stores .blitz-tile').first()).toBeVisible()
+    expect(tileRequests.length).toBeGreaterThan(0)
+    expect(tileRequests.every((t) => t.startsWith('14/'))).toBe(true)
+    const want = await onTiles(page, '#stores', 2.1826, 41.3851)
+    expect(Math.min(...(await markers(page, '#stores')).map((m) => near(m, want)))).toBeLessThan(1.5)
+  })
+})
+
 test('regions: a choropleth by `value`, with no tiles at all', async ({ page }) => {
   await open(page, 'regions')
   await page.locator('#regions svg').waitFor()

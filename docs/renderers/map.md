@@ -25,7 +25,7 @@ tiles: osm
 | `size` | column | — | Sizes each marker by this number (a bubble map) |
 | `value` | property | — | Colours each region by this number (a choropleth), from the theme's surface colour to its first chart colour. The legend writes numbers in the deck's `lang` |
 | `labels` | boolean | `false` | Show marker names beside the markers |
-| `tiles` | provider, URL template or `none` | `none` | The street map under your data. **There is none unless you name one**: `osm` (OpenStreetMap), or any provider's URL template, e.g. `https://tile.example.com/{z}/{x}/{y}.png` (`{s}` picks a subdomain a/b/c; ArcGIS's `{z}/{y}/{x}` order works too) |
+| `tiles` | provider, URL template or `none` | `none` | The street map under your data. **There is none unless you name one**: `osm` (OpenStreetMap), or any provider's URL template, e.g. `https://tile.example.com/{z}/{x}/{y}.png` (`{s}` picks a subdomain a/b/c; `{r}` becomes `@2x` on sharp screens, for providers with high-resolution tiles; ArcGIS's `{z}/{y}/{x}` order works too) |
 | `attribution` | string | the provider's, for `osm` | Credit shown in the corner. Tile providers require it, and `check` warns when a URL template has none |
 | `roam` | boolean | `true` | Drag to pan and scroll to zoom |
 
@@ -60,8 +60,13 @@ markers:
 
 **Look.** Markers use the theme's first chart colour. The street map is
 recoloured by the theme's `--blitz-map-tiles` token (a CSS `filter`), so a
-light street map sits naturally in a dark deck: aurora inverts it. Maps
-render as SVG over image tiles, and stay sharp at any scale.
+light street map sits naturally in a dark deck: aurora inverts it. Markers
+and regions are SVG, sharp at any scale. The street map loads tiles for the
+size the map is shown at, counting the screen's pixel density and the
+canvas's scale, so it stays sharp on a projector or a high-resolution
+screen, in place of stretched tiles from a smaller map. For the sharpest
+labels, use a provider's high-resolution tiles through `{r}`:
+`https://tiles.example.com/{z}/{x}/{y}{r}.png`.
 
 **Size.** Like a chart, a map fills the slide's width and is
 `--blitz-block-height` tall. Set `height=` or `style=` on the fence to

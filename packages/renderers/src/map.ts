@@ -248,7 +248,9 @@ const map: Renderer = {
       if (!template) return
       const p = placement()
       if (!p) return
-      const want = tilesFor(p, chartEl.clientWidth, chartEl.clientHeight, template)
+      // Screen pixels per canvas pixel: the stage's scale, times the screen's density.
+      const scale = chartEl.getBoundingClientRect().width / (chartEl.clientWidth || 1) || 1
+      const want = tilesFor(p, chartEl.clientWidth, chartEl.clientHeight, template, scale * (doc.defaultView?.devicePixelRatio ?? 1))
       const keep = new Set(want.map((w) => w.key))
       for (const [key, img] of imgs) {
         if (!keep.has(key)) {

@@ -57,7 +57,7 @@ async function buildOption(spec: ChartSpec, el: HTMLElement, ctx: RenderCtx) {
       : spec.data
   // Numbers follow the deck's `lang` (on <html>, or an element's own `lang`).
   const locale = el.closest('[lang]')?.getAttribute('lang') || undefined
-  return chartOption(spec, rows, { dur: ctx.block.anim?.dur ?? 900, reducedMotion: ctx.reducedMotion, locale })
+  return chartOption(spec, rows, { dur: ctx.block.anim?.dur ?? 900, reducedMotion: ctx.reducedMotion, locale, text: ctx.token('--blitz-fg') || undefined })
 }
 
 /** One registered ECharts theme per distinct set of tokens. */

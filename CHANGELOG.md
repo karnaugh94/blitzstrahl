@@ -12,6 +12,12 @@ relied on it will notice.
 
 ## [Unreleased]
 
+### Fixed (visible)
+
+- Value labels beside bars and points are in the theme's text colour. 1.0
+  drew them in ECharts' dark grey with a white halo, which read as
+  outlined text on a dark theme.
+
 ### Changed
 
 - **Numbers in data are written plainly, in every language**: a dot for

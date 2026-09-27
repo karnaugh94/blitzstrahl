@@ -102,6 +102,8 @@ export interface OptionContext {
   reducedMotion: boolean
   /** BCP 47 tag for number formatting (the deck's `lang`). Default: the browser's. */
   locale?: string | undefined
+  /** The theme's text colour, for value labels beside bars and points (ECharts' own is a dark grey with a white halo). */
+  text?: string | undefined
 }
 
 /** `format` as `Intl` options: as written by default (up to ten decimals). */
@@ -179,13 +181,16 @@ export function chartOption(spec: ChartSpec, rows: Row[], ctx: OptionContext): R
     spec.type === 'pie'
       ? pieOption(spec, rows, x, ys, base, num, ctx.locale)
       : spec.type === 'scatter'
-        ? scatterOption(spec, rows, x, ys, by, base, need, num)
-        : cartesianOption(spec, rows, x, ys, by, base, num, ctx.locale)
+        ? scatterOption(spec, rows, x, ys, by, base, need, num, ctx.text)
+        : cartesianOption(spec, rows, x, ys, by, base, num, ctx.locale, ctx.text)
   if (spec.title) option.title = { text: spec.title, left: 0, top: 0 }
   return spec.echarts ? merge(option, spec.echarts) : option
 }
 
 type Format = (v: unknown) => string
+
+/** A label on the slide's background: the theme's text colour, no halo. */
+const outside = (text: string | undefined) => ({ textBorderWidth: 0, ...(text ? { color: text } : {}) })
 
 /** The series `aggregate: count` makes when there's no `y`. */
 const COUNT = 'count'
@@ -197,7 +202,7 @@ function sortCategories<T extends { data: Array<number | null> }>(categories: Ar
   return { categories: order.map((i) => categories[i]!), series: series.map((s) => ({ ...s, data: order.map((i) => s.data[i]!) })) }
 }
 
-function cartesianOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], by: string | undefined, base: Record<string, unknown>, num: Format, locale: string | undefined) {
+function cartesianOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], by: string | undefined, base: Record<string, unknown>, num: Format, locale: string | undefined, text: string | undefined) {
   let categories: Array<string | number>
   let series: Array<{ name: string; data: Array<number | null> }>
   if (by) {
@@ -242,7 +247,8 @@ function cartesianOption(spec: ChartSpec, rows: Row[], x: string, ys: string[], 
       ...(spec.type === 'line'
         ? { smooth: spec.smooth ?? false, showSymbol: categories.length <= 24, ...(spec.area ? { areaStyle: { opacity: 0.18 } } : {}) }
         : { barMaxWidth: 64, itemStyle: { borderRadius: stacked ? 0 : horizontal ? [0, 6, 6, 0] : [6, 6, 0, 0] } }),
-      label: { show: spec.labels ?? false, position: stacked ? 'inside' : horizontal ? 'right' : 'top', fontSize: 16, formatter: (p: { value: unknown }) => num(p.value) },
+      // Inside a stacked bar, ECharts picks a contrasting colour; beside a bar, the text is on the slide.
+      label: { show: spec.labels ?? false, position: stacked ? 'inside' : horizontal ? 'right' : 'top', fontSize: 16, formatter: (p: { value: unknown }) => num(p.value), ...(stacked ? {} : outside(text)) },
       emphasis: { focus: 'series' },
     })),
   }
@@ -334,6 +340,7 @@ function scatterOption(
   base: Record<string, unknown>,
   need: (c: string) => string,
   num: Format,
+  text: string | undefined,
 ) {
   if (!rows.every((r) => r[x] === null || typeof r[x] === 'number')) throw new Error(`a scatter's \`x\` must be numeric (column \`${x}\` has text)`)
   if (by && ys.length > 1) throw new Error('with `series`, `y` must be a single column')
@@ -362,7 +369,7 @@ function scatterOption(
         ? (v: number[]) => 8 + 52 * Math.sqrt(Math.abs(Number(v[2]) || 0) / maxSize)
         : 14,
       itemStyle: { opacity: size ? 0.75 : 0.9 },
-      label: { show: spec.labels ?? false, position: 'top', fontSize: 14, formatter: (p: { value: unknown[] }) => num(p.value[1]) },
+      label: { show: spec.labels ?? false, position: 'top', fontSize: 14, formatter: (p: { value: unknown[] }) => num(p.value[1]), ...outside(text) },
       emphasis: { focus: 'series' },
     })),
   }

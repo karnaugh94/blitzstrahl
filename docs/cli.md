@@ -269,6 +269,10 @@ templates' layouts have their own names and no kind):
   folder must be new or empty: `theme import` never overwrites.
 - The result is a starting point: edit `brand.css` like any other.
 
+`examples/corporate` is a deck in a theme made this way: `brand/` is what
+`theme import kestrel.potx --out brand` wrote, and the deck's `css:` and
+`background:` add what the template had that the import couldn't carry.
+
 ## Machine-readable diagnostics
 
 `check` and `build` take `--format`:

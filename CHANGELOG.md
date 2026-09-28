@@ -70,6 +70,8 @@ relied on it will notice.
 - `blitzstrahl theme import template.potx`: a CSS theme from a PowerPoint
   template (or presentation): its colours, fonts, backgrounds by layout
   and logo, a sample deck, and a list of what it couldn't carry over.
+- A corporate example deck (`examples/corporate`), in a theme imported
+  from the PowerPoint template beside it.
 - **Themes written in CSS**: `theme: ./brand.css`, tokens in `:root`,
   fonts by `@font-face`, and local `@import`s. The recommended way to
   write a theme; JS themes stay. Packages can ship one too.

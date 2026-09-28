@@ -1,0 +1,9 @@
+/*
+ * This deck's own touches to the imported theme (docs/themes.md, *Adding to
+ * a theme*): the template set its title in white over the dark picture,
+ * which `theme import` doesn't carry (placeholder text styles).
+ */
+[data-layout="title"] { color: #ffffff; --blitz-fg-muted: #c9d6df; }
+[data-layout="title"] h1 { max-width: 900px; }
+.blitz-slide .kicker { color: var(--blitz-accent-2); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: var(--blitz-text-small); }
+.blitz-slide .source { font-size: var(--blitz-text-small); color: var(--blitz-fg-muted); }

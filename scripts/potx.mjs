@@ -14,12 +14,13 @@ const EMU = 9525 // per CSS pixel at 96 dpi
 const W = 12192000
 const H = 6858000
 
-/** A PNG of `w`×`h` pixels, each `pixel(x, y)` → [r, g, b]. */
-export function png(w, h, pixel) {
-  const raw = Buffer.alloc((w * 3 + 1) * h)
+/** A PNG of `w`×`h` pixels, each `pixel(x, y)` → [r, g, b] or, with `alpha`, [r, g, b, a]. */
+export function png(w, h, pixel, alpha = false) {
+  const n = alpha ? 4 : 3
+  const raw = Buffer.alloc((w * n + 1) * h)
   for (let y = 0; y < h; y++) {
-    const row = y * (w * 3 + 1)
-    for (let x = 0; x < w; x++) raw.set(pixel(x, y), row + 1 + x * 3)
+    const row = y * (w * n + 1)
+    for (let x = 0; x < w; x++) raw.set(pixel(x, y), row + 1 + x * n)
   }
   const chunk = (type, data) => {
     const body = Buffer.concat([Buffer.from(type), data])
@@ -32,7 +33,7 @@ export function png(w, h, pixel) {
   const ihdr = Buffer.alloc(13)
   ihdr.writeUInt32BE(w, 0)
   ihdr.writeUInt32BE(h, 4)
-  ihdr.set([8, 2, 0, 0, 0], 8)
+  ihdr.set([8, alpha ? 6 : 2, 0, 0, 0], 8)
   return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr), chunk('IDAT', deflateSync(raw, { level: 9 })), chunk('IEND', Buffer.alloc(0))])
 }
 
@@ -82,7 +83,7 @@ export function makeTemplate({ dark = false, accent } = {}) {
   put('ppt/media/image1.png', png(320, 180, (x, y) => (y > 120 && y < 126 ? orange : x + y * 0.6 > 250 && x + y * 0.6 < 290 ? teal : navy)))
   put('ppt/media/image2.png', png(320, 180, (x, y) => (y < 6 && x < 80 ? teal : white)))
   put('ppt/media/image3.png', png(320, 180, (x, y) => (x < 12 ? orange : hex(`#${k.lt2}`))))
-  put('ppt/media/image4.png', png(120, 40, (x, y) => ((x - 20) ** 2 + (y - 20) ** 2 < 256 ? teal : x > 44 && y > 14 && y < 26 ? navy : white)))
+  put('ppt/media/image4.png', png(120, 40, (x, y) => ((x - 20) ** 2 + (y - 20) ** 2 < 256 ? [...teal, 255] : x > 44 && y > 14 && y < 26 ? [...orange, 255] : [0, 0, 0, 0]), true))
 
   put('[Content_Types].xml', `${XML}<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="png" ContentType="image/png"/><Default Extension="xml" ContentType="application/xml"/><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/></Types>`)
   put('ppt/presentation.xml', `${XML}<p:presentation ${NS}><p:sldMasterIdLst><p:sldMasterId id="2147483648" r:id="rId1"/></p:sldMasterIdLst><p:sldSz cx="${W}" cy="${H}"/><p:notesSz cx="6858000" cy="9144000"/></p:presentation>`)

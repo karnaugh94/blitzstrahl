@@ -49,6 +49,7 @@ const GALLERY = [
   ['layouts', 'deck.md', 'All twelve built-in layouts.'],
   ['editorial', 'deck.md', 'An annual report in the light, editorial broadsheet theme.'],
   ['european', 'deck.md', 'Polish, Czech, Greek and Bulgarian text, German numbers: a deck in the languages of Europe.'],
+  ['corporate', 'deck.md', 'A transit authority\'s report, in a theme imported from its PowerPoint template, with a footer, numbers and a logo.'],
 ]
 
 rmSync(out, { recursive: true, force: true })

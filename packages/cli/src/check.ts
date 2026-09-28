@@ -332,7 +332,7 @@ function frameAncestors(csp: string | null): string[] | undefined {
 async function measure(loaded: LoadedDeck): Promise<{ diagnostics: Diagnostic[]; skipped?: string }> {
   const tmp = await mkdtemp(join(tmpdir(), 'blitz-check-'))
   try {
-    const built = await build(loaded.path, { outDir: tmp, quiet: true, report: false, force: true, overflowCheck: false })
+    const built = await build(loaded.path, { outDir: tmp, quiet: true, report: false, force: true, overflowCheck: false, loaded })
     if (!built.index) return { diagnostics: [], skipped: "the deck couldn't be built" }
     return await checkBuiltOverflow(tmp, loaded.deck, loaded.source)
   } finally {

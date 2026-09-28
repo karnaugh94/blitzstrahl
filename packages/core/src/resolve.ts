@@ -29,6 +29,28 @@ function cssSize(value: string): string | undefined {
 
 type BlitzContainerNode = Extract<Nodes, { type: 'blitzContainer' }>
 
+/** Runs of two or more consecutive siblings with the same `key=` (§9.1). */
+function keyRuns(kids: RootContent[], keyOf: (n: Nodes) => string | undefined): Nodes[][] {
+  const runs: Nodes[][] = []
+  let run: Nodes[] = []
+  const close = () => {
+    if (run.length > 1) runs.push(run)
+    run = []
+  }
+  for (const n of kids as Nodes[]) {
+    const key = keyOf(n)
+    if (key === undefined) {
+      // Blank raw HTML between blocks doesn't break a run; anything else does.
+      if (!(n.type === 'html' && !n.value.trim())) close()
+      continue
+    }
+    if (run.length && keyOf(run[0]!) !== key) close()
+    run.push(n)
+  }
+  close()
+  return runs
+}
+
 /** A container's children that are blocks on the page: not raw HTML, definitions or notes. */
 function blockChildren(node: BlitzContainerNode): Nodes[] {
   return (node.children as Nodes[]).filter(
@@ -204,8 +226,9 @@ export function resolveSlide(
           lineGroups = linesOption(node, value, diags, span)
         } else if (key === 'key') {
           // auto-animate pairs elements by key (§9); one slide can't use a key twice.
-          if (keys.has(value)) diags.warn('key/duplicate', `key \`${value}\` is already used on this slide; auto-animate pairs only the first`, span)
+          if (keys.has(value) && !stacked.has(node)) diags.warn('key/duplicate', `key \`${value}\` is already used on this slide; auto-animate pairs only the first`, span)
           keys.add(value)
+          keySpans.set(node, span)
           props.dataBlitzKey = value
         } else if (key in RESERVED_KEYS) {
           notYet(`\`${key}=\``, RESERVED_KEYS[key]!, diags, span)
@@ -381,8 +404,14 @@ export function resolveSlide(
     return true
   }
 
+  /** Later members of a stack (§9.1): consecutive siblings sharing a `key=`. Not duplicates. */
+  const stacked = new WeakSet<Nodes>()
+  const keySpans = new WeakMap<Nodes, SourceSpan>()
+  const keyOf = (n: Nodes) => n.data?.blitz?.attrs.pairs.findLast((p) => p.key === 'key')?.value
+
   const walk = (parent: { children: RootContent[] }) => {
     const kids = parent.children
+    for (const run of keyRuns(kids, keyOf)) for (const n of run.slice(1)) stacked.add(n)
     for (let k = 0; k < kids.length; k++) {
       let node = kids[k]!
       // A math fence is display math (§12), rendered at build time like `$$…$$`, not a render block.
@@ -443,6 +472,31 @@ export function resolveSlide(
         if (range) ancestors.pop()
       }
     }
+    // Again: render fences have become placeholders (which keep their attributes).
+    for (const run of keyRuns(kids, keyOf)) stack(kids, run)
+  }
+
+  /**
+   * Magic move within a slide (§9.1): each member of a run leaves as the next
+   * arrives, and the run shares one box (`data-blitz-stack`, a one-cell grid).
+   */
+  const stack = (kids: RootContent[], run: Nodes[]) => {
+    const props = run.map((n) => propTable[n.data?.hProperties?.dataBlitzProps as number]!)
+    const ins = props.map((p) => p.dataBlitzStepIn)
+    // Only a run whose every block comes at a later step is a stack; otherwise it's 1.0's duplicate key.
+    if (!ins.every((v, i) => i === 0 || (typeof v === 'number' && v > Number(ins[i - 1] ?? 0)))) {
+      for (const n of run.slice(1)) {
+        diags.warn('key/duplicate', `key \`${keyOf(n)}\` is already used on this slide; auto-animate pairs only the first (to replace the block before it, give this one a later step)`, keySpans.get(n) ?? n)
+      }
+      return
+    }
+    for (let i = 0; i < run.length - 1; i++) {
+      props[i]!.dataBlitzStepIn = Number(ins[i] ?? 0)
+      props[i]!.dataBlitzStepOut = (ins[i + 1] as number) - 1
+    }
+    const first = kids.indexOf(run[0] as RootContent)
+    const wrapper = { type: 'blitzContainer', children: run, data: { hName: 'div', hProperties: { dataBlitzStack: '' } } } as unknown as RootContent
+    kids.splice(first, run.length, wrapper)
   }
   walk({ children: nodes })
 
@@ -452,7 +506,7 @@ export function resolveSlide(
     shorthand,
     steps: maxStep,
     notes: toHastContent(notesNodes, `s${index}-notes-`, [], ctx.lang),
-    content: toHastContent(slotted(nodes), `s${index}-`, propTable, ctx.lang),
+    content: dimText(toHastContent(slotted(nodes), `s${index}-`, propTable, ctx.lang), anims),
     anims,
     blocks,
   }
@@ -693,6 +747,23 @@ function toHastContent(nodes: RootContent[], clobberPrefix: string, propTable: A
   }) as HastRoot
   applyProps(tree, undefined, propTable)
   return clean(tree.children).filter((n): n is ElementContent => n.type !== 'doctype')
+}
+
+/**
+ * `dim-others` dims its siblings (§6.3), which CSS can only do to elements:
+ * bare text beside it (`The [point]{.dim-others @1} of it`) is wrapped in a
+ * plain `<span>` so it dims too.
+ */
+function dimText(nodes: HastNode[], anims: AnimSpec[]): HastNode[] {
+  const visit = (list: HastNode[]) => {
+    const dims = list.some((n) => n.type === 'element' && anims[Number(n.properties.dataBlitzAnim ?? -1)]?.effect === 'dim-others')
+    list.forEach((n, i) => {
+      if (dims && n.type === 'text' && n.value.trim()) list[i] = { type: 'element', tagName: 'span', properties: {}, children: [n] }
+      else if (n.type === 'element') visit(n.children)
+    })
+  }
+  visit(nodes)
+  return nodes
 }
 
 /** Merge the side table of blitz properties into hast (className appends). */

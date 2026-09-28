@@ -13,7 +13,7 @@ document follow semver.
 
 A deck is a UTF-8 [CommonMark](https://spec.commonmark.org/) document with
 [GitHub Flavored Markdown](https://github.github.com/gfm/) extensions (tables,
-strikethrough, task lists, autolinks, footnotes), parsed by remark.
+strikethrough, task lists, autolinks, footnotes (§14)), parsed by remark.
 
 blitzstrahl makes these changes to that base:
 
@@ -667,7 +667,9 @@ each:
 - An element with `@n` and **no** effect uses `fade`.
 - An entrance effect with **no** `@` plays on slide entry.
 - An emphasis effect with no `@` is applied from state 0.
-- `dim-others` dims the element's siblings, not the element itself.
+- `dim-others` dims the element's siblings, not the element itself,
+  including bare text beside it: in `The [key point]{.dim-others @1} of it`,
+  "The" and "of it" dim too. *(1.1)*
 - Under `prefers-reduced-motion: reduce`, every effect is instant. Steps still
   apply, so things still appear and disappear on cue.
 
@@ -907,6 +909,32 @@ function add(a: number, b: number): number {
 The moving code stays at full strength while the rest of the slide
 cross-fades. A longer `transition-dur` (800 ms or so) suits bigger changes.
 
+**Within a slide** *(1.1)*. Blocks that follow one another and share a
+`key=` take turns in one place: each one replaces the one before it at its
+step, and morphs out of it as above. Code blocks magic-move; anything else
+moves and resizes.
+
+````markdown
+```ts {key=add}
+function add(a, b) {
+```
+
+```ts {key=add @1}
+function add(a: number, b: number): number {
+```
+````
+
+- The blocks must be consecutive siblings. The first is shown from its own
+  step; each later one needs a later step (`@1`, `@+`), and the one before
+  it leaves as it arrives, so a range (`@0-0`) isn't needed.
+- They share one box, the size of the largest, so the slide doesn't jump.
+- Stepping back morphs back. `dur=` on a block sets its morph's duration
+  (default: the slide's `transition-dur`).
+- If a later block has no later step, the blocks aren't a stack: the
+  `key=` used twice is a warning, as above, which says to add a step.
+- In a PDF, the slide shows the last version (or, with `--steps`, each in
+  turn).
+
 ---
 
 ## 10. Layouts
@@ -1069,6 +1097,41 @@ resumes it (the edge-click gutters stay out of its way, as for charts).
   on the page, which presenting provides. A deck that opens straight onto a
   video slide may start it muted; `check` doesn't know which browser will
   be used, so it says nothing.
+
+---
+
+## 14. Footnotes
+
+Footnotes are GFM's: `[^label]` cites, `[^label]: text` defines. A slide
+that cites one lists it at its foot, numbered from 1 on each slide in the
+order it cites them.
+
+**Defined anywhere** *(1.1)*. A footnote can be defined on any slide, not
+just the one that cites it, so a deck can keep its sources together, at
+the end:
+
+```markdown
+# Cases rose
+
+Up 42 % on last year.[^atlas]
+
+---
+
+# Thank you
+
+[^atlas]: Surveillance Atlas, accessed September 2026.
+```
+
+The last slide shows "Thank you" and no footnote; the first lists the
+source.
+
+- A definition is shown only where it's cited, never where it's written. A
+  slide can cite a footnote another slide cites too; each lists it.
+- A cited label defined nowhere in the deck is a warning, and stays text
+  (`[^label]`), as in 1.0. A definition cited nowhere is a warning. A label
+  defined twice is a warning at the second, and the first is used, as in
+  GFM.
+- Definitions inside `::: notes` are notes, not footnotes.
 
 ---
 

@@ -148,6 +148,16 @@ relied on it will notice.
   nothing.
 - `dev`, and the overflow check's server, answer HTTP range requests, so
   videos can seek.
+- Footnotes can be defined on any slide, such as all at the end of the
+  deck, and each slide that cites one lists it. 1.0 showed a footnote only
+  if it was defined on the slide that cited it, and dropped it without a
+  word otherwise. Warnings for a citation defined nowhere, a definition
+  cited nowhere, and a label defined twice.
+- `dim-others` dims the bare text beside its element, not only other
+  elements.
+- Magic move within a slide: consecutive blocks with the same `key=`, each
+  at a later step, take turns in one box, and each morphs into the next
+  (code token by token).
 
 ## [1.0.1] — 2026-09-27
 

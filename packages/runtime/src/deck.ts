@@ -13,7 +13,8 @@ import { buildPrint, type PrintOptions, type PrintResult } from './print.js'
 import { bindInk, InkLayer, type InkEvent, type Tool } from './ink.js'
 import { focusLines } from './lines.js'
 import { MEDIA, rewind, showMedia, wireMedia } from './media.js'
-import { isCode, pairSlides, type MorphPair } from './morph.js'
+import { flipFrames, isCode, pairSlides, place, textPair, type MorphPair } from './morph.js'
+import { CodeMorph } from './code-morph.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type SlideMotion, type TransitionEngine } from './transitions.js'
 import { LayerHost, gotoPrompt, help, overview, presenterBlocked, uiWords } from './ui.js'
@@ -93,6 +94,9 @@ export class Deck implements NavTarget {
   private generation = 0
   /** Elements the running auto-animate moves into place: they don't play entrances too. */
   private morphing = new Set<HTMLElement>()
+  /** Stack members swapping at this step (syntax.md §9.1): they morph, not fade. */
+  private swapping = new Set<HTMLElement>()
+  private settleSwaps: (() => void) | undefined
   readonly transitions: TransitionEngine
   readonly layers: LayerHost
   /** The audience sees black (`B`); navigation still works underneath. */
@@ -307,6 +311,7 @@ export class Deck implements NavTarget {
 
     // A transition still running is settled before anything else moves.
     this.transitions.finish()
+    this.settleSwaps?.()
     const changing = !from || from.slide !== to.slide
     const view = this.views[to.slide]!
     const old = from && changing ? this.views[from.slide]! : undefined
@@ -314,9 +319,15 @@ export class Deck implements NavTarget {
     const commit = () => {
       if (old) teardown = this.leave(old)
       if (changing) this.enter(view)
+      const swaps = !changing && from && !this.still ? this.stackSwaps(view, from.step, to.step) : []
+      // Code is measured while the old version still shows.
+      const code = swaps.filter(isCode).map((p) => new CodeMorph(p.from, p.to))
+      this.swapping = new Set(swaps.flatMap((p) => [p.from, p.to]))
       this.apply(view, to.step, m)
+      this.swapping.clear()
       this.syncBlocks(view, to.step)
       this.syncMedia(view)
+      if (swaps.length) this.morphSwaps(view, swaps, code)
     }
     this.pos = to
     const t = old && from ? this.slideTransition(from.slide, to) : undefined
@@ -605,6 +616,49 @@ export class Deck implements NavTarget {
     return { ...t, reverse: false, morph: pairs.filter((p) => !isCode(p)), code: pairs.filter(isCode) }
   }
 
+  /** In each stack of this slide, the version shown at step `a` and the one at `b`, where they differ. */
+  private stackSwaps(view: SlideView, a: number, b: number): MorphPair[] {
+    const shownAt = (el: Element, step: number) => {
+      const s = view.stepped.find((x) => x.el === el)
+      return !s || phaseAt(s.kind, s.range, step) !== 'hidden'
+    }
+    const pairs: MorphPair[] = []
+    for (const stack of view.el.querySelectorAll<HTMLElement>('[data-blitz-stack]')) {
+      const members = [...stack.children] as HTMLElement[]
+      const from = members.find((el) => shownAt(el, a))
+      const to = members.find((el) => shownAt(el, b))
+      if (from && to && from !== to) pairs.push({ from, to })
+    }
+    return pairs
+  }
+
+  /** The new version moves from where the old one was; code morphs token by token. */
+  private morphSwaps(view: SlideView, swaps: MorphPair[], code: CodeMorph[]) {
+    const anims: Animation[] = []
+    const options = (to: HTMLElement): KeyframeAnimationOptions => ({
+      duration: view.stepped.find((s) => s.el === to)?.anim?.dur ?? view.data.transition.dur ?? this.defaultTransitionDur(),
+      easing: TRANSITION_EASE,
+    })
+    for (const p of swaps.filter((p) => !isCode(p))) {
+      const text = textPair(p)
+      const a = place(p.from, text)
+      const b = place(p.to, text)
+      if (a.box.width && b.box.width) anims.push(p.to.animate(flipFrames(b, a, 'from'), options(p.to)))
+    }
+    code.forEach((c, i) => {
+      c.lift()
+      anims.push(...c.animate(options(swaps.filter(isCode)[i]!.to)))
+    })
+    const settle = () => {
+      if (this.settleSwaps !== settle) return
+      this.settleSwaps = undefined
+      for (const a of anims) a.cancel()
+      code.forEach((c) => c.restore())
+    }
+    this.settleSwaps = settle
+    void Promise.all(anims.map((a) => a.finished)).then(settle, () => {})
+  }
+
   private defaultTransitionDur(): number {
     const v = this.win.getComputedStyle(this.stage).getPropertyValue('--blitz-transition-dur').trim()
     const n = parseFloat(v)
@@ -640,14 +694,14 @@ export class Deck implements NavTarget {
       if (phase === 'shown') {
         toggle(s.el, 'blitzHidden', false)
         const entrance = m === 'step-forward' || (m === 'enter' && s.range.in === 0 && s.anim !== undefined)
-        if (animate && entrance && was !== 'shown' && !this.morphing.has(s.el)) s.running = playEntrance(s.el, anim)
-      } else if (animate && m === 'step-forward' && was === 'shown') {
+        if (animate && entrance && was !== 'shown' && !this.morphing.has(s.el) && !this.swapping.has(s.el)) s.running = playEntrance(s.el, anim)
+      } else if (animate && m === 'step-forward' && was === 'shown' && !this.swapping.has(s.el)) {
         const run = playExit(s.el, anim)
         s.running = run
         void run.finished.then(() => {
           if (s.phase === 'hidden') toggle(s.el, 'blitzHidden', true)
         })
-      } else if (animate && m === 'step-back' && was === 'shown' && s.anim?.reverse) {
+      } else if (animate && m === 'step-back' && was === 'shown' && s.anim?.reverse && !this.swapping.has(s.el)) {
         const run = playEntrance(s.el, anim, true)
         s.running = run
         void run.finished.then(() => {

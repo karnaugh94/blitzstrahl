@@ -7,6 +7,7 @@ import { Diagnostics } from './diagnostics.js'
 import { IR_VERSION, type Deck, type DeckMeta, type Diagnostic, type Slide, type SlideAttrs, type SourceSpan, type TransitionName } from './ir.js'
 import { SLIDE_KEYS, layoutName, mergeTransition, milliseconds, resolveDeckMeta, scalarString, transitionName } from './meta.js'
 import { inlineMarkdown, resolveSlide, type DeckContext } from './resolve.js'
+import { shareFootnotes } from './footnotes.js'
 import { keyProblem, SLIDE_SCHEMA } from './schema.js'
 import { keySpan, splitSlides } from './split.js'
 import { parseMarkdown } from './syntax/index.js'
@@ -84,6 +85,7 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
   const deckBackground = (layout: string): string | undefined =>
     typeof deckBg === 'string' || deckBg === undefined ? deckBg : (deckBg[layout] ?? deckBg.default)
 
+  shareFootnotes(split.slides, diags)
   const slides = split.slides.map((raw, index): Slide => {
     attachAttributes(raw.nodes, lines, diags)
     const fm = raw.frontmatter?.data ?? {}

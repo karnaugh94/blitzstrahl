@@ -101,6 +101,9 @@ html[data-blitz-printing] body > :not(.blitz-print, .blitz-viewport, .blitz-blac
 /* A collapsed table paints a hidden cell's borders anyway: a row still to come must leave no rule. */
 tr[data-blitz-hidden] > *, [data-blitz-hidden] :is(tr, td, th) { border-color: transparent !important; }
 [data-blitz-box] { display: inline-block; }
+/* Magic move within a slide (syntax.md §9.1): the versions share one box, the largest. */
+[data-blitz-stack] { display: grid; }
+[data-blitz-stack] > * { grid-area: 1 / 1; min-width: 0; }
 [data-blitz-block] { position: relative; }
 
 /* Embeds (renderers/embed.ts). */

@@ -14,6 +14,9 @@ relied on it will notice.
 
 ### Fixed (visible)
 
+- Links are in the theme's `link` token (default: its `accent`) even when
+  the theme's own CSS doesn't say so, as the token table promised. A
+  theme that set `link` without styling links showed the browser's blue.
 - A chart's `x`, `y`, `series`, `size`, `stack`, `title` and `echarts` are
   checked like its other keys: `x: [a, b]` or `echarts: 5` is an error
   that stops `build`, where 1.0 drew a broken chart. The same checks now
@@ -64,6 +67,9 @@ relied on it will notice.
   frontmatter, one value or one per layout (`title:`, `section:`,
   `default:` for the rest). A slide's own still wins, and
   `background: none` clears it.
+- `blitzstrahl theme import template.potx`: a CSS theme from a PowerPoint
+  template (or presentation): its colours, fonts, backgrounds by layout
+  and logo, a sample deck, and a list of what it couldn't carry over.
 - **Themes written in CSS**: `theme: ./brand.css`, tokens in `:root`,
   fonts by `@font-face`, and local `@import`s. The recommended way to
   write a theme; JS themes stay. Packages can ship one too.

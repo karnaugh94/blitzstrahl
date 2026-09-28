@@ -139,5 +139,9 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * Not raised 2026-09-28 (M8.1): 183.3 kB bare. The dev panel's words, in all
  * seven languages, ride with the UI strings (1.9 kB); the panel itself is a
  * dev-only module and never in a build (asserted above).
+ * Raised 2026-09-28 (M9): 185.1 kB bare, +1.8 kB over 1383fcc. The chrome's
+ * base CSS (footer, number and logo placement, shared by every theme), a
+ * `.blitz-chrome` holding the (hidden) title on every slide, and the base
+ * rule that puts links in the `link` token.
  */
-const BUDGET = { minimal: 185_000, withChart: 870_000 }
+const BUDGET = { minimal: 187_000, withChart: 870_000 }

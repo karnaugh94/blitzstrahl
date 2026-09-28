@@ -8,6 +8,9 @@ reads (charts, maps, diagrams, the layouts). Token names are stable from
 1.0. New ones may be added in minor versions, always with a default. A
 theme can also be a JS module (docs/plugins.md §3).
 
+To start from an organisation's PowerPoint template, `blitzstrahl theme
+import` writes the CSS file for you (docs/cli.md).
+
 Built-in themes:
 
 - **aurora**: dark, technical. Inter for text, JetBrains Mono for code,

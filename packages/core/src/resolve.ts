@@ -16,14 +16,24 @@ import { cssRefs, htmlRefs } from './html-refs.js'
 import { pointSpan, spanOf, type Diagnostics } from './diagnostics.js'
 import type { AnimSpec, AssetRef, EffectKind, HastNode, RenderBlock, SourceSpan, StepRange } from './ir.js'
 import { milliseconds, notYet } from './meta.js'
-import { ANIM_KEYS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES, type RendererBody } from './vocab.js'
+import { ANIM_KEYS, COMPONENTS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES, type RendererBody } from './vocab.js'
 import { fill, strings } from './i18n.js'
 import { parseMarkdown } from './syntax/index.js'
+import { distance } from './split.js'
 
 /** A container's `width=`/`height=` as CSS (§5.2): a length or percentage; a bare number is pixels. */
 function cssSize(value: string): string | undefined {
   const m = /^(\d+(?:\.\d+)?|\.\d+)(px|%|em|rem|vw|vh|cm|mm|in|pt)?$/.exec(value.trim())
   return m ? `${m[1]}${m[2] ?? 'px'}` : undefined
+}
+
+type BlitzContainerNode = Extract<Nodes, { type: 'blitzContainer' }>
+
+/** A container's children that are blocks on the page: not raw HTML, definitions or notes. */
+function blockChildren(node: BlitzContainerNode): Nodes[] {
+  return (node.children as Nodes[]).filter(
+    (c) => c.type !== 'html' && c.type !== 'definition' && c.type !== 'footnoteDefinition' && !(c.type === 'blitzContainer' && c.name === 'notes'),
+  )
 }
 
 /** Deck-wide state threaded through every slide. */
@@ -154,6 +164,7 @@ export function resolveSlide(
     let animIndex: number | undefined
     const anim: AnimSpec = { effect: 'fade', kind: 'entrance', options: {} }
     let revealMode: string | undefined
+    let as: { value: string; span: SourceSpan } | undefined
     let lineGroups: LineGroup[] | undefined
 
     if (blitz) {
@@ -184,6 +195,8 @@ export function resolveSlide(
           animOption(anim, key, value, diags, span)
         } else if (key === 'reveal') {
           revealMode = value
+        } else if (key === 'as') {
+          as = { value, span }
         } else if (key === 'lines') {
           lineGroups = linesOption(node, value, diags, span)
         } else if (key === 'key') {
@@ -214,16 +227,19 @@ export function resolveSlide(
         props.style = `${sizes.join('; ')}; flex: none;${own}`
       }
 
+      if (as && componentOk(node, as.value, as.span)) props.dataAs = as.value
+
       if (attrs.step) range = resolveStep(attrs.step, pointSpan(at))
 
       if (revealMode !== undefined) {
         const ok =
-          (revealMode === 'items' && node.type === 'list') || (revealMode === 'rows' && node.type === 'table')
+          (revealMode === 'items' && (node.type === 'list' || node.type === 'blitzContainer')) ||
+          (revealMode === 'rows' && node.type === 'table')
         if (!ok) {
           diags.error(
             'reveal/target',
             revealMode === 'items' || revealMode === 'rows'
-              ? `\`reveal=${revealMode}\` applies to a ${revealMode === 'items' ? 'list' : 'table'}`
+              ? `\`reveal=${revealMode}\` applies to a ${revealMode === 'items' ? 'list or a container' : 'table'}`
               : `unknown \`reveal=${revealMode}\`: use \`items\` (lists) or \`rows\` (tables)`,
             pointSpan(at),
           )
@@ -269,8 +285,11 @@ export function resolveSlide(
       }
     }
     if (revealMode && range) {
-      const children =
-        node.type === 'list' ? node.children : node.type === 'table' ? node.children.slice(1) : []
+      const children: Nodes[] =
+        node.type === 'list' ? node.children
+        : node.type === 'table' ? node.children.slice(1)
+        : node.type === 'blitzContainer' ? blockChildren(node)
+        : []
       children.forEach((child, k) => {
         if (k === 0) return
         const data = (child.data ??= {})
@@ -307,6 +326,30 @@ export function resolveSlide(
     if (classes.length) props.className = classes
     setProps(node, props)
     return range && anims[animIndex ?? -1]?.kind !== 'emphasis' ? range : undefined
+  }
+
+  /** `as=value` fits this node (§5.1); reports why not. */
+  const componentOk = (node: Nodes, value: string, span: SourceSpan): boolean => {
+    const targets = COMPONENTS[value]
+    if (!targets) {
+      const near = Object.keys(COMPONENTS).find((c) => distance(value, c) <= 2)
+      diags.error('as/unknown', `unknown component \`as=${value}\`${near ? `: did you mean \`${near}\`?` : ` (${Object.keys(COMPONENTS).join(', ')})`}`, span)
+      return false
+    }
+    const kind = node.type === 'list' ? 'list' : node.type === 'table' ? 'table' : node.type === 'blitzContainer' ? 'container' : undefined
+    if (!kind || !targets.includes(kind)) {
+      const on = targets.map((t) => (t === 'table' && value === 'compare' ? 'a two-column table' : `a ${t}`)).join(' or ')
+      diags.error('as/target', `\`as=${value}\` goes on ${on}`, span)
+      return false
+    }
+    if (value === 'compare') {
+      const n = node.type === 'table' ? (node.children[0]?.children.length ?? 0) : blockChildren(node as BlitzContainerNode).length
+      if (n !== 2) {
+        diags.error('as/compare', `\`as=compare\` needs two sides: this ${kind} has ${n} ${kind === 'table' ? (n === 1 ? 'column' : 'columns') : n === 1 ? 'child' : 'children'}`, span)
+        return false
+      }
+    }
+    return true
   }
 
   const walk = (parent: { children: RootContent[] }) => {

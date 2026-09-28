@@ -1,3 +1,4 @@
+import { componentCss } from './components.js'
 import { layoutCss } from './layouts.js'
 
 /**
@@ -88,6 +89,11 @@ export const TOKEN_DEFAULTS: Readonly<Record<string, string>> = {
   'transition-dur': '550ms',
   'code-foreground': 'var(--blitz-fg)',
   'map-tiles': 'none',
+  // Components (1.1)
+  'marker': 'var(--blitz-accent-2)',
+  'marker-fg': 'var(--blitz-bg)',
+  'connector': 'var(--blitz-rule)',
+  'accent-fg': 'var(--blitz-bg)',
 }
 
 export const CODE_TOKENS: readonly string[] = [
@@ -139,5 +145,5 @@ export function defineTheme(def: ThemeDefinition): Theme {
   const vars = Object.entries({ ...TOKEN_DEFAULTS, ...def.tokens })
     .map(([k, v]) => `  --blitz-${k}: ${v};`)
     .join('\n')
-  return { ...def, stylesheet: `:root {\n${vars}\n}\n${layoutCss}\n${baseCss}\n${def.css}` }
+  return { ...def, stylesheet: `:root {\n${vars}\n}\n${layoutCss}\n${baseCss}\n${componentCss}\n${def.css}` }
 }

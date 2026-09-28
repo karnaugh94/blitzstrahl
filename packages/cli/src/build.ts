@@ -5,6 +5,7 @@ import { basename, dirname, extname, join, relative, resolve } from 'node:path'
 import { build as viteBuild, type Rolldown } from 'vite'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
 import { isUrl, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
+import { componentCss } from '@blitzstrahl/themes'
 import { allCss, fontCss, themeStylesheet } from './extend.js'
 import { deckText, standaloneFonts } from './fonts.js'
 import { renderPage } from './html.js'
@@ -17,6 +18,15 @@ import { bundleStandalone, dataUri, inlineSafe, staticEntry, usedRenderers, virt
 import { cacheDir } from './vite.js'
 import { CliError } from './errors.js'
 import { inPublic, publicFiles, within } from './public.js'
+
+/**
+ * The components' CSS (syntax.md §5.1) only in a deck that uses them: `as=`,
+ * or `data-as` in its own HTML. It's 9 kB every other page would carry
+ * (the standalone budget). dev always has it, since `as=` can arrive on save.
+ */
+function components(deck: Deck, stylesheet: string): string {
+  return deck.slides.some((s) => /"dataAs"|data-as/.test(JSON.stringify(s.content))) ? stylesheet : stylesheet.replace(componentCss, '')
+}
 
 export interface BuildOptions {
   /** Static build: the folder to write. Default `dist/` next to the deck. */
@@ -108,7 +118,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
       loaded.css,
       hasMath(loaded.deck) ? await mathCss(async (file) => (await dataUri(mathFont(file)))!, loaded.deck) : '',
     ].join('\n')
-    const inlined = { ...theme, stylesheet: await themeStylesheet(loaded.extras, async (file) => (await dataUri(file))!) }
+    const inlined = { ...theme, stylesheet: components(loaded.deck, await themeStylesheet(loaded.extras, async (file) => (await dataUri(file))!)) }
     const html = renderPage({ deck: loaded.deck, inline: loaded.inline, theme: inlined, entry: { code: inlineSafe(code) }, assetUrl: (p) => uris.get(p) ?? p, css, plugins: loaded.plugins })
     await mkdir(outDir, { recursive: true })
     await writeFile(outFile, html)
@@ -185,7 +195,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   const html = renderPage({
     deck: loaded.deck,
     inline: loaded.inline,
-    theme: { ...theme, stylesheet: await themeStylesheet(loaded.extras, (file) => copied(copyHashed(file, outDir, 'assets'))) },
+    theme: { ...theme, stylesheet: components(loaded.deck, await themeStylesheet(loaded.extras, (file) => copied(copyHashed(file, outDir, 'assets')))) },
     entry: { src: `./${entry.fileName}` },
     assetUrl: (p) => urls.get(p) ?? p,
     css: css.join('\n'),

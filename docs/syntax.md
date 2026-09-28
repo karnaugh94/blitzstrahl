@@ -416,7 +416,7 @@ Keys fall into four groups:
 | Kind | Keys | Behaviour |
 |---|---|---|
 | Animation | `dur`, `delay`, `ease`, `reverse`, plus effect options (§6.3) | Consumed, drives the animation |
-| Structure | `reveal`, `key`, `lines` | Consumed (§6.4, §8.1, §9.1) |
+| Structure | `reveal`, `key`, `lines`, `as` *(1.1)* | Consumed (§6.4, §8.1, §9.1, §5.1) |
 | Slide shorthand | `transition`, `transition-dur`, `layout`, `background` | First heading only (§3.2) |
 | HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes. On a container, `width` and `height` set its size instead (§5.2) *(1.1)* |
 
@@ -478,6 +478,62 @@ The rules for opening and closing are Pandoc's
 |---|---|
 | `notes` | Presenter notes (§7) |
 | *layout slot names* | Fill a named slot of the slide's layout (§10) |
+
+### 5.1 Components: `as=` *(1.1)*
+
+`as=` turns a list, a table or a container into one of the structures decks
+keep drawing by hand: a process, a timeline, cards. You write the content
+as ordinary markdown; the theme draws the shape.
+
+```markdown
+1. **Choose data**
+
+   Raw cases or curated indicators
+2. **Transform**
+
+   Apply standard methods
+3. **Publish**
+
+   Disseminate and archive
+
+{as=steps reveal=items .fade-right @1}
+```
+
+| Value | Goes on | Draws |
+|---|---|---|
+| `steps` | a list | A numbered process: a marker per item, a connector to the next, the item's text below |
+| `timeline` | a list | Stops on a line: a marker per item (numbered in an `ol`), its text below |
+| `chevrons` | a list | A road of arrow-shaped items, pointing right |
+| `flow` | a list, or a container | Boxes with an arrow between each and the next (definition → generator → report). In a container, each child block is one box |
+| `cards` | a list, or a container | A grid of cards. In a container, each child block is one card |
+| `compare` | a two-column table, or a container with two children | Before → after: an arrow between the two sides, the "after" side in the accent. In a table, one arrow per row |
+| `stats` | a container | Figures, as in the `stat-grid` layout (§10): each child container is one stat, its first paragraph the figure, the rest the caption |
+
+- **The item's first line is its title.** In `steps`, `timeline`, `flow`
+  and `cards`, an item's first paragraph (or heading) is set as its title
+  and the rest as its description. A one-line item is all title.
+- **`.accent` on an item marks it**: its marker, box or chevron takes the
+  accent colour. `- Open-source release {.accent}`.
+- **Rows.** `steps`, `timeline`, `chevrons` and `flow` lay their items out
+  in one row. `cards` and `stats` put up to four in a row and wrap longer
+  sets into even rows (five and six make rows of three).
+- **Steps and effects work as anywhere else.** `reveal=items` gives each
+  item its own step (§6.4), in a container too; a connector or arrow
+  arrives with the item it points to.
+- **Everything else too**: components are measured for overflow, printed,
+  and pair in `auto-animate` (§9.1) like the list, table or container they
+  are.
+- `as=` anywhere else (a paragraph, a heading, an image), or on the wrong
+  kind of block (`as=compare` on a list), is an error; so is an unknown
+  value, with "did you mean". A `compare` table with more than two columns,
+  or a container with more than two children, is an error.
+- In the page, the element carries `data-as="…"`, which is what themes style
+  (docs/themes.md). The value is never added as a class, so a deck that
+  styles its own `.timeline` or `.card` is unaffected.
+
+`as=` is Pandoc-compatible in form (a key-value attribute), but Pandoc gives
+it no meaning, so a deck converted with Pandoc keeps the content and loses
+the shape.
 
 ### 5.2 Utility classes *(1.1)*
 
@@ -640,6 +696,7 @@ Container names (`::: stat`) aren't listed: they often group without styling.
 | Value | Target | Children |
 |---|---|---|
 | `reveal=items` | list | each top-level `<li>` |
+| `reveal=items` | container *(1.1)* | each child block: a paragraph, a nested container, a card in `as=cards` |
 | `reveal=rows` | table | each body row. The header row appears with the table |
 
 The first child takes the block's own step (or `@+` if it has none). Each
@@ -890,7 +947,7 @@ columns.
 | `two-col` | `left`, `right` | A heading spanning both columns |
 | `three-col` | `left`, `middle`, `right` | A heading spanning all three |
 | `quote` | — | A blockquote, set large; a paragraph after it is the attribution |
-| `stat-grid` | — | A heading, then each container (`::: stat`, say) becomes one stat: its first paragraph is the figure, the rest the caption |
+| `stat-grid` | — | A heading, then each container (`::: stat`, say) becomes one stat: its first paragraph is the figure, the rest the caption. `as=stats` (§5.1) gives the same look inside any layout |
 | `full-bleed` | — | The first image or render block covers the whole canvas; the rest is overlaid |
 | `image-left`, `image-right` | `image` | The text beside the image. The `image` slot fills its half edge to edge |
 | `code` | — | A heading and a code block that fills the slide |

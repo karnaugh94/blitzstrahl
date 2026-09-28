@@ -204,7 +204,7 @@ function nearSlideKey(key: string): string | undefined {
   return [...SLIDE_KEYS].find((k) => distance(key, k) <= (k.length > 4 ? 2 : 1))
 }
 
-function distance(a: string, b: string): number {
+export function distance(a: string, b: string): number {
   const d = Array.from({ length: b.length + 1 }, (_, j) => j)
   for (let i = 1; i <= a.length; i++) {
     let prev = d[0]!

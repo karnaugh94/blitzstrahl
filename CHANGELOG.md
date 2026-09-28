@@ -64,6 +64,12 @@ relied on it will notice.
   frontmatter, one value or one per layout (`title:`, `section:`,
   `default:` for the rest). A slide's own still wins, and
   `background: none` clears it.
+- A footer, slide numbers and a logo on every slide, from the deck:
+  `footer:` (inline markdown), `slide-numbers:` (`true`, or a template
+  like `"{n} / {total}"`) and `logo:`. None on a slide with
+  `chrome: false`, and no number on title, section and end slides.
+  Themes place and restyle them, and can show the deck's title, author
+  and date.
 - Themes can give each layout its own background: relative `url()`s in a
   theme's CSS are relative to the theme's file, and the files are copied
   into builds, served by `dev` and inlined in standalone files.

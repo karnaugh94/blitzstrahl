@@ -23,7 +23,8 @@ describe('deck keys', () => {
   it('a built key leaves the reserved list', () => {
     expect(RESERVED_DECK_KEYS.has('thousands')).toBe(false)
     expect(RESERVED_DECK_KEYS.has('decimal')).toBe(false)
-    expect(RESERVED_DECK_KEYS.has('footer')).toBe(true)
+    expect(RESERVED_DECK_KEYS.has('footer')).toBe(false)
+    expect(RESERVED_DECK_KEYS.has('css')).toBe(true)
   })
 })
 
@@ -69,5 +70,36 @@ describe('deck `background` (syntax.md §3.6)', () => {
 
   it('is no longer reserved', () => {
     expect(RESERVED_DECK_KEYS.has('background')).toBe(false)
+  })
+})
+
+describe('chrome keys (syntax.md §3.6)', () => {
+  it('`slide-numbers`: true is `{n}`, a template must have `{n}`, false is off', () => {
+    expect(deck('slide-numbers: true').deck.meta.slideNumbers).toBe('{n}')
+    expect(deck('slide-numbers: "{n} / {total}"').deck.meta.slideNumbers).toBe('{n} / {total}')
+    expect(deck('slide-numbers: false').deck.meta.slideNumbers).toBeUndefined()
+    const bad = deck('slide-numbers: "Page"')
+    expect(bad.diagnostics.map((x) => x.code)).toEqual(['frontmatter/type'])
+    expect(bad.deck.meta.slideNumbers).toBeUndefined()
+  })
+
+  it('`footer` is one line of inline markdown, and its local links are files the page uses', () => {
+    const { deck: d, diagnostics } = deck('footer: "*Acme* · [notes](./notes.pdf)"')
+    expect(diagnostics).toEqual([])
+    expect(d.meta.footer!.map((n) => (n.type === 'element' ? n.tagName : n.type))).toEqual(['em', 'text', 'a'])
+    expect(d.assets.map((a) => a.path)).toEqual(['notes.pdf'])
+  })
+
+  it('a `footer` that is more than a line is plain text, with a warning', () => {
+    const { deck: d, diagnostics } = deck('footer: "- a list"')
+    expect(diagnostics.map((x) => x.code)).toEqual(['frontmatter/type'])
+    expect(d.meta.footer).toEqual([{ type: 'text', value: '- a list' }])
+  })
+
+  it('`logo` is an asset; `chrome: false` is a slide setting', () => {
+    const { deck: d, diagnostics } = parseDeck('---\nlogo: ./img/logo.svg\n---\n\n# A\n\n---\nchrome: false\n---\n\n# B\n\n---\nchrome: "no"\n---\n\n# C\n', { file: 'deck.md' })
+    expect(diagnostics.map((x) => x.code)).toEqual(['frontmatter/type'])
+    expect(d.assets.map((a) => [a.path, a.kind])).toEqual([['img/logo.svg', 'image']])
+    expect(d.slides.map((s) => s.attrs.chrome)).toEqual([undefined, false, undefined])
   })
 })

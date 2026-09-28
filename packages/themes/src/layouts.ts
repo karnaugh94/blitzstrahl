@@ -24,6 +24,28 @@ export const layoutCss = /* css */ `
 .blitz-slot[data-slot="right"] { grid-area: right; }
 .blitz-slot[data-slot="image"] { grid-area: image; }
 
+/*
+ * Chrome (syntax.md §3.6): footer, number and logo, laid over the slide in its
+ * padding; title, author and date hidden until a theme places them. Rules are
+ * .blitz-chrome [data-chrome], which beats a theme's .blitz-slide img
+ * and loses to its own chrome rules, which come later.
+ */
+.blitz-chrome { position: absolute; inset: 0; pointer-events: none; }
+.blitz-chrome > * { position: absolute; margin: 0; pointer-events: auto; }
+.blitz-chrome :is([data-chrome="footer"], [data-chrome="number"]) {
+  bottom: calc(var(--blitz-pad-y) / 2); transform: translateY(50%);
+  font-size: var(--blitz-text-small); line-height: 1.2; color: var(--blitz-fg-muted);
+  white-space: nowrap;
+}
+.blitz-chrome [data-chrome="footer"] { left: var(--blitz-pad-x); max-width: calc(100% - 2 * var(--blitz-pad-x) - 8em); overflow: hidden; text-overflow: ellipsis; }
+.blitz-chrome [data-chrome="number"] { right: var(--blitz-pad-x); font-variant-numeric: tabular-nums; }
+.blitz-chrome [data-chrome="logo"] {
+  top: calc(var(--blitz-pad-y) / 2); right: var(--blitz-pad-x); transform: translateY(-50%);
+  height: calc(var(--blitz-pad-y) * .6); width: auto; max-width: none; border-radius: 0;
+}
+.blitz-chrome :is([data-chrome="title"], [data-chrome="author"], [data-chrome="date"]) { display: none; }
+:where(.blitz-slide:is([data-layout="title"], [data-layout="section"], [data-layout="end"])) .blitz-chrome [data-chrome="number"] { display: none; }
+
 /* Render blocks in a column or beside an image fill the space left. */
 .blitz-slide :is([data-slot="left"], [data-slot="middle"], [data-slot="right"], [data-slot="image"]) > [data-blitz-block] {
   flex: 1 1 0; height: auto; min-height: 200px;

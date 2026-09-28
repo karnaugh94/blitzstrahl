@@ -18,6 +18,7 @@ import type { AnimSpec, AssetRef, EffectKind, HastNode, RenderBlock, SourceSpan,
 import { milliseconds, notYet } from './meta.js'
 import { ANIM_KEYS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES, type RendererBody } from './vocab.js'
 import { fill, strings } from './i18n.js'
+import { parseMarkdown } from './syntax/index.js'
 
 /** Deck-wide state threaded through every slide. */
 export interface DeckContext {
@@ -544,6 +545,34 @@ function rewritePaths(value: unknown, onPath: (ref: string) => string): unknown 
     return out
   }
   return value
+}
+
+/**
+ * One line of inline markdown from frontmatter (`footer`, syntax.md §3.6), as
+ * HTML. Anything more than a paragraph is shown as the text it is, with a
+ * warning. Local links and images in it are files the page uses.
+ */
+export function inlineMarkdown(text: string, key: string, span: SourceSpan, ctx: DeckContext): HastNode[] {
+  const [first, ...rest] = parseMarkdown(text).children
+  if (first?.type !== 'paragraph' || rest.length) {
+    ctx.diags.warn('frontmatter/type', `\`${key}\` should be one line of inline markdown; it's shown as plain text`, span)
+    return [{ type: 'text', value: text }]
+  }
+  // The paragraph's contents: converted alone, toHast would put line breaks between them.
+  const [p] = toHastContent([first], `${key}-`, [], ctx.lang)
+  const nodes = p?.type === 'element' ? p.children : []
+  const walk = (list: HastNode[]) => {
+    for (const n of list) {
+      if (n.type !== 'element') continue
+      for (const url of [n.properties.href, n.properties.src]) {
+        const a = typeof url === 'string' ? pageAsset(url, span) : undefined
+        if (a) ctx.assets.push(a)
+      }
+      walk(n.children)
+    }
+  }
+  walk(nodes)
+  return nodes
 }
 
 function toHastContent(nodes: RootContent[], clobberPrefix: string, propTable: Array<Record<string, unknown>>, lang: string): HastNode[] {

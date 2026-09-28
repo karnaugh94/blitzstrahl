@@ -231,9 +231,9 @@ in the page. Don't put secrets in frontmatter. Only deck frontmatter can be
 extended in 1.0; slide frontmatter can't.
 
 **Reserved names.** blitzstrahl 1.1 gives meaning to these deck keys, so a
-plugin can't register them: `css`, `footer`, `slide-numbers`, `logo` and
-`duration`. `public` and `background` are built in from 1.1, and a
-built-in key can't be registered either.
+plugin can't register them: `css` and `duration`. `public`,
+`background`, `footer`, `slide-numbers` and `logo` are built in from 1.1,
+and a built-in key can't be registered either.
 
 ---
 

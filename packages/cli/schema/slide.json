@@ -86,6 +86,10 @@
         "number",
         "boolean"
       ]
+    },
+    "chrome": {
+      "description": "false: no footer, number or logo on this slide",
+      "type": "boolean"
     }
   }
 }

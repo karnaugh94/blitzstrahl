@@ -213,6 +213,31 @@
         }
       ]
     },
+    "footer": {
+      "description": "One line of inline markdown on every slide, bottom left by default",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "slide-numbers": {
+      "description": "Number the slides: true shows 3, \"{n} / {total}\" shows 3 / 12",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "pattern": "\\{n\\}"
+        }
+      ]
+    },
+    "logo": {
+      "description": "An image on every slide, top right by default",
+      "type": "string",
+      "pattern": "\\S"
+    },
     "plugins": {
       "description": "Plugin packages or ./paths, loaded in order",
       "anyOf": [

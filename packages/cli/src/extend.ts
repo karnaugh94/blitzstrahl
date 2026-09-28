@@ -5,13 +5,14 @@
  * gets the same checks.
  */
 import { existsSync } from 'node:fs'
-import { dirname, isAbsolute, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolve as resolveModule } from 'import-meta-resolve'
 import { DECK_KEYS, EFFECTS, RENDERERS, RESERVED_DECK_KEYS, cssRefs, isLocalRef, rewriteCss, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
 import { BUILTIN_RENDERERS } from '@blitzstrahl/renderers'
 import { defineTheme, themes, tokenProblems, type Theme } from '@blitzstrahl/themes'
 import type { CheckCtx, EffectDef, KeyDef } from './plugin.js'
+import { readStylesheet, type Stylesheet } from './stylesheet.js'
 
 export interface PluginRenderer {
   plugin: string
@@ -40,6 +41,13 @@ export interface Extras {
    * like fonts (docs/themes.md, *Backgrounds by layout*).
    */
   themeFiles: Record<string, string>
+  /** The deck's `css:` stylesheets, after the theme's (docs/themes.md, *Adding to a theme*). */
+  extraCss: string
+  /**
+   * The stylesheets read for a CSS theme and `css:`, by the name diagnostics
+   * give them: `dev` watches them, and opens them from the page.
+   */
+  stylesheets: Record<string, string>
   renderers: Record<string, PluginRenderer>
   effects: Record<string, EffectDef & { plugin: string }>
   keys: Record<string, KeyDef & { plugin: string }>
@@ -67,7 +75,7 @@ export function toExtensions(x: Extras): Extensions {
 
 /** A deck with no plugins and a built-in theme. */
 export function builtinExtras(theme: Theme = themes.aurora!): Extras {
-  return { theme, fonts: [], themeFiles: {}, renderers: {}, effects: {}, keys: {}, served: [], diagnostics: [] }
+  return { theme, fonts: [], themeFiles: {}, extraCss: '', stylesheets: {}, renderers: {}, effects: {}, keys: {}, served: [], diagnostics: [] }
 }
 
 /**
@@ -92,6 +100,15 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
     const problems: string[] = []
     collectFonts(builtin.fonts ?? [], fileURLToPath(import.meta.resolve('@blitzstrahl/themes')), problems, x)
     if (problems.length) throw new Error(`built-in theme \`${themeName}\`: ${problems.join('; ')}`)
+  } else if (cssTheme(themeName, dir)) {
+    const file = cssTheme(themeName, dir)!
+    const sheet = stylesheet(file)
+    const { missing } = tokenProblems(sheet.tokens)
+    if (missing.length) error('theme', 'theme/invalid', `theme \`${themeName}\`: missing required token${missing.length > 1 ? 's' : ''} ${missing.map((t) => `\`--blitz-${t}\``).join(', ')} in \`:root\` (docs/themes.md)`)
+    if (!missing.length && !sheet.problems.some((p) => p.severity === 'error')) {
+      x.theme = defineTheme({ name: basename(file, '.css'), tokens: sheet.tokens, css: sheet.css })
+      addSheet(sheet)
+    }
   } else {
     const loaded = await importFrom(themeCandidates(themeName), dir, importModule)
     if ('error' in loaded) error('theme', 'theme/load', `theme \`${themeName}\` ${loaded.error}; using aurora (built-in: ${Object.keys(themes).join(', ')})`)
@@ -111,6 +128,20 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
     }
   }
 
+  // The deck's own stylesheets, after the theme's. Their tokens change the theme's.
+  for (const path of deck.meta.css ?? []) {
+    const file = resolve(dir, path)
+    if (!existsSync(file)) {
+      error('css', 'css/missing', `\`${path}\` not found (looked for ${file})`)
+      continue
+    }
+    const sheet = stylesheet(file)
+    if (sheet.problems.some((p) => p.severity === 'error')) continue
+    x.extraCss += `${x.extraCss ? '\n' : ''}${sheet.css}`
+    x.theme = { ...x.theme, tokens: { ...x.theme.tokens, ...sheet.tokens } }
+    addSheet(sheet)
+  }
+
   // Plugins, in order.
   for (const spec of deck.meta.plugins) {
     const loaded = await importFrom([spec], dir, importModule)
@@ -123,6 +154,49 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
     for (const p of problems) error('plugins', 'plugin/invalid', `plugin \`${spec}\`: ${p}`)
   }
   return x
+
+  /** Read a stylesheet, reporting its problems where they are in it. */
+  function stylesheet(file: string): Stylesheet {
+    const sheet = readStylesheet(file)
+    for (const source of sheet.sources) x.stylesheets[showPath(source)] = source
+    for (const p of sheet.problems) {
+      const at = { line: p.line, column: p.column }
+      x.diagnostics.push({ severity: p.severity, code: p.code, message: p.message, file: showPath(p.file), span: { start: at, end: at } })
+    }
+    return sheet
+  }
+  /** A stylesheet file as diagnostics name it: beside the deck's own name. */
+  function showPath(file: string): string {
+    return join(dirname(deck.source), relative(dir, file))
+  }
+  function addSheet(sheet: Stylesheet) {
+    x.fonts.push(...sheet.fonts)
+    for (const f of sheet.fonts) x.served.push(f.file)
+    for (const f of sheet.files) {
+      x.themeFiles[f] = f
+      x.served.push(f)
+    }
+  }
+}
+
+/** A theme that's a CSS file: a `./path.css`, or a package whose entry is one (docs/plugins.md §1). */
+function cssTheme(name: string, dir: string): string | undefined {
+  if (isPath(name)) return name.endsWith('.css') ? resolve(dir, name) : undefined
+  const parent = pathToFileURL(resolve(dir) + '/').href
+  for (const spec of themeCandidates(name)) {
+    try {
+      const file = fileURLToPath(resolveModule(spec, parent))
+      return file.endsWith('.css') ? file : undefined
+    } catch {
+      continue
+    }
+  }
+  return undefined
+}
+
+/** The theme's CSS and the deck's `css:` after it, as one stylesheet: what the page carries, and what `check` reads. */
+export function allCss(x: Extras): string {
+  return x.extraCss ? `${x.theme.stylesheet}\n${x.extraCss}` : x.theme.stylesheet
 }
 
 /**
@@ -168,11 +242,11 @@ export async function fontCss(fonts: ThemeFontFile[], url: (file: string) => str
   return faces.join('\n')
 }
 
-/** The theme's stylesheet, with each file its CSS names at the URL `url` gives it (copied, served or inlined). */
+/** The theme's stylesheet and the deck's `css:`, with each file they name at the URL `url` gives it (copied, served or inlined). */
 export async function themeStylesheet(x: Extras, url: (file: string) => string | Promise<string>): Promise<string> {
   const urls = new Map<string, string>()
   for (const [ref, file] of Object.entries(x.themeFiles)) urls.set(ref, await url(file))
-  return urls.size ? rewriteCss(x.theme.stylesheet, (ref) => urls.get(ref)) : x.theme.stylesheet
+  return urls.size ? rewriteCss(allCss(x), (ref) => urls.get(ref)) : allCss(x)
 }
 
 /** CSS the page needs for the plugins' emphasis effects, after the theme's. */

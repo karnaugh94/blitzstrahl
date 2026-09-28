@@ -8,7 +8,7 @@ import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
 import { EFFECTS, parseDeck, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
 import { mermaidProblem, specNotes, specProblem } from '@blitzstrahl/renderers/specs'
-import { loadExtras, pluginCss, pluginPayload, toExtensions, type Extras } from './extend.js'
+import { allCss, loadExtras, pluginCss, pluginPayload, toExtensions, type Extras } from './extend.js'
 import { highlightDeck } from './highlight.js'
 import { renderMath } from './math.js'
 
@@ -51,7 +51,7 @@ export async function loadDeck(path: string, displayName = path, options: LoadOp
   const first = parseDeck(source, { file: displayName })
   const extras = await loadExtras(first.deck, dir, first.keySpans, options.importModule)
   const extensions = toExtensions(extras)
-  const css = cssEffects(extras.theme.stylesheet + '\n' + deckStyles(source))
+  const css = cssEffects(allCss(extras) + '\n' + deckStyles(source))
   if (css.length) extensions.effects = { ...Object.fromEntries(css.map((n) => [n, 'entrance' as const])), ...extensions.effects }
   const { deck, diagnostics, keySpans } = hasAny(extensions) ? parseDeck(source, { file: displayName, extensions }) : first
   diagnostics.push(...extras.diagnostics)

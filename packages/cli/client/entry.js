@@ -26,6 +26,12 @@ if (import.meta.hot) {
     deck.update(payload, stage, notes)
     report(diagnostics)
   })
+  // A theme's CSS changed: swap it in. The update that follows remounts the
+  // slide, so charts pick up new tokens, and measures overflow again.
+  import.meta.hot.on('blitz:css', ({ css }) => {
+    const style = document.querySelector('style[data-blitz-theme]')
+    if (style) style.textContent = css
+  })
   // A save the dev server couldn't load: the page keeps the last deck.
   import.meta.hot.on('blitz:diagnostics', report)
   report(JSON.parse(document.getElementById('blitz-diagnostics')?.textContent || '[]'))

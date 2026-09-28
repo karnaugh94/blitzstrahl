@@ -64,6 +64,13 @@ relied on it will notice.
   frontmatter, one value or one per layout (`title:`, `section:`,
   `default:` for the rest). A slide's own still wins, and
   `background: none` clears it.
+- **Themes written in CSS**: `theme: ./brand.css`, tokens in `:root`,
+  fonts by `@font-face`, and local `@import`s. The recommended way to
+  write a theme; JS themes stay. Packages can ship one too.
+- `css:` in the deck's frontmatter: stylesheets after the theme's, to
+  change a built-in theme or share styles between decks.
+- In `dev`, saving a CSS theme or a `css:` file restyles the deck without
+  reloading the page.
 - A footer, slide numbers and a logo on every slide, from the deck:
   `footer:` (inline markdown), `slide-numbers:` (`true`, or a template
   like `"{n} / {total}"`) and `logo:`. None on a slide with

@@ -4,10 +4,10 @@
  * (Theme fixtures are `.mjs`: under Playwright's loader, a `.js` outside a
  * `"type": "module"` package loads as CommonJS.)
  */
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { chmodSync, cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
 import { build, dev } from '../dist/index.js'
 import { buildAndServe } from './serve.js'
@@ -387,5 +387,174 @@ test('chrome prints, and a slide keeps its number on every step', async ({ page 
     await expect(page.locator('.blitz-print > .blitz-slide [data-chrome="footer"]').first()).toBeVisible()
   } finally {
     server.close()
+  }
+})
+
+// CSS themes and `css:` (docs/themes.md, *A theme in CSS*).
+
+const INTER = join(fileURLToPath(new URL('../../themes/fonts/inter-latin-wght-normal.woff2', import.meta.url)))
+
+const BRAND_CSS = `@import "./parts/layouts.css";
+
+@font-face {
+  font-family: "Brand Sans";
+  src: url("./fonts/brand.woff2") format("woff2");
+  font-weight: 100 900;
+}
+
+:root {
+  --blitz-bg: #fdfdf8;
+  --blitz-fg: #222222;
+  --blitz-fg-muted: #555555;
+  --blitz-accent: #3c7d22;
+${[1, 2, 3, 4, 5, 6, 7, 8].map((i) => `  --blitz-chart-${i}: #${String(i).repeat(6)};`).join('\n')}
+  --blitz-font-sans: "Brand Sans", sans-serif;
+}
+
+.blitz-slide h1 { font-weight: 800; }
+`
+
+const LAYOUTS_CSS = `[data-layout="section"] { background-image: url("../art/section.svg"); background-size: cover; }\n`
+
+function cssDeck(md: string): string {
+  const dir = mkdtempSync(join(tmpdir(), 'blitz-css-theme-'))
+  for (const sub of ['brand/parts', 'brand/art', 'brand/fonts']) mkdirSync(join(dir, sub), { recursive: true })
+  writeFileSync(join(dir, 'brand', 'brand.css'), BRAND_CSS)
+  writeFileSync(join(dir, 'brand', 'parts', 'layouts.css'), LAYOUTS_CSS)
+  writeFileSync(join(dir, 'brand', 'art', 'section.svg'), SVG('#00ff00'))
+  writeFileSync(join(dir, 'brand', 'fonts', 'brand.woff2'), readFileSync(INTER))
+  writeFileSync(join(dir, 'talk.css'), ':root { --blitz-accent: #aa0000; }\n.blitz-slide .note { color: var(--blitz-accent); }\n')
+  const file = join(dir, 'talk.md')
+  writeFileSync(file, md)
+  return file
+}
+
+const CSS_DECK = `---
+title: CSS theme
+theme: ./brand/brand.css
+css: ./talk.css
+---
+
+# Title
+
+A note {.note}
+
+---
+layout: section
+---
+
+# Part one
+`
+
+/** What the CSS theme and `css:` did to the page. */
+async function styled(page: Page) {
+  await page.waitForFunction(() => window.blitz)
+  return page.evaluate(async () => {
+    await document.fonts.ready
+    const slides = document.querySelectorAll<HTMLElement>('.blitz-slide')
+    const root = getComputedStyle(document.documentElement)
+    return {
+      bg: getComputedStyle(slides[0]!).backgroundColor,
+      chart1: root.getPropertyValue('--blitz-chart-1').trim(),
+      // `css:` comes after the theme, so its token wins.
+      note: getComputedStyle(slides[0]!.querySelector('.note')!).color,
+      font: document.fonts.check('800 30px "Brand Sans"') && [...document.fonts].some((f) => f.family.replace(/"/g, '') === 'Brand Sans' && f.status === 'loaded'),
+      section: /^url\(/.test(getComputedStyle(slides[1]!).backgroundImage),
+    }
+  })
+}
+
+const STYLED = { bg: 'rgb(253, 253, 248)', chart1: '#111111', note: 'rgb(170, 0, 0)', font: true, section: true }
+
+test('a CSS theme and `css:` style a static build: tokens, fonts, imports, backgrounds', async ({ page }) => {
+  const { url, server, result } = await buildAndServe(cssDeck(CSS_DECK))
+  try {
+    expect(result.diagnostics.filter((d) => d.severity !== 'info')).toEqual([])
+    await page.goto(url)
+    expect(await styled(page)).toEqual(STYLED)
+  } finally {
+    server.close()
+  }
+})
+
+test('a standalone file carries a CSS theme, its font and its images', async ({ page }) => {
+  const outFile = join(mkdtempSync(join(tmpdir(), 'blitz-css-out-')), 'talk.html')
+  const r = await build(cssDeck(CSS_DECK), { standalone: true, outFile, quiet: true, overflowCheck: false })
+  expect(r.ok).toBe(true)
+  const html = readFileSync(outFile, 'utf8')
+  expect(html).not.toMatch(/url\("\/|brand\.woff2|section\.svg/)
+  await page.goto(pathToFileURL(outFile).href)
+  expect(await styled(page)).toEqual(STYLED)
+})
+
+test('a package whose entry is a CSS file is a CSS theme', async ({ page }) => {
+  const deck = cssDeck(CSS_DECK.replace('theme: ./brand/brand.css', 'theme: acme'))
+  const pkg = join(deck, '..', 'node_modules', 'blitzstrahl-theme-acme')
+  mkdirSync(join(pkg, 'parts'), { recursive: true })
+  for (const f of ['brand.css', 'parts/layouts.css']) writeFileSync(join(pkg, f), readFileSync(join(deck, '..', 'brand', f)))
+  cpSync(join(deck, '..', 'brand', 'art'), join(pkg, 'art'), { recursive: true })
+  cpSync(join(deck, '..', 'brand', 'fonts'), join(pkg, 'fonts'), { recursive: true })
+  writeFileSync(join(pkg, 'package.json'), JSON.stringify({ name: 'blitzstrahl-theme-acme', version: '1.0.0', main: 'brand.css' }))
+  const { url, server } = await buildAndServe(deck)
+  try {
+    await page.goto(url)
+    expect(await styled(page)).toEqual(STYLED)
+  } finally {
+    server.close()
+  }
+})
+
+test("a CSS theme's problems are reported where they are, and a broken one isn't used", async () => {
+  const deck = cssDeck(CSS_DECK)
+  writeFileSync(join(deck, '..', 'brand', 'brand.css'), BRAND_CSS.replace('  --blitz-accent: #3c7d22;\n', '').replace('.blitz-slide h1', 'h1'))
+  writeFileSync(join(deck, '..', 'brand', 'parts', 'layouts.css'), LAYOUTS_CSS.replace('section.svg', 'nope.svg'))
+  const r = await build(deck, { outDir: mkdtempSync(join(tmpdir(), 'blitz-css-out-')), quiet: true, overflowCheck: false })
+  expect(r.ok).toBe(false)
+  // Stylesheets are named as the deck is, from the working folder.
+  const name = (file: string) => file.replace(/^.*blitz-css-theme-[^/]+\//, '')
+  expect(r.diagnostics.filter((d) => d.severity !== 'info').map((d) => [d.severity, d.code, name(d.file), d.span.start.line])).toEqual([
+    ['error', 'css/missing', 'brand/parts/layouts.css', 1],
+    ['error', 'theme/invalid', 'talk.md', 3],
+    ['warning', 'css/unscoped', 'brand/brand.css', 24],
+  ])
+})
+
+test('dev restyles the page when a CSS theme or its import changes, without reloading it', async ({ page }) => {
+  const deck = cssDeck(CSS_DECK)
+  const server = await dev(deck, { port: 0 })
+  try {
+    await page.goto(server.resolvedUrls!.local[0]!)
+    expect(await styled(page)).toEqual(STYLED)
+    await page.evaluate(() => ((window as { kept?: boolean }).kept = true))
+    writeFileSync(join(deck, '..', 'brand', 'brand.css'), BRAND_CSS.replace('--blitz-bg: #fdfdf8', '--blitz-bg: #102030'))
+    await expect(page.locator('.blitz-slide').first()).toHaveCSS('background-color', 'rgb(16, 32, 48)')
+    writeFileSync(join(deck, '..', 'talk.css'), ':root { --blitz-accent: #0000aa; }\n.blitz-slide .note { color: var(--blitz-accent); }\n')
+    await expect(page.locator('.note')).toHaveCSS('color', 'rgb(0, 0, 170)')
+    expect(await page.evaluate(() => (window as { kept?: boolean }).kept)).toBe(true)
+  } finally {
+    await server.close()
+  }
+})
+
+test("dev lists a stylesheet's problems on the page, and opens the stylesheet there", async ({ page }) => {
+  const deck = cssDeck(CSS_DECK)
+  const dir = join(deck, '..')
+  const editorLog = join(dir, 'opened.txt')
+  writeFileSync(join(dir, 'editor.sh'), `#!/bin/sh\necho "$@" > '${editorLog}'\n`)
+  chmodSync(join(dir, 'editor.sh'), 0o755)
+  process.env.LAUNCH_EDITOR = join(dir, 'editor.sh')
+  const server = await dev(deck, { port: 0 })
+  try {
+    await page.goto(server.resolvedUrls!.local[0]!)
+    await page.waitForFunction(() => window.blitz)
+    writeFileSync(join(dir, 'brand', 'brand.css'), BRAND_CSS.replace('.blitz-slide h1', 'h1'))
+    const item = page.locator('.blitz-dev-list li', { hasText: 'overview' })
+    await page.locator('.blitz-dev-toggle').click()
+    await expect(item.locator('.blitz-dev-at')).toHaveText(/brand\/brand\.css:25:1$/)
+    await item.locator('.blitz-dev-at').click()
+    await expect.poll(() => (existsSync(editorLog) ? readFileSync(editorLog, 'utf8').trim() : '')).toBe(`${join(dir, 'brand', 'brand.css')} 25 1`)
+  } finally {
+    delete process.env.LAUNCH_EDITOR
+    await server.close()
   }
 })

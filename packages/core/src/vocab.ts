@@ -37,7 +37,7 @@ export const SLIDE_KEYS: ReadonlySet<string> = new Set(SLIDE_KEY_NAMES)
  * 1.0.1, so no plugin registers one first and breaks when it arrives. Each
  * leaves this list for `DECK_KEYS` when it's built.
  */
-export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set(['css', 'duration'])
+export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set(['duration'])
 
 /** syntax.md §4.3 */
 export const ANIM_KEYS = new Set(['dur', 'delay', 'ease', 'reverse', 'from', 'cps'])

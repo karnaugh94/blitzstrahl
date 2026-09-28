@@ -104,6 +104,7 @@ export const MS: KeyRule = {
   schema: { anyOf: [{ type: 'number', minimum: 0 }, { type: 'string', pattern: '^\\s*\\d+(\\.\\d+)?(ms)?$' }] },
   message: 'must be a duration in milliseconds',
 }
+const CSS_PATH: Schema = { type: 'string', pattern: '^\\.\\.?/.*\\.css$' }
 const TRANSITION: KeyRule = { schema: { enum: [...TRANSITIONS] }, message: `must be a transition: ${[...TRANSITIONS].join(', ')}` }
 
 /** Deck frontmatter (syntax.md §3.1). */
@@ -126,6 +127,11 @@ export const DECK_SCHEMA: KeyTable = {
   background: {
     schema: { anyOf: [SCALAR, { type: 'object', propertyNames: { enum: Object.keys(LAYOUTS) }, properties: Object.fromEntries(Object.keys(LAYOUTS).map((l) => [l, SCALAR])) }] },
     message: 'should be a string (an image, or a CSS background), or layout names each with one',
+  },
+  // Stylesheets beside the deck, after the theme's (docs/themes.md, *Adding to a theme*).
+  css: {
+    schema: { anyOf: [CSS_PATH, { type: 'array', minItems: 1, items: CSS_PATH }] },
+    message: 'must be a ./file.css, or a list of them',
   },
   footer: { schema: SCALAR, message: 'should be one line of text (inline markdown)' },
   'slide-numbers': {

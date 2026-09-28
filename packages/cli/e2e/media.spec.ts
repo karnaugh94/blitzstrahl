@@ -168,6 +168,8 @@ test('`end` with `loop` goes back to `start`; `autoplay=false` waits for a click
   await page.waitForFunction(() => window.blitz)
   await page.keyboard.press('ArrowRight')
   await expect.poll(() => page.evaluate(() => window.blitz!.pos)).toEqual({ slide: 4, step: 0 })
+  // pos moves before a view transition commits the slide.
+  await page.waitForFunction(() => document.querySelector('.blitz-slide[data-blitz-current] video')?.closest('[data-blitz-slide="loops"]'))
   // Sample the loop for longer than one pass: never past `end` (plus a frame's slack), and back near `start`.
   const times = await page.evaluate(async () => {
     const v = document.querySelector<HTMLVideoElement>('.blitz-slide[data-blitz-current] video')!

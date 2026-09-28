@@ -148,5 +148,7 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * the print frame) are in every runtime, since a standalone file is one
  * bundle. (M10.1's utility classes, 1.2 kB, fitted under the old budget;
  * the components' 8.7 kB of CSS ships only in decks that use `as=`.)
+ * Then 190.05 kB: magic move within a slide (M10.4: stack swaps, their
+ * morph and the stack's CSS), +1.35 kB.
  */
-const BUDGET = { minimal: 190_000, withChart: 870_000 }
+const BUDGET = { minimal: 191_500, withChart: 870_000 }

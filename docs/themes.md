@@ -23,12 +23,14 @@ Licence, and their licences ship with them.
 
 | Family | Themes | Scripts |
 |---|---|---|
-| Inter | aurora, broadsheet | Latin, Latin Extended, Greek, Cyrillic, Vietnamese; upright and italic |
+| Inter | aurora, broadsheet | Latin, Latin Extended, Greek, Cyrillic, Vietnamese, and symbols (arrows, ≠ ≤ ≥, ✓ ✗, ½); upright and italic |
 | JetBrains Mono | aurora, broadsheet | Latin, Latin Extended, Greek, Cyrillic, Vietnamese; upright and italic |
 | Newsreader | broadsheet | Latin, Latin Extended, Vietnamese; upright and italic |
 
 Newsreader has no Greek or Cyrillic letters, so broadsheet sets those in
-Inter, also where the rest of the heading is serif. Other scripts (Arabic,
+Inter, also where the rest of the heading is serif, and so are symbols.
+JetBrains Mono has no symbols part: an arrow in code comes from the
+presenting machine. Other scripts (Arabic,
 Hebrew, Chinese, …) and emoji come from the presenting machine; `check`
 warns about text no shipped font covers.
 

@@ -128,3 +128,24 @@ test.describe('German numbers', () => {
     expect(halfway).not.toBe('1.450.250')
   })
 })
+
+// M8: arrows, comparisons and ticks come from Inter's symbols face, not
+// the machine's fonts (Fontsource's subsets leave most of them out).
+for (const theme of ['aurora', 'broadsheet']) {
+  test(`${theme}: arrows, ≠ ≤ and ticks are drawn in a shipped font`, async ({ page }) => {
+    const dir = mkdtempSync(join(tmpdir(), `blitz-symbols-${theme}-`))
+    const deck = join(dir, 'deck.md')
+    writeFileSync(deck, `---\ntheme: ${theme}\n---\n\n# From → to ✓\n\nx ≠ y ≤ z ← ½ ✗\n`)
+    const { url, server } = await buildAndServe(deck)
+    try {
+      await page.goto(url)
+      await page.waitForFunction(() => window.blitz)
+      await page.evaluate(() => document.fonts.ready)
+      const drawn = await drawnFonts(page)
+      expect(drawn.map((d) => d.text)).toEqual(['From → to ✓', 'x ≠ y ≤ z ← ½ ✗'])
+      expect(drawn.flatMap((d) => d.fonts.filter((f) => !f.isCustomFont).map((f) => `"${d.text}" in ${f.familyName}`))).toEqual([])
+    } finally {
+      server.close()
+    }
+  })
+}

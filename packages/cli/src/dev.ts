@@ -150,7 +150,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
     if (!isLoopback(address)) return 403
     const q = new URL(reqUrl, 'http://x').searchParams
     const name = q.get('file') ?? ''
-    const file = name === display ? abs : loaded.files.get(name)
+    const file = name === display ? abs : (loaded.files.get(name) ?? loaded.extras.stylesheets[name])
     if (!file) return 404
     const n = (k: string) => (/^\d+$/.test(q.get(k) ?? '') ? Number(q.get(k)) : 1)
     launchEditor(`${file}:${n('line')}:${n('column')}`, (f, why) => {
@@ -182,7 +182,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
     for (const file of loaded.extras.served) if (!allow.includes(file)) allow.push(file)
   }
   allowServed()
-  const watched = () => new Set([abs, ...loaded.files.values()])
+  const watched = () => new Set([abs, ...loaded.files.values(), ...Object.values(loaded.extras.stylesheets)])
   server.watcher.add([...watched()])
   /** The local themes and plugins (and what they import) the SSR loader holds. */
   const ssr = server.environments.ssr.moduleGraph
@@ -211,7 +211,8 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
       server.config.logger.info(`[blitzstrahl] ${display} rebuilt: ${summary(loaded.diagnostics)}`, { timestamp: true })
       const m = loaded.deck.meta
       const b = before.deck.meta
-      if (forceFull || m.theme !== b.theme || m.lang !== b.lang || String(m.plugins) !== String(b.plugins) || loaded.css !== before.css) {
+      const fonts = (l: LoadedDeck) => JSON.stringify(l.extras.fonts)
+      if (forceFull || m.theme !== b.theme || m.lang !== b.lang || String(m.plugins) !== String(b.plugins) || loaded.css !== before.css || fonts(loaded) !== fonts(before)) {
         // A theme or plugin changed: new CSS, fonts or renderer modules, and files to serve them from.
         allowServed()
         const mod = server.moduleGraph.getModuleById(`\0${RENDERERS_ID}`)
@@ -219,6 +220,10 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
         server.ws.send({ type: 'full-reload' })
         return
       }
+      // A CSS theme or `css:` file changed: restyle the page in place (docs/themes.md).
+      allowServed()
+      const css = await themeStylesheet(loaded.extras, fsUrl)
+      if (css !== (await themeStylesheet(before.extras, fsUrl))) server.ws.send({ type: 'custom', event: 'blitz:css', data: { css } })
       server.ws.send({
         type: 'custom',
         event: 'blitz:update',

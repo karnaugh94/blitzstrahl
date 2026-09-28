@@ -87,6 +87,12 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         else meta.background = scalarString(v)!
         break
       }
+      case 'css': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/css', problem, span)
+        else meta.css = typeof value === 'string' ? [value] : (value as string[])
+        break
+      }
       case 'footer':
       case 'slide-numbers':
       case 'logo': {

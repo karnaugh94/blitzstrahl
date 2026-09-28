@@ -187,7 +187,11 @@ ${LICENCE_NOTICE}
 ${o.deck.meta.author ? `<meta name="author" content="${esc(o.deck.meta.author)}">\n` : ''}<title>${esc(o.deck.meta.title)}</title>
 <style>
 ${runtimeCss}
+</style>
+<style data-blitz-theme>
 ${o.theme.stylesheet}
+</style>
+<style>
 ${o.css ?? ''}
 </style>
 </head>

@@ -160,7 +160,8 @@ blitzstrahl 1.1 will use (listed there).
 | `date` | string | — | Free-form. Themes may show it on slides (§3.6) |
 | `lang` | string | `en` | BCP 47 tag, `<html lang>`. Also the language of the text blitzstrahl writes for the audience (§3.3), how charts and maps write numbers, and how numbers in tables and `count-up` are read (`3,5` is 3.5 in `de`) |
 | `thousands` | `","`, `"."` or `" "` | — | How numbers are written in the deck's data files, when not plainly (`1200`, `3.5`): `thousands: "."` reads `1.200,5` as 1200.5. Charts and maps can set their own (docs/renderers/chart.md, *Data*). Quote it |
-| `theme` | string | `aurora` | A built-in theme (`aurora`, `broadsheet`), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` (docs/plugins.md §1) |
+| `theme` | string | `aurora` | A built-in theme (`aurora`, `broadsheet`), a `./brand.css` file (docs/themes.md), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` to a JS theme (docs/plugins.md §1) |
+| `css` | `./file.css` or a list | — | Stylesheets added after the theme's, in order: the place for a deck's own styles (docs/themes.md, *Adding to a theme*). *(1.1)* |
 | `plugins` | list | — | Plugin packages or `./paths`, loaded in order (docs/plugins.md) |
 | `canvas` | `WxH` string | `1280x720` | Logical canvas size in CSS pixels |
 | `transition` | transition | `fade` | Default slide transition (§9) |

@@ -1,10 +1,12 @@
 # Themes
 
-A deck picks its theme in frontmatter (`theme: aurora`). Writing a theme is
-covered in `docs/plugins.md` §3. This page is the **token contract**: the
-names a theme sets, which become CSS custom properties `--blitz-<name>`
-and which everything else reads. Token names are stable from 1.0. New ones
-may be added in minor versions, always with a default.
+A deck picks its theme in frontmatter: a built-in one (`theme: aurora`),
+or your own, written as a CSS file (`theme: ./brand.css`). This page says
+how to write one, and lists the **tokens**: the names a theme sets, which
+become CSS custom properties `--blitz-<name>` and which everything else
+reads (charts, maps, diagrams, the layouts). Token names are stable from
+1.0. New ones may be added in minor versions, always with a default. A
+theme can also be a JS module (docs/plugins.md §3).
 
 Built-in themes:
 
@@ -15,18 +17,83 @@ Built-in themes:
   (`packages/themes/src/broadsheet.ts`) uses only the public contract, so
   it's a good model for writing your own.
 
-## Backgrounds by layout *(1.1)*
+## A theme in CSS *(1.1)*
 
-A theme sets backgrounds per layout with `[data-layout="…"]`:
+A theme is a stylesheet. Tokens go in `:root`, and everything else is
+ordinary CSS for the slides:
 
-```js
-css: `[data-layout="section"] { background-image: url("./img/bg-section.png"); background-size: cover; }`,
+```css
+/* brand.css */
+@font-face {
+  font-family: "Acme Sans";
+  src: url("./fonts/acme-sans.woff2") format("woff2");
+  font-weight: 300 800;
+}
+
+:root {
+  --blitz-bg: #ffffff;
+  --blitz-fg: #22282a;
+  --blitz-fg-muted: #5b6468;
+  --blitz-accent: #3c7d22;
+  --blitz-chart-1: #5ab7b5;
+  /* … chart-2 to chart-8, and any optional tokens */
+  --blitz-font-sans: "Acme Sans", Verdana, sans-serif;
+}
+
+.blitz-slide h1 { font-weight: 800; }
+[data-layout="section"] { background-image: url("./img/bg-section.png"); background-size: cover; }
+[data-layout="title"] h1 { color: #fff; }
 ```
 
-Relative `url()`s in a theme's CSS are relative to the theme's file. The
-files they name are copied into static builds, served by `dev` and inlined
-in standalone files, as the deck's own images are. A missing one is an
-error. A slide's background, first match wins:
+```yaml
+theme: ./brand.css
+```
+
+- The required tokens (below) must be set in `:root`, as they are for a JS
+  theme: a missing one is an error, and an unknown `--blitz-` name a
+  warning, at `brand.css:line:col`. A theme with errors isn't used: the
+  deck falls back to aurora, and `build` stops.
+- Relative `url()`s are relative to the CSS file, like any stylesheet's.
+  The files they name (fonts, images) are copied into static builds and
+  inlined in standalone files, as the deck's own images are. A missing
+  one is an error.
+- `@font-face` rules are the theme's fonts: `unicode-range` splits a family
+  into subsets as for a JS theme (docs/plugins.md §3.2), and `check` knows
+  which fonts the theme ships.
+- `@import` of another local file works, relative to the importing file,
+  with a media query if you like (`@import "./print.css" print`).
+  Stylesheets and fonts from other sites (`@import url(https://…)`, Google
+  Fonts) are refused: the deck would change, or break, when they do.
+- Scope rules to `.blitz-slide` or `[data-layout]` (or `.blitz-chrome`),
+  as for any theme: a bare `h1` or `table` would also style the overview
+  and the presenter view, and gets a warning.
+- In `dev`, saving the file (or a file it imports) restyles the open deck
+  without reloading it. Adding or removing a font reloads the page.
+- A theme can also be a package: `theme: acme` finds
+  `blitzstrahl-theme-acme`, and its `package.json` names the CSS file
+  (`"main": "brand.css"`, or `exports`).
+
+A theme can't build on another theme. To change a few things in a built-in
+theme, keep it and add a stylesheet (next section).
+
+## Adding to a theme: `css` *(1.1)*
+
+```yaml
+theme: broadsheet
+css: ./talk.css          # or a list: [./brand-extras.css, ./talk.css]
+```
+
+`css` files come after the theme's, in the order listed, so their rules
+win at equal specificity. Everything above about `url()`, `@font-face`,
+`@import` and `dev` applies to them too, and they can set tokens in `:root`
+to change a theme's colours or sizes. A `<style>` in the markdown still
+works; a file can be shared by several decks.
+
+## Backgrounds by layout *(1.1)*
+
+A theme sets backgrounds per layout with `[data-layout="…"]`, as above. A
+JS theme's `css` can too: its relative `url()`s are relative to the
+theme's module file. A slide's background, first match wins:
 
 1. the slide's own `background` key;
 2. the deck's `background` key, for that layout or for every slide

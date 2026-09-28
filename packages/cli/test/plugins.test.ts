@@ -117,9 +117,9 @@ describe('plugins', () => {
   it("can't register a deck key that 1.1 reserves", async () => {
     const l = await load({
       'deck.md': '---\nplugins: [./p.js]\n---\n\n# S\n',
-      'p.js': "export default { name: 'p', frontmatter: { css: {}, 'poll-endpoint': {} } }\n",
+      'p.js': "export default { name: 'p', frontmatter: { duration: {}, 'poll-endpoint': {} } }\n",
     })
-    expect(l.diagnostics.map((d) => d.message)).toEqual(['plugin `./p.js`: frontmatter key `css` is reserved: blitzstrahl 1.1 uses it (docs/plugins.md §2.4)'])
+    expect(l.diagnostics.map((d) => d.message)).toEqual(['plugin `./p.js`: frontmatter key `duration` is reserved: blitzstrahl 1.1 uses it (docs/plugins.md §2.4)'])
   })
 
   it('falls back to aurora for a theme that is missing or incomplete', async () => {

@@ -38,7 +38,10 @@ plugins:
   file.
 - **`theme`**: a built-in name (`aurora`, `broadsheet`), a package, or a path.
   A bare name that isn't built in is tried as `blitzstrahl-theme-<name>`,
-  then as `<name>`. So `theme: acme` finds `blitzstrahl-theme-acme`.
+  then as `<name>`. So `theme: acme` finds `blitzstrahl-theme-acme`. A path
+  ending in `.css` is a CSS theme (docs/themes.md); any other path, and a
+  package, is a JS module. A package can also point at a CSS theme, with
+  `"main": "brand.css"` or `exports` naming a `.css` file. *(1.1)*
 - A plugin or theme that can't be found, loaded or validated is an
   **error**, reported at its frontmatter key (`deck.md:3:1`). `build`
   refuses the deck. `dev` still serves it, with aurora in place of a broken
@@ -230,14 +233,19 @@ A registered key is no longer an "unknown key" warning. Its value is passed to e
 in the page. Don't put secrets in frontmatter. Only deck frontmatter can be
 extended in 1.0; slide frontmatter can't.
 
-**Reserved names.** blitzstrahl 1.1 gives meaning to these deck keys, so a
-plugin can't register them: `css` and `duration`. `public`,
-`background`, `footer`, `slide-numbers` and `logo` are built in from 1.1,
-and a built-in key can't be registered either.
+**Reserved names.** blitzstrahl 1.1 gives meaning to the deck key
+`duration`, so a plugin can't register it. `public`, `css`, `background`,
+`footer`, `slide-numbers` and `logo` are built in from 1.1, and a built-in
+key can't be registered either.
 
 ---
 
 ## 3. Writing a theme
+
+From 1.1, a CSS file is the simpler way to write a theme, and the
+recommended one (docs/themes.md). A JS theme does the same things, and
+stays supported: it suits a theme that computes its tokens, or ships as
+a package with a plugin beside it.
 
 ```js
 // blitzstrahl-theme-acme/index.js

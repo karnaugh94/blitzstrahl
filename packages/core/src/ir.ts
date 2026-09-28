@@ -61,6 +61,8 @@ export interface DeckMeta {
   slideNumbers?: string
   /** `logo`: an image, as written; a local one is also in `assets` (1.1). */
   logo?: string
+  /** `css`: stylesheets after the theme's, `./paths` as written (docs/themes.md, 1.1). */
+  css?: string[]
   /** Plugin module specifiers, as written (docs/plugins.md §1). */
   plugins: string[]
   /** Frontmatter keys that aren't built in, including those plugins register. */

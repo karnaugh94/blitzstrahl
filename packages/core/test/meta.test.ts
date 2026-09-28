@@ -24,7 +24,8 @@ describe('deck keys', () => {
     expect(RESERVED_DECK_KEYS.has('thousands')).toBe(false)
     expect(RESERVED_DECK_KEYS.has('decimal')).toBe(false)
     expect(RESERVED_DECK_KEYS.has('footer')).toBe(false)
-    expect(RESERVED_DECK_KEYS.has('css')).toBe(true)
+    expect(RESERVED_DECK_KEYS.has('css')).toBe(false)
+    expect(RESERVED_DECK_KEYS.has('duration')).toBe(true)
   })
 })
 

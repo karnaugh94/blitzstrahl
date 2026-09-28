@@ -47,6 +47,8 @@ export interface DeckMeta {
   theme: string
   canvas: { width: number; height: number }
   transition: TransitionSpec
+  /** `public`: a folder served and copied as it is, deck-relative and normalised (`demos`) (syntax.md §3.5, 1.1). */
+  public?: string
   /** Plugin module specifiers, as written (docs/plugins.md §1). */
   plugins: string[]
   /** Frontmatter keys that aren't built in, including those plugins register. */

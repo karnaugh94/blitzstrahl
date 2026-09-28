@@ -40,7 +40,8 @@ deck in place, on the same slide and step. Saving a local theme or plugin
 and in the browser console.
 
 It serves the deck and the files the deck uses, and nothing else in the
-deck's folder, so `--host` shares only the talk with the network.
+deck's folder, so `--host` shares only the talk with the network. A folder
+named by the deck's `public:` key is served too, as it is (syntax.md §3.5).
 
 Slides that overflow get a red badge, and the elements responsible get a
 dashed outline. The same overflow warnings print in the terminal at
@@ -80,6 +81,11 @@ deleted:
 - `--format json` or `--format github` writes the diagnostics for a
   machine instead of a person (see *Machine-readable diagnostics*).
 
+A folder named by the deck's `public:` key (syntax.md §3.5) is copied into
+the output folder as it is, at the same path, so links into it keep
+working. Its files are listed in the manifest like any other. The output
+folder can't be inside it, or hold it.
+
 The overflow check needs a Chromium-based browser: an installed Chrome or
 Edge, or Playwright's Chromium. When it finds none, blitzstrahl prints the
 command that installs the right Chromium (`npx playwright@<version> install
@@ -113,6 +119,10 @@ existing `.html` file that blitzstrahl didn't write.
   `#presenter` on the end).
 - `build` prints the file's size, and warns when it's over 8 MB, naming the
   largest files inside it.
+
+A `public:` folder can't be carried inside one file: `build --standalone`
+warns that it's left out. Files the deck refers to directly are inside as
+usual, but a page there that needs its neighbours won't work.
 
 What still needs the network, and so won't work offline, even from a
 standalone file:

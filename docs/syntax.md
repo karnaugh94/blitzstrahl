@@ -165,6 +165,7 @@ blitzstrahl 1.1 will use (listed there).
 | `canvas` | `WxH` string | `1280x720` | Logical canvas size in CSS pixels |
 | `transition` | transition | `fade` | Default slide transition (§9) |
 | `transition-dur` | ms | theme-defined | Default transition duration |
+| `public` | `./folder` | — | A folder served and copied as it is, for files the deck links to but doesn't show: a demo page with its scripts, downloads (§3.5) |
 
 ### 3.2 Slide
 
@@ -231,6 +232,34 @@ column exists, or a map's markers are on the globe, is still `check`'s
 job. Unknown frontmatter keys are allowed, since plugins add their own. On
 disk they're in `node_modules/blitzstrahl/schema/`.
 
+
+### 3.5 Files served as they are: `public`
+
+blitzstrahl serves and builds only the files a deck uses, one by one:
+an image, a data file, a PDF you link to (docs/cli.md). A file that needs
+its neighbours, like a local demo page with its own scripts and styles,
+breaks that way. Name its folder instead:
+
+```yaml
+public: ./demos
+```
+
+```markdown
+[Try the prototype](./demos/prototype/index.html)
+```
+
+- Everything in the folder is served by `dev` and copied into a static
+  build, at the same path, so the link above works in both. Links into it
+  keep their path (they aren't renamed with a hash).
+- It must be a folder inside the deck's own folder, and can't be the deck's
+  folder itself, since that would publish everything beside the deck.
+  Nor can it be named `_blitz`, or start with `@` or `.`: `dev` uses those
+  paths itself.
+- Files and folders whose names start with `.` (`.git`, `.env`) are never
+  served or copied, and neither is anything a symbolic link leads to outside
+  the folder.
+- `build --standalone` can't carry a folder, and warns that it's left out.
+- A missing folder is an error; an empty one is fine.
 ---
 
 ## 4. Attribute blocks `{...}`

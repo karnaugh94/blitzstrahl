@@ -58,6 +58,9 @@ relied on it will notice.
   JSON document, or as GitHub Actions annotations on the pull request.
 - JSON Schemas for deck and slide frontmatter and for `chart`, `map` and
   `embed` blocks, as `blitzstrahl/schema/*.json`, for editors.
+- Deck key `public: ./folder`: a folder `dev` serves and static builds copy
+  as it is, at the same path, for a demo page with its own scripts, or
+  downloads. No dotfiles, nothing a link leads to outside it.
 - `ThemeFont.unicodeRange`: a theme can split a family into subsets, and
   standalone files carry only the subsets their text uses.
 - `check` says when a theme doesn't ship its text font (info), and warns

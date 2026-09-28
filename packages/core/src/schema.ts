@@ -114,6 +114,11 @@ export const DECK_SCHEMA: KeyTable = {
   canvas: { schema: { type: 'string', pattern: '^0*[1-9]\\d*\\s*x\\s*0*[1-9]\\d*$' }, message: 'must look like `1280x720`' },
   transition: TRANSITION,
   'transition-dur': MS,
+  // A folder inside the deck's, whose first name isn't one `dev` serves itself (syntax.md §3.5).
+  public: {
+    schema: { type: 'string', pattern: '^(\\./)?(?!_blitz(/|$))[^/.@][^/]*(/[^/.][^/]*)*/?$' },
+    message: "must be a ./folder inside the deck's folder, not the folder itself, with no part of its path starting with `.`, and not named `_blitz` or starting with `@`",
+  },
   plugins: {
     schema: { anyOf: [{ type: 'string', pattern: '\\S' }, { type: 'array', items: { type: 'string', pattern: '\\S' } }] },
     message: 'must be a list of module names or paths',

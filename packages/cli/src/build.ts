@@ -15,6 +15,8 @@ import { checkOutDir, checkOutFile, cleanOutDir, writeManifest } from './output.
 import { hasErrors, printDiagnostics } from './report.js'
 import { bundleStandalone, dataUri, inlineSafe, staticEntry, usedRenderers, virtualEntry } from './standalone.js'
 import { cacheDir } from './vite.js'
+import { CliError } from './errors.js'
+import { inPublic, publicFiles, within } from './public.js'
 
 export interface BuildOptions {
   /** Static build: the folder to write. Default `dist/` next to the deck. */
@@ -62,12 +64,27 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   const { theme } = loaded.extras
   const renderers = usedRenderers(loaded.deck, loaded.extras.renderers)
   if (options.standalone) loaded.diagnostics.push(...networkNotes(loaded.deck))
+  if (options.standalone && loaded.deck.meta.public !== undefined) {
+    loaded.diagnostics.push({
+      severity: 'warning',
+      code: 'public/standalone',
+      message: "a standalone file can't carry the `public` folder: only the files the deck refers to are inside it, so a page there that needs its neighbours won't work",
+      file: loaded.deck.source,
+      span: loaded.keySpans.public!,
+    })
+  }
   if (options.report !== false) printDiagnostics(loaded.diagnostics)
   const outFile = options.standalone ? resolve(options.outFile ?? join(loaded.dir, `${basename(loaded.path, extname(loaded.path))}.html`)) : undefined
   const outDir = outFile ? dirname(outFile) : resolve(options.outDir ?? join(loaded.dir, 'dist'))
   // Before anything is written: never over the deck, never into a folder blitzstrahl didn't make.
   if (outFile) checkOutFile(outFile, loaded.path, 'html')
-  else checkOutDir(outDir, loaded.path)
+  else {
+    checkOutDir(outDir, loaded.path)
+    const pub = loaded.publicDir
+    if (pub && (within(pub, outDir) || within(outDir, pub))) {
+      throw new CliError(`the output folder ${show(outDir)} and the \`public\` folder ${show(pub)} overlap: build somewhere else (--out)`)
+    }
+  }
   if (hasErrors(loaded.diagnostics) && !options.force) {
     return { ok: false, outDir, overflow: [], diagnostics: loaded.diagnostics }
   }
@@ -135,8 +152,10 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   // Copy local images next to the chunks, content-hashed like them.
   const urls = new Map<string, string>()
   await mkdir(join(outDir, 'assets'), { recursive: true })
+  const pub = loaded.publicDir ? loaded.deck.meta.public : undefined
   for (const asset of loaded.deck.assets) {
-    if (asset.kind === 'data' || urls.has(asset.path)) continue
+    // Files in the public folder are copied with it, and keep their path.
+    if (asset.kind === 'data' || urls.has(asset.path) || inPublic(pub, asset.path)) continue
     const src = loaded.files.get(asset.path)
     if (!src) continue
     let bytes: Buffer
@@ -169,6 +188,16 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     css: css.join('\n'),
     plugins: loaded.plugins,
   })
+  if (pub) {
+    const taken = new Set([...written, 'index.html'])
+    for (const rel of await publicFiles(loaded.publicDir!)) {
+      const name = `${pub}/${rel}`
+      if (taken.has(name)) throw new CliError(`\`public\`: ${name} is a file the build writes itself; rename the folder`)
+      await mkdir(dirname(join(outDir, name)), { recursive: true })
+      await copyFile(join(loaded.publicDir!, ...rel.split('/')), join(outDir, name))
+      written.push(name)
+    }
+  }
   const index = join(outDir, 'index.html')
   await writeFile(index, html)
   await writeManifest(outDir, [...written, 'index.html'])
@@ -194,6 +223,8 @@ async function copyHashed(src: string, outDir: string, folder: string, bytes?: B
 
 /** A standalone file that's bigger than this gets a warning. */
 export const STANDALONE_WARN_BYTES = 8 * 1024 * 1024
+
+const show = (path: string) => relative(process.cwd(), path) || '.'
 
 function formatSize(bytes: number): string {
   return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} kB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`

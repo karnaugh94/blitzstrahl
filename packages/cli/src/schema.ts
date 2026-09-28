@@ -22,6 +22,7 @@ const DESCRIPTIONS: Record<string, Record<string, string>> = {
     canvas: 'Logical canvas size in CSS pixels, e.g. 1280x720 (the default)',
     transition: 'Default slide transition (default fade)',
     'transition-dur': 'Default transition duration, in milliseconds',
+    public: 'A ./folder served and copied as it is: a demo page with its scripts, downloads',
     plugins: 'Plugin packages or ./paths, loaded in order',
   },
   slide: {

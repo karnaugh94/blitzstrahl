@@ -3,10 +3,10 @@
  * exist, inline data files, highlight code, render math.
  * The only place the CLI touches the deck's files.
  */
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
-import { EFFECTS, parseDeck, type Deck, type Diagnostic, type Extensions, type PayloadPlugins } from '@blitzstrahl/core'
+import { EFFECTS, parseDeck, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
 import { mermaidProblem, specNotes, specProblem } from '@blitzstrahl/renderers/specs'
 import { loadExtras, pluginCss, pluginPayload, toExtensions, type Extras } from './extend.js'
 import { highlightDeck } from './highlight.js'
@@ -29,6 +29,10 @@ export interface LoadedDeck {
   plugins: PayloadPlugins
   /** CSS for plugin effects, after the theme's. */
   css: string
+  /** The `public:` folder, absolute, when the deck names one that's there (syntax.md §3.5). */
+  publicDir?: string
+  /** Where each deck frontmatter key was written. */
+  keySpans: Record<string, SourceSpan>
 }
 
 export interface LoadOptions {
@@ -97,11 +101,21 @@ export async function loadDeck(path: string, displayName = path, options: LoadOp
     if (problem) at('error', `renderer/${block.renderer}`, problem)
     else for (const note of specNotes(block.renderer, block.spec, read, deck.meta)) at('info', `renderer/${block.renderer}-note`, note)
   }
+  let publicDir: string | undefined
+  if (deck.meta.public !== undefined) {
+    const folder = resolve(dir, deck.meta.public)
+    if (existsSync(folder) && statSync(folder).isDirectory()) publicDir = folder
+    else diagnostics.push({ severity: 'error', code: 'public/missing', message: `the \`public\` folder isn't there (looked for ${folder})`, file: displayName, span: keySpans.public ?? spanOfDeck })
+  }
   diagnostics.push(...(await highlightDeck(deck, source)))
   diagnostics.push(...renderMath(deck, source))
   diagnostics.sort((a, b) => a.span.start.line - b.span.start.line || a.span.start.column - b.span.start.column)
-  return { path: abs, dir, deck, source, diagnostics, inline, files, extras, plugins: plugins.payload, css: pluginCss(extras) }
+  const out: LoadedDeck = { path: abs, dir, deck, source, diagnostics, inline, files, extras, plugins: plugins.payload, css: pluginCss(extras), keySpans }
+  if (publicDir) out.publicDir = publicDir
+  return out
 }
+
+const spanOfDeck: SourceSpan = { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } }
 
 /** The CSS of the deck's own `<style>` elements. */
 export function deckStyles(source: string): string {

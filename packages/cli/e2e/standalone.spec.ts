@@ -116,6 +116,8 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
   const map = 'say where: give `center`'
   const embed = '`src` must be an http'
   expect(text(minimal)).not.toContain('echarts')
+  // The dev panel is the dev server's alone (dev-panel.ts).
+  expect(text(minimal)).not.toContain('blitz-dev-panel')
   expect(text(minimal)).not.toContain(table)
   expect(text(file)).toContain(table)
   expect(text(file)).not.toContain(map)
@@ -134,5 +136,8 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * English deck carries its Latin face, inlined (48 kB, 64 kB as base64).
  * Nothing else of the shipped fonts: no italics, code font or other scripts.
  * With a chart and inline code: 803 kB, JetBrains Mono's Latin face included.
+ * Not raised 2026-09-28 (M8.1): 183.3 kB bare. The dev panel's words, in all
+ * seven languages, ride with the UI strings (1.9 kB); the panel itself is a
+ * dev-only module and never in a build (asserted above).
  */
 const BUDGET = { minimal: 185_000, withChart: 870_000 }

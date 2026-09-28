@@ -15,7 +15,7 @@ import { focusLines } from './lines.js'
 import { isCode, pairSlides, type MorphPair } from './morph.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type SlideMotion, type TransitionEngine } from './transitions.js'
-import { LayerHost, gotoPrompt, help, overview, presenterBlocked } from './ui.js'
+import { LayerHost, gotoPrompt, help, overview, presenterBlocked, uiWords } from './ui.js'
 import { DeckBridge } from './presenter/bridge.js'
 import { measureOverflow } from './overflow.js'
 import { describeOverflow, type Overflow } from './overflow-report.js'
@@ -203,7 +203,7 @@ export class Deck implements NavTarget {
       li.textContent = line
       list.append(li)
     }
-    badge.replaceChildren('This slide overflows', list)
+    badge.replaceChildren(uiWords(this.doc).dev.overflows, list)
   }
 
   /** Mirror mode: follow the parent window's `state` messages, and nothing else. */

@@ -78,6 +78,14 @@
       "smaller": "Mniejsze notatki",
       "larger": "Większe notatki",
       "noNotes": "Brak notatek do tego slajdu."
+    },
+    "dev": {
+      "problems": "Problemy w prezentacji",
+      "errors": "Błędy: {n}",
+      "warnings": "Ostrzeżenia: {n}",
+      "wontBuild": "Ta prezentacja zawiera błędy: build i export zatrzymają się, dopóki nie zostaną poprawione.",
+      "openInEditor": "Otwórz w edytorze",
+      "overflows": "Ten slajd wychodzi poza obszar"
     }
   }
 }

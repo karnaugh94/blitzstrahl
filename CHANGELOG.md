@@ -22,6 +22,10 @@ relied on it will notice.
   nothing else: 1.0 also took `1e3`, `0x10` and an empty value.
 - Slide `id`, `background`, `class` and `style` warn when they aren't text.
   1.0 turned a list or mapping into `[object Object]`.
+- `dev` no longer answers Vite's `/__open-in-editor`, which opened any file
+  it was given for anyone who could reach the server (with `--host`, the
+  whole network). The page's editor links open only the deck's files, and
+  only from the machine running `dev`.
 - Value labels beside bars and points are in the theme's text colour. 1.0
   drew them in ECharts' dark grey with a white halo, which read as
   outlined text on a dark theme.
@@ -52,6 +56,9 @@ relied on it will notice.
 
 ### Added
 
+- `dev` shows the deck's errors and warnings on the page, each opening your
+  editor at its line, with a banner while the deck has errors. It updates on
+  every save.
 - `blitzstrahl new [talk.md] [--theme]`: a starter deck with a chart and
   its data file. It never replaces a file.
 - `check --format json | github` and `build --format …`: diagnostics as one

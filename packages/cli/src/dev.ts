@@ -7,7 +7,8 @@ import { createReadStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import { createServer, type Plugin, type ViteDevServer } from 'vite'
-import { toPayload } from '@blitzstrahl/core'
+import { toPayload, type Diagnostic } from '@blitzstrahl/core'
+import launchEditor from 'launch-editor'
 import type { Overflow } from '@blitzstrahl/runtime/overflow-report'
 import { fontCss } from './extend.js'
 import { renderNotes, renderPage, renderStage } from './html.js'
@@ -27,6 +28,9 @@ export interface DevOptions {
 }
 
 const ASSET_PREFIX = '/_blitz/asset/'
+const OPEN = '/_blitz/open'
+/** Whoever asks is on this machine: `--host` shouldn't let a phone open files in the author's editor. */
+const isLoopback = (address: string | undefined) => !!address && /^(127\.|::1$|::ffff:127\.)/.test(address)
 const RENDERERS_ID = 'virtual:blitzstrahl-renderers'
 const fsUrl = (file: string) => '/@fs/' + file.replace(/^\//, '')
 
@@ -67,6 +71,17 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
     configureServer(s) {
       s.middlewares.use(async (req, res, next) => {
         const url = (req.url ?? '/').split('?')[0]!
+        // Vite's own route opens any path it's given, for anyone who can reach the server.
+        if (url === '/__open-in-editor') {
+          res.statusCode = 404
+          res.end()
+          return
+        }
+        if (url === OPEN) {
+          res.statusCode = openInEditor(req.url!, req.socket.remoteAddress)
+          res.end()
+          return
+        }
         if (url === '/' || url === '/index.html') {
           const page = renderPage({
             deck: loaded.deck,
@@ -126,6 +141,24 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
     },
   }
 
+  /**
+   * Open `?file=…&line=…&column=…` in the author's editor (docs/cli.md,
+   * *Opening your editor*): only the deck and the files it uses, and only
+   * for a request from this machine. Returns the HTTP status.
+   */
+  const openInEditor = (reqUrl: string, address: string | undefined): number => {
+    if (!isLoopback(address)) return 403
+    const q = new URL(reqUrl, 'http://x').searchParams
+    const name = q.get('file') ?? ''
+    const file = name === display ? abs : loaded.files.get(name)
+    if (!file) return 404
+    const n = (k: string) => (/^\d+$/.test(q.get(k) ?? '') ? Number(q.get(k)) : 1)
+    launchEditor(`${file}:${n('line')}:${n('column')}`, (f, why) => {
+      server.config.logger.error(`[blitzstrahl] couldn't open ${relative(process.cwd(), f) || f} in an editor${why ? `: ${why}` : ''} (set LAUNCH_EDITOR to choose one)`)
+    })
+    return 204
+  }
+
   server = await createServer({
     configFile: false,
     root,
@@ -166,7 +199,12 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
       try {
         loaded = await load()
       } catch (err) {
-        server.config.logger.error(`[blitzstrahl] ${(err as Error).message}`)
+        const message = (err as Error).message
+        server.config.logger.error(`[blitzstrahl] ${message}`)
+        // The page keeps the last deck that loaded, and says this one didn't.
+        const at = { line: 1, column: 1 }
+        const failed: Diagnostic = { severity: 'error', code: 'deck/load', message: `the deck couldn't be loaded: ${message}`, file: display, span: { start: at, end: at } }
+        server.ws.send({ type: 'custom', event: 'blitz:diagnostics', data: [failed] })
         return
       }
       server.watcher.add([...watched()])

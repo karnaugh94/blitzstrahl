@@ -166,6 +166,7 @@ blitzstrahl 1.1 will use (listed there).
 | `transition` | transition | `fade` | Default slide transition (§9) |
 | `transition-dur` | ms | theme-defined | Default transition duration |
 | `public` | `./folder` | — | A folder served and copied as it is, for files the deck links to but doesn't show: a demo page with its scripts, downloads (§3.5) |
+| `background` | string, or layouts to strings | — | Every slide's background unless the slide sets its own: an image or a CSS `background`, as the slide key. Or one per layout (§3.6). *(1.1)* |
 
 ### 3.2 Slide
 
@@ -175,7 +176,7 @@ blitzstrahl 1.1 will use (listed there).
 | `layout` | layout name | Named layout (§10). Default `default`. **Slide 1 defaults to `title`** (§2.5) |
 | `transition` | transition | Transition used to *enter* this slide (§9) |
 | `transition-dur` | ms | Duration for that transition |
-| `background` | string | Image path/URL (covers the canvas), or any CSS `background` value |
+| `background` | string | Image path/URL (covers the canvas), or any CSS `background` value. Wins over the deck's and the theme's; `background: none` clears them |
 | `class` | string | Space-separated classes on the slide root |
 | `style` | string | Inline CSS on the slide root |
 
@@ -260,6 +261,29 @@ public: ./demos
   the folder.
 - `build --standalone` can't carry a folder, and warns that it's left out.
 - A missing folder is an error; an empty one is fine.
+
+### 3.6 On every slide *(1.1)*
+
+What a slide master does in PowerPoint, the deck's frontmatter does here,
+once for every slide:
+
+```yaml
+---
+title: Report Generator
+background:
+  title: ./img/bg-title.jpg
+  section: ./img/bg-section.png
+  default: ./img/bg-content.png
+---
+```
+
+**Backgrounds.** `background` is one value for every slide, or one per
+layout (§10), with `default` for the layouts not listed. A slide's own
+`background` wins, and `background: none` on a slide clears the deck's
+and the theme's. Themes can set backgrounds per layout too (docs/themes.md):
+the deck's win over the theme's. Each image is stored once, however many
+slides show it.
+
 ---
 
 ## 4. Attribute blocks `{...}`

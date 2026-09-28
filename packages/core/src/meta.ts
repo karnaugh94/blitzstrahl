@@ -67,6 +67,23 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         else meta.public = normalizeRelative(value as string)
         break
       }
+      case 'background': {
+        // Layout names first, for a message that names the one that's wrong.
+        let v = value
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          const known = Object.entries(v).filter(([layout]) => {
+            if (layout in LAYOUTS) return true
+            diags.warn('layout/unknown', `\`background\` names an unknown layout \`${layout}\` (built-in: ${Object.keys(LAYOUTS).join(', ')})`, span)
+            return false
+          })
+          v = Object.fromEntries(known)
+        }
+        const problem = keyProblem(DECK_SCHEMA, key, v)
+        if (problem) diags.warn('frontmatter/type', problem, span)
+        else if (typeof v === 'object' && v !== null) meta.background = Object.fromEntries(Object.entries(v).map(([l, bg]) => [l, scalarString(bg)!]))
+        else meta.background = scalarString(v)!
+        break
+      }
       case 'plugins': {
         const problem = keyProblem(DECK_SCHEMA, key, value)
         if (problem) diags.error('frontmatter/plugins', problem, span)

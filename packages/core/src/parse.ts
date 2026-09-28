@@ -54,6 +54,26 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
   }
   const slideIds = new Set<string>()
 
+  // A background names an image, or is CSS whose url()s are files the page loads.
+  const backgroundAssets = (value: string, span: SourceSpan) => {
+    if (isImageBackground(value) && isLocalRef(value)) {
+      ctx.assets.push({ ref: value, path: normalizeRelative(value), kind: assetKind(value), span })
+      return
+    }
+    for (const url of cssRefs(value)) {
+      const a = pageAsset(url, span)
+      if (a) ctx.assets.push(a)
+    }
+  }
+  // The deck's (syntax.md §3.6): each value once, however many slides show it.
+  const deckBg = meta.background
+  if (deckBg !== undefined) {
+    const span = keySpan(split.deckFrontmatter, 'background', { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } })
+    for (const value of new Set(typeof deckBg === 'string' ? [deckBg] : Object.values(deckBg))) backgroundAssets(value, span)
+  }
+  const deckBackground = (layout: string): string | undefined =>
+    typeof deckBg === 'string' || deckBg === undefined ? deckBg : (deckBg[layout] ?? deckBg.default)
+
   const slides = split.slides.map((raw, index): Slide => {
     attachAttributes(raw.nodes, lines, diags)
     const fm = raw.frontmatter?.data ?? {}
@@ -89,17 +109,11 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
     const dur = tDur ? milliseconds(tDur.value, 'transition-dur', diags, tDur.span) : undefined
 
     if (bg) {
-      const value = String(bg.value)
-      attrs.background = value
-      if (isImageBackground(value) && isLocalRef(value)) {
-        ctx.assets.push({ ref: value, path: normalizeRelative(value), kind: assetKind(value), span: bg.span })
-      } else {
-        // A CSS value: its url()s are files the page loads.
-        for (const url of cssRefs(value)) {
-          const a = pageAsset(url, bg.span)
-          if (a) ctx.assets.push(a)
-        }
-      }
+      attrs.background = String(bg.value)
+      backgroundAssets(attrs.background, bg.span)
+    } else {
+      const inherited = deckBackground(r.layout)
+      if (inherited !== undefined) attrs.background = inherited
     }
     if (fm.class !== undefined) attrs.class = String(fm.class).split(/\s+/).filter(Boolean)
     if (fm.style !== undefined) {

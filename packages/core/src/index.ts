@@ -1,7 +1,7 @@
 export * from './ir.js'
 export { parseDeck, type ParseOptions, type ParseResult } from './parse.js'
 export { formatDiagnostic } from './diagnostics.js'
-export { isImageBackground } from './assets.js'
+export { isImageBackground, isLocalRef } from './assets.js'
 export { cssRefs, htmlRefs, rewriteCss, rewriteHtml, type HtmlRef, type MapUrl } from './html-refs.js'
 export { toPayload, type DeckPayload, type PayloadPlugins, type PayloadSlide } from './payload.js'
 export { EFFECTS, RENDERERS, RESERVED_DECK_KEYS, type Extensions, type RendererBody } from './vocab.js'

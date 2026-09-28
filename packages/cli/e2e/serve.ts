@@ -32,6 +32,6 @@ export async function serve(root: string): Promise<{ url: string; server: Server
 export async function buildAndServe(deck: string, options: BuildOptions = {}): Promise<{ url: string; server: Server; result: BuildResult }> {
   const outDir = mkdtempSync(join(tmpdir(), 'blitz-e2e-'))
   const result = await build(deck, { outDir, quiet: true, overflowCheck: false, ...options })
-  if (!result.ok) throw new Error(`build of ${deck} failed`)
+  if (!result.ok) throw new Error(`build of ${deck} failed: ${JSON.stringify(result.diagnostics.map((d) => d.message))}`)
   return { ...(await serve(outDir)), result }
 }

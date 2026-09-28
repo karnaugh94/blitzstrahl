@@ -23,6 +23,7 @@ const DESCRIPTIONS: Record<string, Record<string, string>> = {
     transition: 'Default slide transition (default fade)',
     'transition-dur': 'Default transition duration, in milliseconds',
     public: 'A ./folder served and copied as it is: a demo page with its scripts, downloads',
+    background: "Every slide's background: an image or a CSS background, or one per layout (title:, section:, default: for the rest). A slide's own wins",
     plugins: 'Plugin packages or ./paths, loaded in order',
   },
   slide: {

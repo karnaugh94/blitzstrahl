@@ -82,6 +82,27 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
     return `var(${name})`
   }
 
+  // The deck's chrome (syntax.md §3.6): the same items on every slide, but its number.
+  const m = deck.meta
+  const item = (name: string, children: ElementContent[]): Element => ({ type: 'element', tagName: 'div', properties: { dataChrome: name }, children })
+  const words = (value: string): ElementContent[] => [{ type: 'text', value }]
+  const footer = m.footer ? rewrite(m.footer) : undefined
+  const logo = m.logo === undefined ? undefined : byRef.has(m.logo) ? assetUrl(byRef.get(m.logo)!) : m.logo
+  const chrome = (index: number): Element => {
+    const items: Element[] = []
+    if (footer) items.push(item('footer', footer))
+    if (m.slideNumbers) {
+      const n = m.slideNumbers.replaceAll('{n}', String(index + 1)).replaceAll('{total}', String(deck.slides.length))
+      items.push(item('number', words(n)))
+    }
+    if (logo !== undefined) items.push({ type: 'element', tagName: 'img', properties: { dataChrome: 'logo', src: logo, alt: '' }, children: [] })
+    // For themes to place; hidden unless one does.
+    items.push(item('title', words(m.title)))
+    if (m.author) items.push(item('author', words(m.author)))
+    if (m.date) items.push(item('date', words(m.date)))
+    return { type: 'element', tagName: 'div', properties: { className: ['blitz-chrome'] }, children: items }
+  }
+
   const sections: Element[] = deck.slides.map((slide) => {
     const style: string[] = []
     const bg = slide.attrs.background
@@ -105,7 +126,7 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
         ariaHidden: 'true',
         ...(style.length ? { style: style.join('; ') } : {}),
       },
-      children: rewrite(slide.content),
+      children: slide.attrs.chrome === false ? rewrite(slide.content) : [...rewrite(slide.content), chrome(slide.index)],
     }
   })
   const vars = [...backgrounds].map(([path, name]) => `${name}: url("${assetUrl(path)}");`)

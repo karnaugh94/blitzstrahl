@@ -127,6 +127,12 @@ export const DECK_SCHEMA: KeyTable = {
     schema: { anyOf: [SCALAR, { type: 'object', propertyNames: { enum: Object.keys(LAYOUTS) }, properties: Object.fromEntries(Object.keys(LAYOUTS).map((l) => [l, SCALAR])) }] },
     message: 'should be a string (an image, or a CSS background), or layout names each with one',
   },
+  footer: { schema: SCALAR, message: 'should be one line of text (inline markdown)' },
+  'slide-numbers': {
+    schema: { anyOf: [{ type: 'boolean' }, { type: 'string', pattern: '\\{n\\}' }] },
+    message: 'must be true, false, or a string with `{n}` in it (and `{total}` if you like): "{n} / {total}"',
+  },
+  logo: { schema: { type: 'string', pattern: '\\S' }, message: 'should be an image: a path or a URL' },
   plugins: {
     schema: { anyOf: [{ type: 'string', pattern: '\\S' }, { type: 'array', items: { type: 'string', pattern: '\\S' } }] },
     message: 'must be a list of module names or paths',
@@ -142,4 +148,5 @@ export const SLIDE_SCHEMA: Readonly<Record<SlideKey, KeyRule>> = {
   background: { schema: SCALAR, message: 'should be a string: an image, or a CSS background' },
   class: { schema: SCALAR, message: 'should be a string of class names' },
   style: { schema: SCALAR, message: 'should be a string of CSS' },
+  chrome: { schema: { type: 'boolean' }, message: 'must be true or false' },
 }

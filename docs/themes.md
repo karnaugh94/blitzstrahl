@@ -34,6 +34,41 @@ error. A slide's background, first match wins:
 3. the theme's CSS for the slide's layout;
 4. the `bg` token.
 
+## Chrome: footer, number, logo *(1.1)*
+
+The deck's footer, slide number and logo (docs/syntax.md §3.6) are in each
+slide as
+
+```html
+<div class="blitz-chrome">
+  <div data-chrome="footer">Report Generator</div>
+  <div data-chrome="number">3 / 12</div>
+  <img data-chrome="logo" src="…" alt="">
+  <div data-chrome="title">…</div> <div data-chrome="author">…</div> <div data-chrome="date">…</div>
+</div>
+```
+
+with an element only for what the deck sets (the title is always there).
+The base styles place the footer bottom left, the number bottom right and
+the logo top right, within the slide's padding, in `text-small` and
+`fg-muted`, and hide the title, author and date. They hide the number on
+the `title`, `section` and `end` layouts. Their rules are written
+`.blitz-chrome [data-chrome="…"]`, so a theme's rule of the same form wins,
+and a theme's `.blitz-slide img` doesn't reach the logo. A theme restyles
+any of it:
+
+```css
+.blitz-chrome [data-chrome="logo"] { top: auto; bottom: 24px; height: 40px; }
+[data-layout="title"] .blitz-chrome [data-chrome="date"] { display: block; left: 82px; bottom: 60px; }
+[data-layout="section"] .blitz-chrome { display: none; }
+/* Text on every slide, whatever the deck: a classification label */
+.blitz-chrome::after { content: "Classified as ACME NORMAL"; position: absolute; left: 50%; bottom: 8px; }
+```
+
+Chrome is laid over the slide's content (`position: absolute` in the
+slide), and the content doesn't make room for it: a theme that puts the
+footer inside the padding keeps them apart.
+
 ## Fonts
 
 The built-in themes ship every font they name, so a deck breaks its lines

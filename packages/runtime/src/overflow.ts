@@ -30,8 +30,10 @@ export async function measureOverflow(
   const out: Overflow[] = []
   try {
     for (const [i, section] of sections.entries()) {
-      const originals = [...section.querySelectorAll<HTMLElement>('*')]
+      // Chrome (footer, number, logo) is the deck's, laid over every slide: not measured.
+      const originals = [...section.querySelectorAll<HTMLElement>('*')].filter((el) => !el.closest('.blitz-chrome'))
       const copy = section.cloneNode(true) as HTMLElement
+      copy.querySelector(':scope > .blitz-chrome')?.remove()
       const copies = [...copy.querySelectorAll<HTMLElement>('*')]
       for (const el of [copy, ...copies]) el.removeAttribute('id')
       delete copy.dataset.blitzCurrent

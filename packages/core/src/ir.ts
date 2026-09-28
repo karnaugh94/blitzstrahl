@@ -55,6 +55,12 @@ export interface DeckMeta {
    * `attrs.background` where the slide sets none.
    */
   background?: string | Record<string, string>
+  /** `footer`: one line of inline markdown, as HTML (syntax.md §3.6, 1.1). */
+  footer?: HastNode[]
+  /** `slide-numbers` as a template: `{n}` the slide's number, `{total}` the count. `true` is `{n}` (1.1). */
+  slideNumbers?: string
+  /** `logo`: an image, as written; a local one is also in `assets` (1.1). */
+  logo?: string
   /** Plugin module specifiers, as written (docs/plugins.md §1). */
   plugins: string[]
   /** Frontmatter keys that aren't built in, including those plugins register. */
@@ -102,6 +108,8 @@ export interface Slide {
 /** Slide-level settings from frontmatter or first-heading shorthand (§3.2). */
 export interface SlideAttrs {
   background?: string
+  /** `chrome: false`: no footer, number or logo on this slide (syntax.md §3.6, 1.1). */
+  chrome?: false
   class: string[]
   style?: string
   /** Unknown frontmatter keys, kept for plugins. */

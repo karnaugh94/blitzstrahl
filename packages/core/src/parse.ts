@@ -4,9 +4,9 @@ import { attachAttributes } from './attach.js'
 import { assetKind, isImageBackground, isLocalRef, normalizeRelative, pageAsset } from './assets.js'
 import { cssRefs } from './html-refs.js'
 import { Diagnostics } from './diagnostics.js'
-import { IR_VERSION, type Deck, type Diagnostic, type Slide, type SlideAttrs, type SourceSpan, type TransitionName } from './ir.js'
+import { IR_VERSION, type Deck, type DeckMeta, type Diagnostic, type Slide, type SlideAttrs, type SourceSpan, type TransitionName } from './ir.js'
 import { SLIDE_KEYS, layoutName, mergeTransition, milliseconds, resolveDeckMeta, scalarString, transitionName } from './meta.js'
-import { resolveSlide, type DeckContext } from './resolve.js'
+import { inlineMarkdown, resolveSlide, type DeckContext } from './resolve.js'
 import { keyProblem, SLIDE_SCHEMA } from './schema.js'
 import { keySpan, splitSlides } from './split.js'
 import { parseMarkdown } from './syntax/index.js'
@@ -71,6 +71,16 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
     const span = keySpan(split.deckFrontmatter, 'background', { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } })
     for (const value of new Set(typeof deckBg === 'string' ? [deckBg] : Object.values(deckBg))) backgroundAssets(value, span)
   }
+  // Chrome (syntax.md §3.6): the footer is markdown, the logo a file.
+  const { footerText, ...settings } = meta
+  const deckMeta: Omit<DeckMeta, 'title'> & { title?: string } = settings
+  const origin = { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } }
+  // An empty footer is no footer.
+  if (footerText?.trim()) deckMeta.footer = inlineMarkdown(footerText, 'footer', keySpan(split.deckFrontmatter, 'footer', origin), ctx)
+  if (meta.logo !== undefined) {
+    const a = pageAsset(meta.logo, keySpan(split.deckFrontmatter, 'logo', origin))
+    if (a) ctx.assets.push(a)
+  }
   const deckBackground = (layout: string): string | undefined =>
     typeof deckBg === 'string' || deckBg === undefined ? deckBg : (deckBg[layout] ?? deckBg.default)
 
@@ -88,6 +98,10 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
       if (!SLIDE_KEYS.has(key)) {
         diags.warn('frontmatter/unknown-key', `unknown slide frontmatter key \`${key}\``, fmSpan(key))
         attrs.extra[key] = value
+      } else if (key === 'chrome') {
+        const problem = keyProblem(SLIDE_SCHEMA, key, value)
+        if (problem) diags.warn('frontmatter/type', problem, fmSpan(key))
+        else if (value === false) attrs.chrome = false
       } else if (TEXT_KEYS.includes(key)) {
         // Layouts, transitions and durations are checked where they're read.
         const problem = keyProblem(SLIDE_SCHEMA, key, value)
@@ -155,7 +169,7 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
   const deck: Deck = {
     irVersion: IR_VERSION,
     source: file,
-    meta: { ...meta, title: meta.title ?? slides[0]?.title ?? 'Untitled' },
+    meta: { ...deckMeta, title: deckMeta.title ?? slides[0]?.title ?? 'Untitled' },
     slides,
     assets: ctx.assets,
   }

@@ -23,6 +23,9 @@ const DESCRIPTIONS: Record<string, Record<string, string>> = {
     transition: 'Default slide transition (default fade)',
     'transition-dur': 'Default transition duration, in milliseconds',
     public: 'A ./folder served and copied as it is: a demo page with its scripts, downloads',
+    footer: 'One line of inline markdown on every slide, bottom left by default',
+    'slide-numbers': 'Number the slides: true shows 3, "{n} / {total}" shows 3 / 12',
+    logo: 'An image on every slide, top right by default',
     background: "Every slide's background: an image or a CSS background, or one per layout (title:, section:, default: for the rest). A slide's own wins",
     plugins: 'Plugin packages or ./paths, loaded in order',
   },
@@ -34,6 +37,7 @@ const DESCRIPTIONS: Record<string, Record<string, string>> = {
     background: 'An image path or URL (covers the canvas), or any CSS background',
     class: "Space-separated classes on the slide's root",
     style: "Inline CSS on the slide's root",
+    chrome: 'false: no footer, number or logo on this slide',
   },
   chart: {
     type: 'Chart type',

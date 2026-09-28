@@ -28,7 +28,7 @@ export const EFFECTS: Readonly<Record<string, EffectKind>> = {
 }
 
 /** syntax.md §3.2: what slide frontmatter can set. A block needs one of these to be frontmatter (§2.3). */
-export const SLIDE_KEY_NAMES = ['id', 'layout', 'transition', 'transition-dur', 'background', 'class', 'style'] as const
+export const SLIDE_KEY_NAMES = ['id', 'layout', 'transition', 'transition-dur', 'background', 'class', 'style', 'chrome'] as const
 export type SlideKey = (typeof SLIDE_KEY_NAMES)[number]
 export const SLIDE_KEYS: ReadonlySet<string> = new Set(SLIDE_KEY_NAMES)
 
@@ -37,7 +37,7 @@ export const SLIDE_KEYS: ReadonlySet<string> = new Set(SLIDE_KEY_NAMES)
  * 1.0.1, so no plugin registers one first and breaks when it arrives. Each
  * leaves this list for `DECK_KEYS` when it's built.
  */
-export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set(['css', 'footer', 'slide-numbers', 'logo', 'duration'])
+export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set(['css', 'duration'])
 
 /** syntax.md §4.3 */
 export const ANIM_KEYS = new Set(['dur', 'delay', 'ease', 'reverse', 'from', 'cps'])

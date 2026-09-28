@@ -80,6 +80,11 @@ export const broadsheet = defineTheme({
   background-size: calc(100% - 2 * var(--blitz-pad-x)) 3px, calc(100% - 2 * var(--blitz-pad-x)) 1px;
   background-position: var(--blitz-pad-x) calc(var(--blitz-pad-y) / 2 - 3px), var(--blitz-pad-x) calc(var(--blitz-pad-y) / 2 + 3px);
 }
+/* The deck's logo sits on the masthead, like a nameplate. */
+.blitz-chrome [data-chrome="logo"] {
+  top: calc(var(--blitz-pad-y) / 2 - 9px); transform: translateY(-100%);
+  height: calc(var(--blitz-pad-y) * .36);
+}
 
 .blitz-slide h1, .blitz-slide h2, .blitz-slide h3, .blitz-slide h4 { margin: 0; line-height: 1.06; font-weight: 650; letter-spacing: -0.012em; }
 .blitz-slide h1 { font-size: var(--blitz-h1); }

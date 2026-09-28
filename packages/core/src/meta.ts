@@ -12,10 +12,13 @@ import { LAYOUTS, SLIDE_KEYS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.
 export const DECK_KEYS: ReadonlySet<string> = new Set(Object.keys(DECK_SCHEMA))
 export { SLIDE_KEYS }
 
-export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics, pluginKeys: readonly string[] = []): Omit<DeckMeta, 'title'> & { title?: string } {
+/** The deck's settings; `footerText` is the footer's markdown, which the parser turns into `footer`. */
+export type ResolvedMeta = Omit<DeckMeta, 'title'> & { title?: string; footerText?: string }
+
+export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics, pluginKeys: readonly string[] = []): ResolvedMeta {
   const data = fm?.data ?? {}
   const none = { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } }
-  const meta: Omit<DeckMeta, 'title'> & { title?: string } = {
+  const meta: ResolvedMeta = {
     lang: 'en',
     theme: 'aurora',
     canvas: { width: 1280, height: 720 },
@@ -82,6 +85,16 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         if (problem) diags.warn('frontmatter/type', problem, span)
         else if (typeof v === 'object' && v !== null) meta.background = Object.fromEntries(Object.entries(v).map(([l, bg]) => [l, scalarString(bg)!]))
         else meta.background = scalarString(v)!
+        break
+      }
+      case 'footer':
+      case 'slide-numbers':
+      case 'logo': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.warn('frontmatter/type', problem, span)
+        else if (key === 'footer') meta.footerText = scalarString(value)!
+        else if (key === 'logo') meta.logo = (value as string).trim()
+        else if (value !== false) meta.slideNumbers = value === true ? '{n}' : (value as string)
         break
       }
       case 'plugins': {

@@ -156,8 +156,8 @@ blitzstrahl 1.1 will use (listed there).
 | Key | Type | Default | Meaning |
 |---|---|---|---|
 | `title` | string | first slide's title | Document title, `<title>` |
-| `author` | string | — | The page's `<meta name="author">`. No built-in theme shows it on a slide yet |
-| `date` | string | — | Free-form. Not shown on a slide yet |
+| `author` | string | — | The page's `<meta name="author">`. Themes may show it on slides (§3.6) |
+| `date` | string | — | Free-form. Themes may show it on slides (§3.6) |
 | `lang` | string | `en` | BCP 47 tag, `<html lang>`. Also the language of the text blitzstrahl writes for the audience (§3.3), how charts and maps write numbers, and how numbers in tables and `count-up` are read (`3,5` is 3.5 in `de`) |
 | `thousands` | `","`, `"."` or `" "` | — | How numbers are written in the deck's data files, when not plainly (`1200`, `3.5`): `thousands: "."` reads `1.200,5` as 1200.5. Charts and maps can set their own (docs/renderers/chart.md, *Data*). Quote it |
 | `theme` | string | `aurora` | A built-in theme (`aurora`, `broadsheet`), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` (docs/plugins.md §1) |
@@ -167,6 +167,9 @@ blitzstrahl 1.1 will use (listed there).
 | `transition-dur` | ms | theme-defined | Default transition duration |
 | `public` | `./folder` | — | A folder served and copied as it is, for files the deck links to but doesn't show: a demo page with its scripts, downloads (§3.5) |
 | `background` | string, or layouts to strings | — | Every slide's background unless the slide sets its own: an image or a CSS `background`, as the slide key. Or one per layout (§3.6). *(1.1)* |
+| `footer` | inline markdown | — | A line on every slide (§3.6). *(1.1)* |
+| `slide-numbers` | `true` or a string | — | Number the slides: `true` shows `3`, `"{n} / {total}"` shows `3 / 12` (§3.6). *(1.1)* |
+| `logo` | image path or URL | — | A logo on every slide (§3.6). *(1.1)* |
 
 ### 3.2 Slide
 
@@ -177,6 +180,7 @@ blitzstrahl 1.1 will use (listed there).
 | `transition` | transition | Transition used to *enter* this slide (§9) |
 | `transition-dur` | ms | Duration for that transition |
 | `background` | string | Image path/URL (covers the canvas), or any CSS `background` value. Wins over the deck's and the theme's; `background: none` clears them |
+| `chrome` | `false` | No footer, number or logo on this slide (§3.6). *(1.1)* |
 | `class` | string | Space-separated classes on the slide root |
 | `style` | string | Inline CSS on the slide root |
 
@@ -262,7 +266,7 @@ public: ./demos
 - `build --standalone` can't carry a folder, and warns that it's left out.
 - A missing folder is an error; an empty one is fine.
 
-### 3.6 On every slide *(1.1)*
+### 3.6 On every slide: background, footer, numbers, logo *(1.1)*
 
 What a slide master does in PowerPoint, the deck's frontmatter does here,
 once for every slide:
@@ -270,10 +274,15 @@ once for every slide:
 ```yaml
 ---
 title: Report Generator
+author: Ana Ruiz
+date: September 2026
 background:
   title: ./img/bg-title.jpg
   section: ./img/bg-section.png
   default: ./img/bg-content.png
+footer: Report Generator · [ecdc.europa.eu](https://ecdc.europa.eu)
+slide-numbers: "{n} / {total}"
+logo: ./img/logo.svg
 ---
 ```
 
@@ -283,6 +292,37 @@ layout (§10), with `default` for the layouts not listed. A slide's own
 and the theme's. Themes can set backgrounds per layout too (docs/themes.md):
 the deck's win over the theme's. Each image is stored once, however many
 slides show it.
+
+**Chrome.** `footer`, `slide-numbers` and `logo` are the deck's *chrome*,
+laid over each slide:
+
+- `footer` is one line of inline markdown: emphasis, links and code work,
+  and a list or a second paragraph doesn't (it's shown as plain text,
+  with a warning).
+- `slide-numbers` counts slides, not steps, from 1 for the first slide.
+  `true` shows the number alone, and is the same as `"{n}"`. A string is
+  a template: `{n}` is the slide's number and `{total}` the number of
+  slides (`"{n} / {total}"`, `"Slide {n} of {total}"`). Quote it: YAML
+  reads a bare `{` as the start of a map.
+- `logo` is an image, shown as it is (no caption, not described to screen
+  readers).
+- By default the footer sits bottom left, the number bottom right and the
+  logo top right. Themes move and restyle them.
+- The `title`, `section` and `end` layouts have no number by default.
+- `chrome: false` on a slide leaves all three off it: a full-bleed photo,
+  say.
+- Chrome is the same on every step of a slide, isn't counted when looking
+  for overflow (a footer too long for its line is cut short, with `…`),
+  isn't paired by `auto-animate`, and prints in PDFs.
+
+Themes can also place the deck's `title`, `author` and `date` on slides
+(a title in the footer, a date on the title slide). The built-in themes
+don't.
+
+In the page, each slide has a `<div class="blitz-chrome">` holding one
+element per item the deck sets, each with `data-chrome="footer"`,
+`"number"`, `"logo"`, `"title"`, `"author"` or `"date"`. That's what
+themes style (docs/themes.md).
 
 ---
 

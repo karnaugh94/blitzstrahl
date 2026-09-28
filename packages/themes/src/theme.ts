@@ -110,6 +110,8 @@ const baseCss = /* css */ `
   background-color: var(--blitz-bg);
   font: 400 var(--blitz-text)/1.45 var(--blitz-font-sans);
 }
+/* Links in the link token, as docs/themes.md says; any theme rule wins. */
+:where(.blitz-slide) a { color: var(--blitz-link); }
 /* Render blocks have no intrinsic size: ECharts, maps and embeds fill the box they're given. */
 .blitz-slide [data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
 `

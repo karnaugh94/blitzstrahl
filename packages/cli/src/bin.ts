@@ -7,6 +7,7 @@ import { dev } from './dev.js'
 import { check } from './check.js'
 import { CliError } from './errors.js'
 import { exportPdf } from './export.js'
+import { importTheme } from './import.js'
 import { newDeck } from './new.js'
 import { FORMATS, formatReport, hasErrors, printDiagnostics, summary, type Format } from './report.js'
 
@@ -18,6 +19,7 @@ Usage:
   blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
   blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
   blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
+  blitzstrahl theme import <template.potx> [--out folder]
 
 Commands:
   new     Start a deck: a short tour to edit, with a chart and its data
@@ -27,11 +29,13 @@ Commands:
   export  PDF: one page per slide at its final step (--steps: every step)
   check   Find problems before the talk: errors, missing files, broken
           charts and maps, step gaps, overflow, embeds that refuse framing
+  theme   theme import: a CSS theme from a PowerPoint template (.potx, .pptx)
 
 Options:
   --out, -o      build: output folder (default: dist/ next to the deck);
                  with --standalone, the file (default: <deck>.html next to it)
                  export: the PDF (default: <deck>.pdf next to the deck)
+                 theme import: the folder (default: next to the template)
   --standalone   build: everything in one self-contained .html file
   --steps        export: a page for every build step (handouts)
   --force        Build even if the deck has errors
@@ -109,6 +113,17 @@ maps, step gaps, overflow, embeds that refuse to be framed.
   --strict       exit 1 on warnings, not just errors
   --format       text (default), json (one document on stdout), github
                  (GitHub Actions annotations)`,
+  },
+  theme: {
+    usage: 'blitzstrahl theme import <template.potx> [--out folder]',
+    options: ['out'],
+    help: `A CSS theme from a PowerPoint template (.potx, or a .pptx: its masters and
+layouts are read, its slides ignored): brand.css with the template's colours,
+fonts, backgrounds by layout and logo, the pictures in img/, and sample.md, a
+deck to look at it with. What it couldn't carry over is listed.
+
+  --out, -o      the folder to write (default: next to the template, named
+                 after it); it must be new or empty`,
   },
 }
 
@@ -205,12 +220,13 @@ async function main(argv: string[]): Promise<number> {
     }
   }
   const show = (f: string) => relative(process.cwd(), f) || f
-  if (positionals.length > 2) throw new CliError(`one deck at a time: \`blitzstrahl ${command} ${deck}\``)
+  if (positionals.length > 2 && command !== 'theme') throw new CliError(`one deck at a time: \`blitzstrahl ${command} ${deck}\``)
   if (command === 'new') {
     const r = await newDeck(deck, values.theme !== undefined ? { theme: values.theme } : {})
     process.stdout.write(`wrote ${show(r.deck)} and ${show(r.data)}\n\nPreview it (saving updates the page):\n  npx blitzstrahl dev ${show(r.deck)}\n`)
     return 0
   }
+  if (command === 'theme') return themeCommand(positionals.slice(1), values.out)
   if (!deck) throw new CliError(`which deck? e.g. \`blitzstrahl ${command} talk.md\``)
   deckFile(deck)
   if (values.port !== undefined && !(/^\d+$/.test(values.port) && Number(values.port) <= 65535)) {
@@ -293,6 +309,29 @@ async function main(argv: string[]): Promise<number> {
       process.stderr.write(`blitzstrahl: unknown command \`${command}\`\n\n${HELP}`)
       return 1
   }
+}
+
+/** `theme import <template>`: the theme's files, then what didn't carry over. */
+async function themeCommand([sub, template, ...rest]: string[], out: string | undefined): Promise<number> {
+  if (sub !== 'import') throw new CliError(`\`blitzstrahl theme\` has one subcommand: \`blitzstrahl theme import template.potx\``)
+  if (!template) throw new CliError('which template? e.g. `blitzstrahl theme import brand.potx`')
+  if (rest.length) throw new CliError(`one template at a time: \`blitzstrahl theme import ${template}\``)
+  const r = await importTheme(template, out !== undefined ? { out } : {})
+  const show = (f: string) => relative(process.cwd(), f) || f
+  const lines = [
+    `wrote ${show(join(r.outDir, 'brand.css'))}, ${show(join(r.outDir, 'sample.md'))} and the pictures in ${show(join(r.outDir, 'img'))}`,
+    `  colours: ${['bg', 'fg', 'accent', 'accent-2'].map((t) => `${t} ${r.tokens[t]}`).join(', ')}`,
+    `  backgrounds: ${Object.keys(r.backgrounds).join(', ') || 'none'}${r.logo ? '; a logo' : ''}`,
+    '',
+    'Not carried over:',
+    ...r.notCarried.map((n) => `  - ${n}`),
+    ...(r.notes.length ? ['', ...r.notes.map((n) => `note: ${n}`)] : []),
+    '',
+    'Look at it (saving brand.css restyles the page):',
+    `  npx blitzstrahl dev ${show(join(r.outDir, 'sample.md'))}`,
+  ]
+  process.stdout.write(`${lines.join('\n')}\n`)
+  return 0
 }
 
 main(process.argv.slice(2)).then(

@@ -6,6 +6,7 @@ blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
 blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
 blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
 blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
+blitzstrahl theme import <template.potx> [--out folder]
 blitzstrahl --version
 ```
 
@@ -209,6 +210,64 @@ at each problem as `deck.md:line:col`:
   one, `check` says it was skipped.
 - `--format json` or `--format github` writes the findings for a machine
   (below).
+
+## `theme import` *(1.1)*
+
+Turns a PowerPoint template into a CSS theme (docs/themes.md):
+
+```
+blitzstrahl theme import acme.potx --out brand
+```
+
+writes `brand/brand.css`, the pictures it uses in `brand/img/`, and
+`brand/sample.md`, a deck with one slide per layout it carried over (and
+a chart, for the palette), to look at with `dev`. It reads `.potx` and
+`.pptx` files alike: a presentation's slides are ignored, and its first
+slide master and its layouts are what's read. What it carries over:
+
+| From the template | Becomes |
+|---|---|
+| Colours: text and background (dark 1 and light 1, as the master maps them) | `fg`, `bg` (a dark template gets a dark `bg`) |
+| Accent 1, Accent 2 | `accent`, `accent-2` |
+| Accent 1 to 6 | `chart-1` to `chart-6`; `chart-7` and `chart-8` are accents 1 and 2, darker |
+| The second background colour (light 2) | `surface` |
+| Hyperlink | `link` |
+| — | `fg-muted`: the text colour mixed with the background |
+| Fonts: body and headings | `font-sans`, and the headings' `font-family` when they differ. Named, not shipped (below) |
+| The master's background, and each layout's: a picture, or a colour | The `bg` token, and per-layout backgrounds. On a colour that `fg` can't be read on, the layout's text is `bg` instead |
+| A picture on the master that doesn't fill the slide | The logo, placed where the master puts it (and hidden on layouts that hide the master's pictures); `sample.md` sets `logo:` |
+
+Layouts are matched by their kind first, then by their name (many
+templates' layouts have their own names and no kind):
+
+| PowerPoint layout | Layout |
+|---|---|
+| Title Slide | `title` |
+| Section Header | `section` |
+| Title and Content, Title Only | `default` |
+| Two Content, Comparison | `two-col` |
+| Picture with Caption | `image-left` |
+| Blank | `full-bleed` |
+
+- Two template layouts that match the same one: the first, in the master's
+  order, is used.
+- Everything else is listed, not guessed: layouts that match nothing
+  (their pictures are still written to `img/`, to use by hand), gradient
+  and pattern backgrounds, placeholders' positions and sizes, shapes and
+  text boxes, text sizes and styles, more slide masters, embedded fonts.
+  The list is printed and kept as a comment at the top of `brand.css`.
+- Fonts in the template aren't shipped with the theme: they're named, and
+  the presenting machine supplies them, or a fallback. (Fonts embedded in
+  a `.pptx` are licensed for that file, and are never extracted.) `check`
+  says so each time; to ship them, add their files with `@font-face`
+  (docs/themes.md).
+- It says when `accent` is hard to read as text on `bg` (below 4.5:1),
+  since headings and links use it.
+- A template whose slides aren't 16:9 gets `canvas:` in `sample.md` to
+  match.
+- `--out` defaults to a folder beside the template, named after it. The
+  folder must be new or empty: `theme import` never overwrites.
+- The result is a starting point: edit `brand.css` like any other.
 
 ## Machine-readable diagnostics
 

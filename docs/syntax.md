@@ -211,6 +211,26 @@ presenting, so they follow the browser's language instead
 (docs/presenting.md). Your own text is never translated, and error
 messages (in the console, and in place of a broken block) stay English.
 
+### 3.4 Schemas for editors
+
+The package ships a [JSON Schema](https://json-schema.org) for each kind of
+YAML a deck contains, so an editor can complete keys and underline
+mistakes as you type:
+
+| Schema | Describes |
+|---|---|
+| `blitzstrahl/schema/deck.json` | Deck frontmatter (§3.1) |
+| `blitzstrahl/schema/slide.json` | Slide frontmatter (§3.2) |
+| `blitzstrahl/schema/chart.json` | A `chart` block's body (docs/renderers/chart.md) |
+| `blitzstrahl/schema/map.json` | A `map` block's body |
+| `blitzstrahl/schema/embed.json` | An `embed` block's body |
+
+They're made from the same rules `check` applies, and a test keeps them in
+step. A schema sees one block at a time, without its data: whether a
+column exists, or a map's markers are on the globe, is still `check`'s
+job. Unknown frontmatter keys are allowed, since plugins add their own. On
+disk they're in `node_modules/blitzstrahl/schema/`.
+
 ---
 
 ## 4. Attribute blocks `{...}`

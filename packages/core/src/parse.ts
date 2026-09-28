@@ -7,9 +7,13 @@ import { Diagnostics } from './diagnostics.js'
 import { IR_VERSION, type Deck, type Diagnostic, type Slide, type SlideAttrs, type SourceSpan, type TransitionName } from './ir.js'
 import { SLIDE_KEYS, layoutName, mergeTransition, milliseconds, resolveDeckMeta, scalarString, transitionName } from './meta.js'
 import { resolveSlide, type DeckContext } from './resolve.js'
+import { keyProblem, SLIDE_SCHEMA } from './schema.js'
 import { keySpan, splitSlides } from './split.js'
 import { parseMarkdown } from './syntax/index.js'
 import { EFFECTS, RENDERERS, type Extensions } from './vocab.js'
+
+/** Slide keys that hold plain text: their type is checked with the frontmatter. */
+const TEXT_KEYS: readonly string[] = ['id', 'background', 'class', 'style']
 
 export interface ParseOptions {
   /** Path of the markdown file, used in diagnostics and `Deck.source`. */
@@ -64,6 +68,10 @@ export function parseDeck(source: string, options: ParseOptions = {}): ParseResu
       if (!SLIDE_KEYS.has(key)) {
         diags.warn('frontmatter/unknown-key', `unknown slide frontmatter key \`${key}\``, fmSpan(key))
         attrs.extra[key] = value
+      } else if (TEXT_KEYS.includes(key)) {
+        // Layouts, transitions and durations are checked where they're read.
+        const problem = keyProblem(SLIDE_SCHEMA, key, value)
+        if (problem) diags.warn('frontmatter/type', problem, fmSpan(key))
       }
     }
     for (const [key, { span }] of Object.entries(r.shorthand)) {

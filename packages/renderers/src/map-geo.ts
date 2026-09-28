@@ -5,6 +5,7 @@
  * `check` can validate specs without a browser.
  */
 import { THOUSANDS, type Thousands } from '@blitzstrahl/core/numbers'
+import { keyProblem, type KeyRule, type KeyTable, type Schema } from '@blitzstrahl/core/schema'
 import { DELIMITERS, delimiterOf, parseDelimited, rowsFrom, type DataOptions, type Row } from './data.js'
 
 /** Web mercator's limit: the square world stops here. */
@@ -79,41 +80,56 @@ export function markersFromText(src: string, text: string, label?: string, size?
   return markersFromRows(parseDelimited(text, data.delimiter ?? (tsv ? '\t' : delimiterOf(text)), data.read, `\`${src}\``), label, size)
 }
 
-const KEYS = new Set(['center', 'zoom', 'markers', 'regions', 'label', 'size', 'value', 'labels', 'tiles', 'attribution', 'roam', 'thousands', 'delimiter'])
+const TEXT: KeyRule = { schema: { type: 'string' }, message: 'must be text' }
+const BOOL: KeyRule = { schema: { type: 'boolean' }, message: 'must be true or false' }
+
+/** Every key a map takes (docs/renderers/map.md), and what each may hold (schema.ts). */
+export const MAP_SCHEMA: KeyTable = {
+  center: {
+    schema: { type: 'array', prefixItems: [{ type: 'number', minimum: -90, maximum: 90 }, { type: 'number', minimum: -180, maximum: 180 }], minItems: 2, maxItems: 2 },
+    message: 'must be `[latitude, longitude]`, e.g. [41.38, 2.17]',
+  },
+  zoom: { schema: { type: 'number', minimum: 0, maximum: MAX_ZOOM }, message: `must be a number from 0 (the world) to ${MAX_ZOOM} (a building)` },
+  markers: {
+    schema: { anyOf: [{ type: 'string' }, { type: 'array' }] },
+    message: 'must be a ./file (GeoJSON, CSV) or an https:// URL, or a list of { lat, lng }',
+  },
+  regions: { schema: { type: 'string' }, message: 'must be a ./file.geojson or an https:// URL' },
+  label: TEXT,
+  size: TEXT,
+  value: TEXT,
+  labels: BOOL,
+  tiles: {
+    schema: { anyOf: [{ enum: ['none', ...Object.keys(TILE_PRESETS)] }, { type: 'string', pattern: '\\{z\\}' }] },
+    message: `must be a URL template with {z}, {x} and {y}, a provider (${Object.keys(TILE_PRESETS).join(', ')}), or \`none\``,
+  },
+  attribution: TEXT,
+  roam: BOOL,
+  thousands: { schema: { enum: THOUSANDS }, message: 'must be one of ",", ".", " "' },
+  delimiter: { schema: { enum: DELIMITERS }, message: 'must be one of ",", ";", "\\t"' },
+}
+
+/** What `validate` checks across keys, as JSON Schema: the generated schema's top level. */
+export const MAP_RULES: Schema = {
+  dependentRequired: { value: ['regions'], size: ['markers'] },
+  anyOf: [{ required: ['center'] }, { required: ['markers'] }, { required: ['regions'] }],
+}
 
 export function validate(spec: unknown): MapSpec {
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('the block must be a YAML mapping')
   const s = spec as Record<string, unknown>
-  for (const k of Object.keys(s)) if (!KEYS.has(k)) throw new Error(`unknown key \`${k}\``)
-  if (s.center !== undefined) {
-    const c = s.center
-    if (!Array.isArray(c) || c.length !== 2 || !c.every((v) => typeof v === 'number' && Number.isFinite(v))) {
-      throw new Error('`center` must be `[latitude, longitude]`, e.g. [41.38, 2.17]')
-    }
-    if (Math.abs(c[0]) > 90 || Math.abs(c[1]) > 180) {
-      throw new Error(`\`center\` [${c.join(', ')}] is off the globe: latitude comes first, then longitude`)
-    }
+  for (const k of Object.keys(s)) if (!Object.hasOwn(MAP_SCHEMA, k)) throw new Error(`unknown key \`${k}\``)
+  const c = s.center
+  // Swapped coordinates get their own message: the table's would only say what's wanted.
+  if (Array.isArray(c) && c.length === 2 && c.every((v) => typeof v === 'number' && Number.isFinite(v)) && (Math.abs(c[0]) > 90 || Math.abs(c[1]) > 180)) {
+    throw new Error(`\`center\` [${c.join(', ')}] is off the globe: latitude comes first, then longitude`)
   }
-  if (s.zoom !== undefined && !(typeof s.zoom === 'number' && s.zoom >= 0 && s.zoom <= MAX_ZOOM)) {
-    throw new Error(`\`zoom\` must be a number from 0 (the world) to ${MAX_ZOOM} (a building)`)
+  for (const [k, v] of Object.entries(s)) {
+    const problem = keyProblem(MAP_SCHEMA, k, v)
+    if (problem) throw new Error(problem)
   }
-  if (s.markers !== undefined && typeof s.markers !== 'string' && !Array.isArray(s.markers)) {
-    throw new Error('`markers` must be a ./file (GeoJSON, CSV) or an https:// URL, or a list of { lat, lng }')
-  }
-  if (s.regions !== undefined && typeof s.regions !== 'string') throw new Error('`regions` must be a ./file.geojson or an https:// URL')
-  for (const k of ['label', 'size', 'value', 'tiles', 'attribution'] as const) {
-    if (s[k] !== undefined && typeof s[k] !== 'string') throw new Error(`\`${k}\` must be text`)
-  }
-  for (const k of ['labels', 'roam'] as const) {
-    if (s[k] !== undefined && typeof s[k] !== 'boolean') throw new Error(`\`${k}\` must be true or false`)
-  }
-  if (s.thousands !== undefined && !THOUSANDS.includes(s.thousands as never)) throw new Error('`thousands` must be one of ",", ".", " "')
-  if (s.delimiter !== undefined && !DELIMITERS.includes(s.delimiter as never)) throw new Error('`delimiter` must be one of ",", ";", "\\t"')
   if (s.value !== undefined && s.regions === undefined) throw new Error('`value` colours `regions`: add a regions file')
   if (s.size !== undefined && s.markers === undefined) throw new Error('`size` sizes `markers`: add markers')
-  if (typeof s.tiles === 'string' && s.tiles !== 'none' && !Object.hasOwn(TILE_PRESETS, s.tiles) && !/\{z\}/.test(s.tiles)) {
-    throw new Error(`\`tiles\` must be a URL template with {z}, {x} and {y}, a provider (${Object.keys(TILE_PRESETS).join(', ')}), or \`none\``)
-  }
   if (s.center === undefined && s.markers === undefined && s.regions === undefined) {
     throw new Error('say where: give `center` and `zoom`, or `markers` or `regions` to fit the map to')
   }

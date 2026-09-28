@@ -111,3 +111,6 @@ export async function mermaidProblem(spec: unknown): Promise<string | undefined>
 }
 
 export { asFeatureCollection, isUrl, markersFromText, tileSource, type MapSpec } from './map-geo.js'
+export { CHART_RULES, CHART_SCHEMA, validate as validateChart } from './chart-option.js'
+export { EMBED_RULES, EMBED_SCHEMA, EMBED_SHORT, validate as validateEmbed } from './embed.js'
+export { MAP_RULES, MAP_SCHEMA, validate as validateMap } from './map-geo.js'

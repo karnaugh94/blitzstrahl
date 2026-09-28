@@ -1,0 +1,128 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "blitzstrahl map block",
+  "description": "See https://github.com/karnaugh94/blitzstrahl/blob/main/docs/renderers/map.md",
+  "type": "object",
+  "properties": {
+    "center": {
+      "description": "[latitude, longitude] of the map's centre",
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "number",
+          "minimum": -90,
+          "maximum": 90
+        },
+        {
+          "type": "number",
+          "minimum": -180,
+          "maximum": 180
+        }
+      ],
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "zoom": {
+      "description": "Zoom level, from 0 (the world) to 19 (a building)",
+      "type": "number",
+      "minimum": 0,
+      "maximum": 19
+    },
+    "markers": {
+      "description": "A ./file (GeoJSON, CSV) or https:// URL, or a list of { lat, lng }",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array"
+        }
+      ]
+    },
+    "regions": {
+      "description": "A ./file.geojson or https:// URL of regions to draw",
+      "type": "string"
+    },
+    "label": {
+      "description": "The property or column that names each marker or region",
+      "type": "string"
+    },
+    "size": {
+      "description": "The numeric property or column that sizes each marker",
+      "type": "string"
+    },
+    "value": {
+      "description": "The numeric property that colours each region",
+      "type": "string"
+    },
+    "labels": {
+      "description": "Show the labels on the map",
+      "type": "boolean"
+    },
+    "tiles": {
+      "description": "Street map: a provider (osm, …), a URL template with {z}, {x} and {y}, or none",
+      "anyOf": [
+        {
+          "enum": [
+            "none",
+            "osm"
+          ]
+        },
+        {
+          "type": "string",
+          "pattern": "\\{z\\}"
+        }
+      ]
+    },
+    "attribution": {
+      "description": "The tile provider's credit, shown on the map",
+      "type": "string"
+    },
+    "roam": {
+      "description": "Let the audience pan and zoom",
+      "type": "boolean"
+    },
+    "thousands": {
+      "description": "How this map's data groups thousands, when not plainly. Default: the deck's",
+      "enum": [
+        ",",
+        ".",
+        " "
+      ]
+    },
+    "delimiter": {
+      "description": "What separates a CSV's cells, when the header doesn't make it clear",
+      "enum": [
+        ",",
+        ";",
+        "\t"
+      ]
+    }
+  },
+  "additionalProperties": false,
+  "dependentRequired": {
+    "value": [
+      "regions"
+    ],
+    "size": [
+      "markers"
+    ]
+  },
+  "anyOf": [
+    {
+      "required": [
+        "center"
+      ]
+    },
+    {
+      "required": [
+        "markers"
+      ]
+    },
+    {
+      "required": [
+        "regions"
+      ]
+    }
+  ]
+}

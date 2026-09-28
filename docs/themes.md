@@ -157,6 +157,51 @@ A theme written for 1.0 that styles `.callout` itself keeps its look for
 every property it sets; for a property it leaves alone (a `background`,
 say), it now gets the base one.
 
+## Components *(1.1)*
+
+`as=` (docs/syntax.md §5.1) marks a list, table or container with
+`data-as="steps|timeline|chevrons|flow|cards|compare|stats"`. The base
+styles draw each from the tokens below, so a tokens-only theme gets them
+all; a theme restyles them with CSS.
+
+```css
+.blitz-slide [data-as="chevrons"] > li { background: var(--blitz-surface-2); }
+.blitz-slide [data-as="steps"] > li::before { border-radius: 0; }
+```
+
+| Selector | What it is |
+|---|---|
+| `[data-as] > *` | Each item: an `li`, a table row, or a container's child |
+| `[data-as] > * > :first-child` | The item's title (its first paragraph or heading) |
+| `[data-as] > .accent` | An item marked `{.accent}` |
+| `[data-as="steps"] > li::before`, `[data-as="timeline"] > li::before` | The marker, numbered by the counter `blitz-item` (blank in a `ul`) |
+| `[data-as="steps"] > li + li::after` | The arrow into an item from the one before |
+| `[data-as="timeline"]::before`, `::after` | The line, and its arrowhead |
+| `[data-as="flow"] > * + *::before` | The arrow into a box from the one before |
+| `table[data-as="compare"] td:last-child::before`, `div[data-as="compare"] > :last-child::before` | The arrow into the "after" side |
+
+Whatever joins two items belongs to the later one, so under `reveal=items`
+an arrow arrives with the item it points to.
+
+The base rules are written `.blitz-slide [data-as="…"] …`, one step more
+specific than a theme's `.blitz-slide ul`, so a theme's list and table rules
+(bullets, padding, rules) don't reach inside a component. A theme's rule of
+the same form, later in the page, wins. The `stat-grid` layout's stats and
+`as=stats` share their base rules; a theme that styles one should style both
+(`:is([data-layout="stat-grid"] > [data-slot="main"], [data-as="stats"]) > div`).
+
+Cards, `flow` boxes and stats are `surface` with `radius` corners and a
+hairline edge in `fg`, so they show even where `surface` is `bg`.
+Chevrons are `surface-2` tinted with `accent`. An `{.accent}` chevron, card
+or box is filled with `accent`, its text in `accent-fg`; an `{.accent}`
+step or stop has an `accent` marker and title.
+
+A static or standalone build carries these rules only when the deck uses
+`as=` (or writes `data-as` in its own HTML).
+
+Every component is drawn in CSS only: no images, no script, so it prints and
+exports like any text.
+
 ## Fonts
 
 The built-in themes ship every font they name, so a deck breaks its lines
@@ -228,6 +273,10 @@ are plain `var()`s, which computed styles resolve to real colours.
 | `transition-dur` | `550ms` | Slide transition duration, unless the deck sets one |
 | `map-tiles` | `none` | CSS `filter` for map tiles, e.g. to darken them for a dark theme |
 | `code-foreground` | `var(--blitz-fg)` | Code text |
+| `marker` *(1.1)* | `var(--blitz-accent-2)` | Markers in `steps` and `timeline` (components); an `{.accent}` item's is `accent` |
+| `marker-fg` *(1.1)* | `var(--blitz-bg)` | The number on a marker |
+| `connector` *(1.1)* | `var(--blitz-rule)` | Lines and arrows between items: the timeline, `steps`, `flow` and `compare` arrows |
+| `accent-fg` *(1.1)* | `var(--blitz-bg)` | Text on an accent fill: an `{.accent}` card, box or chevron |
 
 ## Syntax highlighting
 

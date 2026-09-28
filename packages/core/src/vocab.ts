@@ -39,6 +39,20 @@ export const SLIDE_KEYS: ReadonlySet<string> = new Set(SLIDE_KEY_NAMES)
  */
 export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set(['duration'])
 
+/** What `as=` can go on (syntax.md §5.1). */
+export type ComponentTarget = 'list' | 'table' | 'container'
+
+/** syntax.md §5.1: built-in components, and the blocks each can be made from. */
+export const COMPONENTS: Readonly<Record<string, readonly ComponentTarget[]>> = {
+  steps: ['list'],
+  timeline: ['list'],
+  chevrons: ['list'],
+  flow: ['list', 'container'],
+  cards: ['list', 'container'],
+  compare: ['table', 'container'],
+  stats: ['container'],
+}
+
 /** syntax.md §4.3 */
 export const ANIM_KEYS = new Set(['dur', 'delay', 'ease', 'reverse', 'from', 'cps'])
 export const SLIDE_SHORTHAND_KEYS = new Set(['transition', 'transition-dur', 'layout', 'background'])

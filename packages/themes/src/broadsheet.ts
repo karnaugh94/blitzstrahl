@@ -192,9 +192,9 @@ export const broadsheet = defineTheme({
 }
 [data-layout="quote"] blockquote + p::before { content: "\\2014\\2002"; color: var(--blitz-accent); }
 
-[data-layout="stat-grid"] > [data-slot="main"] > div { padding-top: 18px; border-top: 3px solid var(--blitz-fg); }
-[data-layout="stat-grid"] > [data-slot="main"] > div > :first-child { font-variant-numeric: lining-nums tabular-nums; font-weight: 700; }
-[data-layout="stat-grid"] > [data-slot="main"] > div > :not(:first-child) {
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div { padding: 18px 0 0; border-top: 3px solid var(--blitz-fg); background: none; box-shadow: none; border-radius: 0; }
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div > :first-child { font-variant-numeric: lining-nums tabular-nums; font-weight: 700; }
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div > :not(:first-child) {
   font: 400 var(--blitz-text-small)/1.35 var(--blitz-font-sans); color: var(--blitz-fg-muted);
 }
 

@@ -129,6 +129,16 @@ relied on it will notice.
 - Pandoc's columns: `::: {.column width=40%}` inside `:::: columns` gets
   that width. `width=` and `height=` on any container set its size (1.0
   wrote a `<div width>` that did nothing).
+- Components, with the new attribute key `as=`: `steps`, `timeline` and
+  `chevrons` on a list; `flow` and `cards` on a list or a container;
+  `compare` (before → after) on a two-column table or a two-part
+  container; `stats` on a container. Written as ordinary markdown, drawn by
+  the theme from four new tokens (`marker`, `marker-fg`, `connector`,
+  `accent-fg`, all with defaults). `{.accent}` on an item marks it. A deck
+  that styles its own `.timeline` or `.card` is unaffected: `as=` adds
+  `data-as`, never a class. Pages that don't use them don't carry their CSS.
+- `reveal=items` on a container reveals its child blocks one step at a
+  time.
 
 ## [1.0.1] — 2026-09-27
 

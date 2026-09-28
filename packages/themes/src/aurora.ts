@@ -186,12 +186,12 @@ export const aurora = defineTheme({
 [data-layout="quote"] blockquote + p { color: var(--blitz-fg-muted); font-size: var(--blitz-text); }
 [data-layout="quote"] blockquote + p::before { content: "\\2014\\2002"; color: var(--blitz-accent); }
 
-[data-layout="stat-grid"] > [data-slot="main"] > div {
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div {
   padding: 28px 30px; border-radius: var(--blitz-radius);
   background: var(--blitz-surface); border: 1px solid var(--blitz-rule);
 }
-[data-layout="stat-grid"] > [data-slot="main"] > div > :first-child { color: var(--blitz-accent); font-variant-numeric: tabular-nums; }
-[data-layout="stat-grid"] > [data-slot="main"] > div > :not(:first-child) { color: var(--blitz-fg-muted); font-size: var(--blitz-text-small); }
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div > :first-child { color: var(--blitz-accent); font-variant-numeric: tabular-nums; }
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div > :not(:first-child) { color: var(--blitz-fg-muted); font-size: var(--blitz-text-small); }
 
 [data-layout="full-bleed"] > [data-slot="main"]::before {
   content: ""; position: absolute; inset: 0; z-index: -1;

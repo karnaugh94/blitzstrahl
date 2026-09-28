@@ -51,7 +51,9 @@ relied on it will notice.
 - **aurora and broadsheet ship their fonts**: Inter and JetBrains Mono
   (and broadsheet's Newsreader), in Latin, Latin Extended, Greek, Cyrillic
   and Vietnamese, upright and italic, under the OFL. A deck now breaks its
-  lines the same way on every computer. Where Inter wasn't installed
+  lines the same way on every computer. Inter also ships a symbols part
+  (arrows, `≠`, `≤`, `✓`, fractions) that Fontsource's subsets leave out.
+  Where Inter wasn't installed
   before, text metrics change, so `check` can find overflow a deck didn't
   have: run it before your next talk. A standalone file carries only the
   faces its text uses (an English deck: Inter's Latin face, 64 kB).

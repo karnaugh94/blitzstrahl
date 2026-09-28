@@ -10,6 +10,7 @@
 import type { PayloadSlide, StepRange } from '@blitzstrahl/core'
 import type { BlockData, RenderInstance } from './renderer.js'
 import { focusLines } from './lines.js'
+import { mediaFrame } from './media.js'
 import { phaseAt } from './steps.js'
 
 export interface PrintOptions {
@@ -84,8 +85,10 @@ export async function buildPrint(host: PrintHost, options: PrintOptions = {}): P
 
   await doc.fonts?.ready
   const images = [...root.querySelectorAll('img')].map((img) => img.decode().catch(() => {}))
+  // Video prints its poster, or its frame at `start` (syntax.md §13).
+  const frames = [...root.querySelectorAll<HTMLMediaElement>('video, audio')].map((m) => mediaFrame(m, READY_TIMEOUT))
   const warnings = (await Promise.all(waits)).filter((w): w is string => w !== undefined)
-  await Promise.all(images)
+  await Promise.all([...images, ...frames])
   // One more frame, so the last renders are painted.
   await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
 

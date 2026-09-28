@@ -11,12 +11,12 @@ import { parseDocument } from 'yaml'
 import type { Attached } from './attach.js'
 import { mathData, type BlitzMath } from './syntax/mdast.js'
 import type { StepSpec } from './attrs.js'
-import { assetKind, isExplicitRelative, isLocalRef, normalizeRelative, pageAsset } from './assets.js'
+import { assetKind, isExplicitRelative, isLocalRef, mediaKind, normalizeRelative, pageAsset } from './assets.js'
 import { cssRefs, htmlRefs } from './html-refs.js'
 import { pointSpan, spanOf, type Diagnostics } from './diagnostics.js'
 import type { AnimSpec, AssetRef, EffectKind, HastNode, RenderBlock, SourceSpan, StepRange } from './ir.js'
 import { milliseconds, notYet } from './meta.js'
-import { ANIM_KEYS, COMPONENTS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES, type RendererBody } from './vocab.js'
+import { ANIM_KEYS, COMPONENTS, LAYOUTS, MEDIA_KEYS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES, type RendererBody } from './vocab.js'
 import { fill, strings } from './i18n.js'
 import { parseMarkdown } from './syntax/index.js'
 import { distance } from './split.js'
@@ -197,6 +197,9 @@ export function resolveSlide(
           revealMode = value
         } else if (key === 'as') {
           as = { value, span }
+        } else if (MEDIA_KEYS.has(key)) {
+          if (node.type === 'image' && mediaKind(node.url)) mediaOption(props, key, value, span)
+          else diags.error('attr/media-only', `\`${key}=\` applies to video and audio only (\`![](./clip.mp4)\`)`, span)
         } else if (key === 'lines') {
           lineGroups = linesOption(node, value, diags, span)
         } else if (key === 'key') {
@@ -228,6 +231,10 @@ export function resolveSlide(
       }
 
       if (as && componentOk(node, as.value, as.span)) props.dataAs = as.value
+      if (typeof props.dataBlitzStart === 'number' && typeof props.dataBlitzEnd === 'number' && props.dataBlitzEnd <= props.dataBlitzStart) {
+        diags.error('attr/media-value', '`end` must come after `start`', pointSpan(at))
+        delete props.dataBlitzEnd
+      }
 
       if (attrs.step) range = resolveStep(attrs.step, pointSpan(at))
 
@@ -328,6 +335,28 @@ export function resolveSlide(
     return range && anims[animIndex ?? -1]?.kind !== 'emphasis' ? range : undefined
   }
 
+  /** A media key (§13) onto `props`, or an error for a value it doesn't take. */
+  const mediaOption = (props: Record<string, unknown>, key: string, value: string, span: SourceSpan) => {
+    const bad = (want: string) => diags.error('attr/media-value', `\`${key}=${value}\`: ${want}`, span)
+    if (key === 'poster') {
+      props.poster = value
+      if (isLocalRef(value)) ctx.assets.push({ ref: value, path: normalizeRelative(value), kind: assetKind(value), span })
+    } else if (key === 'start' || key === 'end') {
+      const t = /^(?:(\d+):([0-5]\d)(\.\d+)?|(\d+(?:\.\d+)?|\.\d+))$/.exec(value)
+      if (!t) return bad('use seconds (`12.5`) or minutes and seconds (`1:05`)')
+      props[key === 'start' ? 'dataBlitzStart' : 'dataBlitzEnd'] = t[4] !== undefined ? Number(t[4]) : Number(t[1]) * 60 + Number(t[2]) + Number(t[3] ?? 0)
+    } else if (value !== 'true' && value !== 'false') {
+      bad('write `true` or `false`')
+    } else if (key === 'autoplay') {
+      if (value === 'false') props.dataBlitzAutoplay = 'false'
+    } else if (key === 'loop') {
+      if (value === 'true') props.dataBlitzLoop = 'true'
+    } else {
+      // muted, controls: HTML's own attributes.
+      props[key] = value === 'true'
+    }
+  }
+
   /** `as=value` fits this node (§5.1); reports why not. */
   const componentOk = (node: Nodes, value: string, span: SourceSpan): boolean => {
     const targets = COMPONENTS[value]
@@ -366,6 +395,23 @@ export function resolveSlide(
         const placeholder = renderBlock(node, ctx, blocks)
         kids[k] = placeholder
         node = placeholder
+      }
+      if (node.type === 'image' && mediaKind(node.url)) {
+        // Video and audio from an image (§13): the runtime plays it, so no `autoplay`.
+        const kind = mediaKind(node.url)!
+        node.data = {
+          ...node.data,
+          hName: kind,
+          hProperties: {
+            ...node.data?.hProperties,
+            alt: undefined,
+            ariaLabel: node.alt || undefined,
+            dataBlitzMedia: '',
+            preload: 'metadata',
+            ...(kind === 'video' ? { playsInline: true } : { controls: true }),
+          },
+          hChildren: node.alt ? [{ type: 'text', value: node.alt }] : [],
+        }
       }
       if (node.type === 'image' && isLocalRef(node.url)) {
         ctx.assets.push({ ref: node.url, path: normalizeRelative(node.url), kind: assetKind(node.url), span: spanOf(node.position) })

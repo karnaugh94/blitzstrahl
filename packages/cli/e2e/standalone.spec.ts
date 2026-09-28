@@ -143,5 +143,10 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * base CSS (footer, number and logo placement, shared by every theme), a
  * `.blitz-chrome` holding the (hidden) title on every slide, and the base
  * rule that puts links in the `link` token.
+ * Raised 2026-09-28 (M10): 188.7 kB bare, +2.3 kB over ae86aab. Video and
+ * audio (media.ts: play on entry or step, rewind on leave, `end`, `loop`,
+ * the print frame) are in every runtime, since a standalone file is one
+ * bundle. (M10.1's utility classes, 1.2 kB, fitted under the old budget;
+ * the components' 8.7 kB of CSS ships only in decks that use `as=`.)
  */
-const BUDGET = { minimal: 187_000, withChart: 870_000 }
+const BUDGET = { minimal: 190_000, withChart: 870_000 }

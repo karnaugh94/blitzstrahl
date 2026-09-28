@@ -23,6 +23,7 @@ blitzstrahl makes these changes to that base:
 | **`{...}` attribute blocks** (§4). | Styling, IDs, build steps and animation. |
 | **`:::` containers** (§5). | Grouping, presenter notes and layout slots. |
 | **Renderer fences** (§8). | Charts, maps, embeds. |
+| **Images that are video or audio** (§13) *(1.1)*. | `![](./demo.mp4)` plays. |
 
 Raw HTML is passed through unchanged, except that the local files it refers
 to ship with every build, as Markdown images do. Those are the files in
@@ -411,13 +412,14 @@ container) is an error.
 
 ### 4.3 Keys
 
-Keys fall into four groups:
+Keys fall into these groups:
 
 | Kind | Keys | Behaviour |
 |---|---|---|
 | Animation | `dur`, `delay`, `ease`, `reverse`, plus effect options (§6.3) | Consumed, drives the animation |
 | Structure | `reveal`, `key`, `lines`, `as` *(1.1)* | Consumed (§6.4, §8.1, §9.1, §5.1) |
 | Slide shorthand | `transition`, `transition-dur`, `layout`, `background` | First heading only (§3.2) |
+| Media *(1.1)* | `autoplay`, `loop`, `muted`, `controls`, `poster`, `start`, `end` | Video and audio only (§13); an error anywhere else |
 | HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes. On a container, `width` and `height` set its size instead (§5.2) *(1.1)* |
 
 **Any other key is an error.** Unrecognised keys are *not* silently passed
@@ -1013,6 +1015,60 @@ and its fonts, but no TeX engine:
   functions](https://katex.org/docs/supported).
 
 A literal dollar where these rules would see math is written `\$`.
+
+## 13. Video and audio *(1.1)*
+
+An image whose file is video or audio becomes a player:
+
+```markdown
+![The dashboard in use](./demo.mp4){muted=true loop=true}
+
+![The interview](./clip.mp3){@2}
+```
+
+| Kind | Extensions |
+|---|---|
+| Video | `.mp4`, `.m4v`, `.webm`, `.ogv`, `.mov` |
+| Audio | `.mp3`, `.m4a`, `.aac`, `.ogg`, `.oga`, `.opus`, `.wav`, `.flac` |
+
+The file is recognised by its extension, local or remote
+(`https://…/demo.mp4`). Pages that play video (YouTube, Vimeo) are
+`embed`s (§8). The alt text becomes the player's accessible name, and is
+shown if the browser can't play the file.
+
+**Playback.** A video or audio clip plays when it appears: on slide entry,
+or at its step (`@2`). It pauses and goes back to its start when the slide
+is left, or when stepping back hides it. Clicking a video pauses and
+resumes it (the edge-click gutters stay out of its way, as for charts).
+
+| Key | Default | Value |
+|---|---|---|
+| `autoplay` | `true` | `false`: wait for a click (or the controls) instead of playing on arrival |
+| `loop` | `false` | `true`: start again at `start` after `end` |
+| `muted` | `false` | `true`: no sound |
+| `controls` | `false` for video, `true` for audio | Show the browser's player controls |
+| `poster` | the frame at `start` | An image to show before it plays, and in PDFs. A local path ships like any image |
+| `start`, `end` | the whole file | Where to begin and stop, in seconds (`12.5`) or `m:ss` (`1:05`). Stopping at `end` holds that frame |
+
+- `true` and `false` are written out: `loop=true`. The grammar has no bare
+  keys (§4.1).
+- These keys are errors on anything but video and audio, and so are values
+  they don't take (`start=1:75`, `end` before `start`).
+- `width` and `height` size the player as they size an image. Alone in
+  its paragraph, a video fills the `image` slot of `image-left` and
+  `image-right`, and the canvas in `full-bleed` (§10), as an image does.
+- **In the presenter view**, the previews and mirrors show the video
+  paused and silent; only the audience's window plays it, so there's no
+  double sound. The presenter sees what's playing on the deck itself.
+- **PDF and print** show the poster, or the frame at `start`.
+- **Standalone files** carry the media inline, so they grow with it: a
+  minute of video is often 10 MB or more. `build --standalone` already
+  warns over 8 MB and names the largest files (docs/cli.md). A static
+  build copies the file like an image.
+- Autoplay with sound needs the browser to have seen a key press or click
+  on the page, which presenting provides. A deck that opens straight onto a
+  video slide may start it muted; `check` doesn't know which browser will
+  be used, so it says nothing.
 
 ---
 

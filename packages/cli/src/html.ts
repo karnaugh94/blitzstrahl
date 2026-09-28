@@ -54,7 +54,8 @@ function refRewriter(deck: Deck, assetUrl: AssetUrl) {
       const el: Element = { ...n, children: rewrite(n.children) }
       const p = el.properties
       const next: Element['properties'] = {}
-      if (el.tagName === 'img' && typeof p.src === 'string' && url(p.src) !== undefined) next.src = url(p.src)!
+      if (/^(img|video|audio)$/.test(el.tagName) && typeof p.src === 'string' && url(p.src) !== undefined) next.src = url(p.src)!
+      if (el.tagName === 'video' && typeof p.poster === 'string' && url(p.poster) !== undefined) next.poster = url(p.poster)!
       if (el.tagName === 'a' && typeof p.href === 'string') {
         const to = url(p.href)
         if (to !== undefined) {

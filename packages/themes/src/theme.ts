@@ -120,6 +120,9 @@ const baseCss = /* css */ `
 :where(.blitz-slide) a { color: var(--blitz-link); }
 /* Render blocks have no intrinsic size: ECharts, maps and embeds fill the box they're given. */
 .blitz-slide [data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
+/* Video and audio (syntax.md §13): no wider than their column, like images. */
+:where(.blitz-slide) video { max-width: 100%; max-height: 100%; border-radius: var(--blitz-radius); background: #000; }
+:where(.blitz-slide) audio { width: min(100%, 640px); }
 
 /*
  * Utility classes every theme has (docs/themes.md, syntax.md §5.2). Zero

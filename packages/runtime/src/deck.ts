@@ -12,6 +12,7 @@ import type { BlockData, RenderCtx, RenderInstance, Renderer, RendererLoader } f
 import { buildPrint, type PrintOptions, type PrintResult } from './print.js'
 import { bindInk, InkLayer, type InkEvent, type Tool } from './ink.js'
 import { focusLines } from './lines.js'
+import { MEDIA, rewind, showMedia, wireMedia } from './media.js'
 import { isCode, pairSlides, type MorphPair } from './morph.js'
 import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type SlideMotion, type TransitionEngine } from './transitions.js'
@@ -65,6 +66,8 @@ interface SlideView {
   data: PayloadSlide
   stepped: Stepped[]
   blocks: BlockView[]
+  /** Video and audio (syntax.md §13). */
+  media: HTMLMediaElement[]
 }
 
 /** Called after every change of position or blackout. */
@@ -313,6 +316,7 @@ export class Deck implements NavTarget {
       if (changing) this.enter(view)
       this.apply(view, to.step, m)
       this.syncBlocks(view, to.step)
+      this.syncMedia(view)
     }
     this.pos = to
     const t = old && from ? this.slideTransition(from.slide, to) : undefined
@@ -525,7 +529,9 @@ export class Deck implements NavTarget {
       }
       blocks.push({ el: node, data: b, enhance: node.dataset.blitzEnhance !== undefined })
     }
-    return { el, data, stepped, blocks }
+    const media = [...el.querySelectorAll<HTMLMediaElement>(MEDIA)]
+    for (const m of media) wireMedia(m, this.mode === 'audience')
+    return { el, data, stepped, blocks, media }
   }
 
   private rescale() {
@@ -563,6 +569,7 @@ export class Deck implements NavTarget {
     delete view.el.dataset.blitzCurrent
     view.el.setAttribute('aria-hidden', 'true')
     for (const s of view.stepped) s.running?.finish()
+    for (const m of view.media) rewind(m)
     this.generation++
     const instances = view.blocks.map((b) => {
       const i = b.instance
@@ -669,6 +676,11 @@ export class Deck implements NavTarget {
       if (b.instance) b.instance.update(step)
       else if (visible && !b.loading) void this.mount(b, step)
     }
+  }
+
+  /** Play what's shown, rewind what isn't; only the audience's window plays. */
+  private syncMedia(view: SlideView) {
+    for (const m of view.media) showMedia(m, m.closest('[data-blitz-hidden]') === null && !this.pendingExit(view, m), this.mode === 'audience')
   }
 
   private pendingExit(view: SlideView, el: HTMLElement): boolean {

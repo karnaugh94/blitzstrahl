@@ -3,13 +3,13 @@
  * browser, let the runtime measure every slide, and report each problem as
  * a warning at the slide's `deck.md:line:col`.
  */
-import { createReadStream, existsSync, statSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import { join, normalize, sep } from 'node:path'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
 import { describeOverflow, type Overflow } from '@blitzstrahl/runtime/overflow-report'
 import { INSTALL_BROWSER, launchBrowser } from './browser.js'
-import { mimeType } from './mime.js'
+import { sendFile } from './mime.js'
 
 export interface OverflowCheck {
   diagnostics: Diagnostic[]
@@ -54,8 +54,7 @@ async function serve(root: string): Promise<{ server: Server; url: string }> {
       res.end()
       return
     }
-    res.setHeader('content-type', mimeType(file))
-    createReadStream(file).pipe(res)
+    sendFile(req, res, file)
   })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
   const addr = server.address()

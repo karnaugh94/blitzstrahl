@@ -1,0 +1,468 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "media.md",
+    "meta": {
+      "lang": "en",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1280,
+        "height": 720
+      },
+      "transition": {
+        "name": "fade"
+      },
+      "plugins": [],
+      "extra": {},
+      "title": "Media"
+    },
+    "slides": [
+      {
+        "id": "media",
+        "index": 0,
+        "layout": "title",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 2,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Media"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "video",
+                    "properties": {
+                      "src": "./demo.mp4",
+                      "ariaLabel": "The dashboard in use",
+                      "dataBlitzMedia": "",
+                      "preload": "metadata",
+                      "playsInline": true,
+                      "muted": true,
+                      "dataBlitzLoop": "true",
+                      "poster": "./demo.jpg",
+                      "dataBlitzStart": 65.5,
+                      "dataBlitzEnd": 80,
+                      "width": "640"
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "The dashboard in use"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "audio",
+                    "properties": {
+                      "src": "https://example.org/clip.mp3",
+                      "ariaLabel": "The interview",
+                      "dataBlitzMedia": "",
+                      "preload": "metadata",
+                      "controls": false,
+                      "dataBlitzStepIn": 2,
+                      "dataBlitzAnim": 0
+                    },
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "The interview"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "video",
+                    "properties": {
+                      "src": "./silent.webm",
+                      "dataBlitzMedia": "",
+                      "preload": "metadata",
+                      "playsInline": true,
+                      "dataBlitzAutoplay": "false"
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [
+          {
+            "effect": "fade",
+            "kind": "entrance",
+            "options": {}
+          }
+        ],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 8,
+            "column": 1
+          }
+        },
+        "title": "Media"
+      },
+      {
+        "id": "mistakes",
+        "index": 1,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Mistakes"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "img",
+                    "properties": {
+                      "src": "./photo.png",
+                      "alt": "A picture"
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "span",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "text"
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "video",
+                    "properties": {
+                      "src": "./a.mp4",
+                      "dataBlitzMedia": "",
+                      "preload": "metadata",
+                      "playsInline": true
+                    },
+                    "children": []
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "video",
+                    "properties": {
+                      "src": "./b.mp4",
+                      "dataBlitzMedia": "",
+                      "preload": "metadata",
+                      "playsInline": true,
+                      "dataBlitzStart": 10
+                    },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 10,
+            "column": 1
+          },
+          "end": {
+            "line": 20,
+            "column": 1
+          }
+        },
+        "title": "Mistakes"
+      }
+    ],
+    "assets": [
+      {
+        "ref": "./demo.mp4",
+        "path": "demo.mp4",
+        "kind": "media",
+        "span": {
+          "start": {
+            "line": 3,
+            "column": 1
+          },
+          "end": {
+            "line": 3,
+            "column": 36
+          }
+        }
+      },
+      {
+        "ref": "./demo.jpg",
+        "path": "demo.jpg",
+        "kind": "image",
+        "span": {
+          "start": {
+            "line": 3,
+            "column": 58
+          },
+          "end": {
+            "line": 3,
+            "column": 59
+          }
+        }
+      },
+      {
+        "ref": "./silent.webm",
+        "path": "silent.webm",
+        "kind": "media",
+        "span": {
+          "start": {
+            "line": 7,
+            "column": 1
+          },
+          "end": {
+            "line": 7,
+            "column": 19
+          }
+        }
+      },
+      {
+        "ref": "./photo.png",
+        "path": "photo.png",
+        "kind": "image",
+        "span": {
+          "start": {
+            "line": 13,
+            "column": 1
+          },
+          "end": {
+            "line": 13,
+            "column": 26
+          }
+        }
+      },
+      {
+        "ref": "./a.mp4",
+        "path": "a.mp4",
+        "kind": "media",
+        "span": {
+          "start": {
+            "line": 17,
+            "column": 1
+          },
+          "end": {
+            "line": 17,
+            "column": 13
+          }
+        }
+      },
+      {
+        "ref": "./b.mp4",
+        "path": "b.mp4",
+        "kind": "media",
+        "span": {
+          "start": {
+            "line": 19,
+            "column": 1
+          },
+          "end": {
+            "line": 19,
+            "column": 13
+          }
+        }
+      }
+    ]
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "attr/media-only",
+      "message": "`loop=` applies to video and audio only (`![](./clip.mp4)`)",
+      "file": "media.md",
+      "span": {
+        "start": {
+          "line": 13,
+          "column": 27
+        },
+        "end": {
+          "line": 13,
+          "column": 28
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/media-only",
+      "message": "`muted=` applies to video and audio only (`![](./clip.mp4)`)",
+      "file": "media.md",
+      "span": {
+        "start": {
+          "line": 15,
+          "column": 8
+        },
+        "end": {
+          "line": 15,
+          "column": 9
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/media-value",
+      "message": "`loop=yes`: write `true` or `false`",
+      "file": "media.md",
+      "span": {
+        "start": {
+          "line": 17,
+          "column": 14
+        },
+        "end": {
+          "line": 17,
+          "column": 15
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/media-value",
+      "message": "`start=1:75`: use seconds (`12.5`) or minutes and seconds (`1:05`)",
+      "file": "media.md",
+      "span": {
+        "start": {
+          "line": 17,
+          "column": 23
+        },
+        "end": {
+          "line": 17,
+          "column": 24
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/media-value",
+      "message": "`end=later`: use seconds (`12.5`) or minutes and seconds (`1:05`)",
+      "file": "media.md",
+      "span": {
+        "start": {
+          "line": 17,
+          "column": 34
+        },
+        "end": {
+          "line": 17,
+          "column": 35
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "attr/media-value",
+      "message": "`end` must come after `start`",
+      "file": "media.md",
+      "span": {
+        "start": {
+          "line": 19,
+          "column": 13
+        },
+        "end": {
+          "line": 19,
+          "column": 14
+        }
+      }
+    }
+  ]
+}

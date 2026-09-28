@@ -1,23 +1,26 @@
 #!/usr/bin/env node
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { basename, dirname, join, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import { parseArgs } from 'node:util'
 import { build } from './build.js'
 import { dev } from './dev.js'
 import { check } from './check.js'
 import { CliError } from './errors.js'
 import { exportPdf } from './export.js'
+import { newDeck } from './new.js'
 import { hasErrors, printDiagnostics, summary } from './report.js'
 
 const HELP = `blitzstrahl — Markdown in. A deck worth watching out.
 
 Usage:
+  blitzstrahl new [talk.md] [--theme aurora]
   blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
   blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
   blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
   blitzstrahl check <deck.md> [--offline] [--strict]
 
 Commands:
+  new     Start a deck: a short tour to edit, with a chart and its data
   dev     Live preview with reload on save (keeps your slide and step)
   build   Static site in dist/ (serve it over HTTP), or with --standalone,
           one .html file that opens straight from disk
@@ -35,6 +38,7 @@ Options:
   --strict       build: fail if any slide overflows the canvas (or it can't be
                  checked); check: fail on warnings, not just errors
   --offline      check: don't contact embedded sites
+  --theme        new: the deck's theme (default aurora)
   --port, -p     dev: server port
   --host         dev: listen on all addresses (present from another device)
   --open         dev: open the browser
@@ -50,6 +54,16 @@ Environment:
 
 /** Each command's usage, and the options it takes. */
 const COMMANDS: Record<string, { usage: string; options: string[]; help: string }> = {
+  new: {
+    usage: 'blitzstrahl new [talk.md] [--theme aurora]',
+    options: ['theme'],
+    help: `Start a deck: talk.md (or the file you name) and the data file its chart
+reads, <name>-data.csv. Never replaces a file: if either is there, it writes
+neither.
+
+  --theme        the deck's theme: aurora (default), broadsheet, a package
+                 or a ./path`,
+  },
   dev: {
     usage: 'blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]',
     options: ['port', 'host', 'open'],
@@ -100,6 +114,7 @@ const OPTIONS = {
   standalone: { type: 'boolean' },
   steps: { type: 'boolean' },
   offline: { type: 'boolean' },
+  theme: { type: 'string' },
   port: { type: 'string', short: 'p' },
   host: { type: 'boolean' },
   open: { type: 'boolean' },
@@ -183,8 +198,14 @@ async function main(argv: string[]): Promise<number> {
       throw new CliError(`\`--${name}\` is an option of \`${owner}\`, not \`${command}\` (see \`blitzstrahl ${command} --help\`)`)
     }
   }
-  if (!deck) throw new CliError(`which deck? e.g. \`blitzstrahl ${command} talk.md\``)
   if (positionals.length > 2) throw new CliError(`one deck at a time: \`blitzstrahl ${command} ${deck}\``)
+  if (command === 'new') {
+    const r = await newDeck(deck, values.theme !== undefined ? { theme: values.theme } : {})
+    const show = (f: string) => relative(process.cwd(), f)
+    process.stdout.write(`wrote ${show(r.deck)} and ${show(r.data)}\n\nPreview it (saving updates the page):\n  npx blitzstrahl dev ${show(r.deck)}\n`)
+    return 0
+  }
+  if (!deck) throw new CliError(`which deck? e.g. \`blitzstrahl ${command} talk.md\``)
   deckFile(deck)
   if (values.port !== undefined && !(/^\d+$/.test(values.port) && Number(values.port) <= 65535)) {
     throw new CliError(`\`--port\` must be a number from 0 to 65535, not \`${values.port}\``)

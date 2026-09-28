@@ -1,5 +1,5 @@
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -47,5 +47,41 @@ describe('the command line (M6.12)', () => {
     writeFileSync(join(dir, 'broken.md'), '# A\n\nText {colour=red}\n')
     const r = run('build', 'broken.md')
     expect(r.code).toBe(1)
+  })
+})
+
+describe('blitzstrahl new (M8.2)', () => {
+  it('writes a starter deck and its data, which check finds nothing wrong with', () => {
+    const r = run('new', 'intro/start.md', '--theme', 'broadsheet')
+    expect(r.code, r.err).toBe(0)
+    expect(r.out).toContain('npx blitzstrahl dev intro/start.md')
+    const deck = readFileSync(join(dir, 'intro/start.md'), 'utf8')
+    expect(deck).toContain('theme: broadsheet\n')
+    expect(deck).toContain('data: ./start-data.csv\n')
+    expect(existsSync(join(dir, 'intro/start-data.csv'))).toBe(true)
+    const c = run('check', 'intro/start.md', '--offline')
+    expect(c.code, c.err).toBe(0)
+    expect(c.out).toContain('no problems found')
+  })
+
+  it('defaults to talk.md, and quotes a theme YAML would misread', () => {
+    const sub = mkdtempSync(join(tmpdir(), 'blitz-new-'))
+    const r = spawnSync(process.execPath, [BIN, 'new', '--theme', '@acme/theme'], { cwd: sub, encoding: 'utf8' })
+    expect(r.status, r.stderr).toBe(0)
+    expect(readFileSync(join(sub, 'talk.md'), 'utf8')).toContain('theme: "@acme/theme"\n')
+    expect(existsSync(join(sub, 'talk-data.csv'))).toBe(true)
+  })
+
+  it('never replaces a file: if the deck or its data is there, it writes neither', () => {
+    writeFileSync(join(dir, 'taken-data.csv'), 'mine\n')
+    const r = run('new', 'taken.md')
+    expect(r.code).toBe(2)
+    expect(r.err).toContain('taken-data.csv is already there; nothing was written')
+    expect(existsSync(join(dir, 'taken.md'))).toBe(false)
+    expect(readFileSync(join(dir, 'taken-data.csv'), 'utf8')).toBe('mine\n')
+    const again = run('new', 'talk.md')
+    expect(again.code).toBe(2)
+    expect(readFileSync(join(dir, 'talk.md'), 'utf8')).toBe('# Hello\n')
+    expect(run('new', 'talk.txt').err).toContain('a deck is a .md file')
   })
 })

@@ -46,6 +46,8 @@ relied on it will notice.
 
 - `blitzstrahl new [talk.md] [--theme]`: a starter deck with a chart and
   its data file. It never replaces a file.
+- `check --format json | github` and `build --format …`: diagnostics as one
+  JSON document, or as GitHub Actions annotations on the pull request.
 - `ThemeFont.unicodeRange`: a theme can split a family into subsets, and
   standalone files carry only the subsets their text uses.
 - `check` says when a theme doesn't ship its text font (info), and warns

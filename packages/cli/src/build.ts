@@ -26,7 +26,7 @@ export interface BuildOptions {
   /** Build even when the deck has errors. */
   force?: boolean
   quiet?: boolean
-  /** Print the deck's diagnostics (default true). `check` reports them itself. */
+  /** Print the deck's diagnostics and overflow (default true). `check` and `--format` report them themselves. */
   report?: boolean
   /** Fail when a slide overflows, or when overflow can't be checked. */
   strict?: boolean
@@ -229,8 +229,10 @@ async function checkOverflow(
     process.stderr.write(`blitzstrahl: --strict checks overflow even though ${SKIP_OVERFLOW_ENV} is set\n`)
   }
   const check = await checkBuiltOverflow(outDir, loaded.deck, loaded.source, built.page)
-  printDiagnostics(check.diagnostics)
-  if (check.skipped) process.stderr.write(`blitzstrahl: overflow not checked: ${check.skipped}\n`)
+  if (options.report !== false) {
+    printDiagnostics(check.diagnostics)
+    if (check.skipped) process.stderr.write(`blitzstrahl: overflow not checked: ${check.skipped}\n`)
+  }
   const failed = !!options.strict && (check.diagnostics.length > 0 || check.skipped !== undefined)
   const out: BuildResult = { ok: !failed, outDir, index, overflow: check.diagnostics, diagnostics: loaded.diagnostics }
   if (check.skipped) out.overflowSkipped = check.skipped

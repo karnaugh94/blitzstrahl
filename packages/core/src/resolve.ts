@@ -20,6 +20,12 @@ import { ANIM_KEYS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLI
 import { fill, strings } from './i18n.js'
 import { parseMarkdown } from './syntax/index.js'
 
+/** A container's `width=`/`height=` as CSS (§5.2): a length or percentage; a bare number is pixels. */
+function cssSize(value: string): string | undefined {
+  const m = /^(\d+(?:\.\d+)?|\.\d+)(px|%|em|rem|vw|vh|cm|mm|in|pt)?$/.exec(value.trim())
+  return m ? `${m[1]}${m[2] ?? 'px'}` : undefined
+}
+
 /** Deck-wide state threaded through every slide. */
 export interface DeckContext {
   diags: Diagnostics
@@ -169,6 +175,7 @@ export function resolveSlide(
       }
 
       const seen = new Set<string>()
+      const sizes: string[] = []
       for (const { key, value, offset } of attrs.pairs) {
         const span = here(offset)
         if (seen.has(key)) diags.warn('attr/repeated-key', `\`${key}\` given twice; the last value wins`, span)
@@ -188,12 +195,23 @@ export function resolveSlide(
           notYet(`\`${key}=\``, RESERVED_KEYS[key]!, diags, span)
         } else if (SLIDE_SHORTHAND_KEYS.has(key)) {
           diags.error('attr/slide-key', `\`${key}\` is a slide setting: put it in slide frontmatter or on the slide's first heading`, span)
+        } else if ((key === 'width' || key === 'height') && node.type === 'blitzContainer') {
+          // On a container, a size (§5.2); `flex: none` so a `.column` keeps it beside `flex: 1` ones.
+          const size = cssSize(value)
+          if (size) sizes.push(`${key}: ${size}`)
+          else diags.error('attr/size', `\`${key}=${value}\` isn't a size: use a length or percentage (\`440px\`, \`40%\`)`, span)
         } else if (PASSTHROUGH_KEYS.has(key) || key.startsWith('data-') || key.startsWith('aria-')) {
           props[key] = value
           if (key === 'style') addPageAssets(cssRefs(value), span)
         } else {
           diags.error('attr/unknown-key', `unknown attribute \`${key}\`; use \`data-${key}\` for custom data`, span)
         }
+      }
+
+      if (sizes.length) {
+        // The author's own `style` comes after, so it still wins.
+        const own = typeof props.style === 'string' ? ` ${props.style}` : ''
+        props.style = `${sizes.join('; ')}; flex: none;${own}`
       }
 
       if (attrs.step) range = resolveStep(attrs.step, pointSpan(at))

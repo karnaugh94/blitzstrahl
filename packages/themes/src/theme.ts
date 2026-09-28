@@ -114,6 +114,25 @@ const baseCss = /* css */ `
 :where(.blitz-slide) a { color: var(--blitz-link); }
 /* Render blocks have no intrinsic size: ECharts, maps and embeds fill the box they're given. */
 .blitz-slide [data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
+
+/*
+ * Utility classes every theme has (docs/themes.md, syntax.md §5.2). Zero
+ * specificity: any theme rule wins, even an element rule. The built-in
+ * themes restate them as .blitz-slide .x, so they beat the theme's own h3 etc.
+ */
+:where(.blitz-slide .columns) { display: flex; gap: 48px; align-items: flex-start; }
+:where(.blitz-slide .columns > *) { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--blitz-gap); }
+:where(.blitz-slide .callout) {
+  padding: 20px 26px; border-radius: var(--blitz-radius);
+  background: color-mix(in srgb, var(--blitz-accent) 8%, var(--blitz-surface));
+  border-left: 4px solid var(--blitz-accent);
+}
+:where(.blitz-slide .muted) { color: var(--blitz-fg-muted); }
+:where(.blitz-slide .accent) { color: var(--blitz-accent); }
+:where(.blitz-slide .small) { font-size: var(--blitz-text-small); }
+:where(.blitz-slide .big) { font-size: 1.6em; }
+:where(.blitz-slide .center) { text-align: center; align-self: center; }
+:where(.blitz-slide table.zebra tbody tr:nth-child(odd)) { background: color-mix(in srgb, var(--blitz-fg) 6%, transparent); }
 `
 
 export function defineTheme(def: ThemeDefinition): Theme {

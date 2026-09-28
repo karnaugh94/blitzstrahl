@@ -139,6 +139,24 @@ Chrome is laid over the slide's content (`position: absolute` in the
 slide), and the content doesn't make room for it: a theme that puts the
 footer inside the padding keeps them apart.
 
+## Utility classes *(1.1)*
+
+Decks can count on these classes in every theme (docs/syntax.md §5.2):
+`.columns` and `.column`, `.callout`, `.muted`, `.accent`, `.small`,
+`.big`, `.center` and `.zebra`. The base styles give each one a plain look
+from the tokens, so a theme that only sets tokens has them all. A theme
+restyles them as it likes.
+
+The base rules have **zero specificity** (`:where(…)`), so any rule of the
+theme's wins, including one that isn't about the class at all: a theme's
+`.blitz-slide h3 { color: … }` beats the base `.muted` on an `h3`. Write
+`.blitz-slide .muted` (as the built-in themes do) to have the class win
+over your element rules.
+
+A theme written for 1.0 that styles `.callout` itself keeps its look for
+every property it sets; for a property it leaves alone (a `background`,
+say), it now gets the base one.
+
 ## Fonts
 
 The built-in themes ship every font they name, so a deck breaks its lines

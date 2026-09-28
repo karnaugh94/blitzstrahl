@@ -120,6 +120,15 @@ relied on it will notice.
   slide announcements, footnote labels, embed notices) follows the deck's
   `lang`; the overview, go-to box, key help and presenter view follow the
   browser's language. A bare standalone file grows by 21 kB for them.
+- Utility classes every theme has: `.columns`, `.column`, `.callout`,
+  `.muted`, `.accent`, `.small`, `.big`, `.center` and `.zebra`. A theme
+  that only sets tokens gets a plain look for each from the base styles,
+  at zero specificity, so any rule of the theme's wins. A 1.0 theme that
+  styles `.callout` or `.columns` itself gets the base rules' other
+  properties too (a callout's background, say).
+- Pandoc's columns: `::: {.column width=40%}` inside `:::: columns` gets
+  that width. `width=` and `height=` on any container set its size (1.0
+  wrote a `<div width>` that did nothing).
 
 ## [1.0.1] — 2026-09-27
 

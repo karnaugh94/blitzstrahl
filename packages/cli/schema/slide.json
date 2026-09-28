@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "blitzstrahl slide frontmatter",
+  "description": "See https://github.com/karnaugh94/blitzstrahl/blob/main/docs/syntax.md#32-slide",
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "Overrides the slide's id, used in the URL (#results)",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "layout": {
+      "description": "Named layout. Default: default, and title for the first slide",
+      "enum": [
+        "title",
+        "section",
+        "default",
+        "two-col",
+        "three-col",
+        "quote",
+        "stat-grid",
+        "full-bleed",
+        "image-left",
+        "image-right",
+        "code",
+        "end"
+      ]
+    },
+    "transition": {
+      "description": "The transition that enters this slide",
+      "enum": [
+        "none",
+        "fade",
+        "zoom",
+        "auto-animate",
+        "push-left",
+        "cover-left",
+        "uncover-left",
+        "push-right",
+        "cover-right",
+        "uncover-right",
+        "push-up",
+        "cover-up",
+        "uncover-up",
+        "push-down",
+        "cover-down",
+        "uncover-down"
+      ]
+    },
+    "transition-dur": {
+      "description": "Duration of that transition, in milliseconds",
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*\\d+(\\.\\d+)?(ms)?$"
+        }
+      ]
+    },
+    "background": {
+      "description": "An image path or URL (covers the canvas), or any CSS background",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "class": {
+      "description": "Space-separated classes on the slide's root",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "style": {
+      "description": "Inline CSS on the slide's root",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    }
+  }
+}

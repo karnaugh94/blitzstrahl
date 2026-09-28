@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "blitzstrahl embed block",
+  "description": "See https://github.com/karnaugh94/blitzstrahl/blob/main/docs/renderers/embed.md",
+  "anyOf": [
+    {
+      "type": "string",
+      "pattern": "^https?://[^/\\s]+"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "src": {
+          "description": "The page to show: an http:// or https:// URL",
+          "type": "string",
+          "pattern": "^https?://[^/\\s]+"
+        },
+        "fallback": {
+          "description": "An image shown instead when there's no network: a ./path or a URL",
+          "type": "string"
+        },
+        "zoom": {
+          "description": "Scale the page, from 0.1 to 4: 0.75 shows it at 75 %",
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 4
+        },
+        "title": {
+          "description": "The frame's accessible name. Default: the site's host",
+          "type": "string"
+        }
+      },
+      "additionalProperties": false,
+      "required": [
+        "src"
+      ]
+    }
+  ]
+}

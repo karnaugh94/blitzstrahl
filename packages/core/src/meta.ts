@@ -4,10 +4,11 @@
 import type { DeckMeta, SourceSpan, TransitionName, TransitionSpec } from './ir.js'
 import type { Diagnostics } from './diagnostics.js'
 import { keySpan, type Frontmatter } from './split.js'
-import { THOUSANDS, type Thousands } from './numbers.js'
+import type { Thousands } from './numbers.js'
+import { DECK_SCHEMA, keyProblem, matches, MS } from './schema.js'
 import { LAYOUTS, SLIDE_KEYS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
 
-export const DECK_KEYS = new Set(['title', 'author', 'date', 'lang', 'thousands', 'theme', 'canvas', 'transition', 'transition-dur', 'plugins'])
+export const DECK_KEYS: ReadonlySet<string> = new Set(Object.keys(DECK_SCHEMA))
 export { SLIDE_KEYS }
 
 export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics, pluginKeys: readonly string[] = []): Omit<DeckMeta, 'title'> & { title?: string } {
@@ -35,16 +36,17 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         break
       }
       case 'thousands': {
-        if (THOUSANDS.includes(value as Thousands)) meta.thousands = value as Thousands
-        else diags.error('frontmatter/thousands', '`thousands` must be ",", "." or " " (quoted), the mark that groups thousands in the deck\'s data', span)
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/thousands', problem, span)
+        else meta.thousands = value as Thousands
         break
       }
       case 'canvas': {
-        const m = /^(\d+)\s*x\s*(\d+)$/.exec(String(value))
-        if (!m || Number(m[1]) === 0 || Number(m[2]) === 0) {
-          diags.error('frontmatter/canvas', '`canvas` must look like `1280x720`', span)
-        } else {
-          meta.canvas = { width: Number(m[1]), height: Number(m[2]) }
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/canvas', problem, span)
+        else {
+          const [w, h] = String(value).split('x').map(Number)
+          meta.canvas = { width: w!, height: h! }
         }
         break
       }
@@ -59,12 +61,9 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         break
       }
       case 'plugins': {
-        const list = typeof value === 'string' ? [value] : value
-        if (!Array.isArray(list) || !list.every((p) => typeof p === 'string' && p.trim())) {
-          diags.error('frontmatter/plugins', '`plugins` must be a list of module names or paths', span)
-        } else {
-          meta.plugins = list.map((p: string) => p.trim())
-        }
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/plugins', problem, span)
+        else meta.plugins = (typeof value === 'string' ? [value] : (value as string[])).map((p) => p.trim())
         break
       }
       default:
@@ -88,7 +87,7 @@ export function transitionName(value: unknown, diags: Diagnostics, span: SourceS
 
 export function milliseconds(value: unknown, key: string, diags: Diagnostics, span: SourceSpan | undefined): number | undefined {
   const n = typeof value === 'number' ? value : Number(String(value).replace(/ms$/, ''))
-  if (!Number.isFinite(n) || n < 0) {
+  if (!matches(MS.schema, value)) {
     diags.error('attr/bad-value', `\`${key}\` must be a duration in milliseconds`, span)
     return undefined
   }

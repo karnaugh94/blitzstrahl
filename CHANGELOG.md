@@ -14,6 +14,14 @@ relied on it will notice.
 
 ### Fixed (visible)
 
+- A chart's `x`, `y`, `series`, `size`, `stack`, `title` and `echarts` are
+  checked like its other keys: `x: [a, b]` or `echarts: 5` is an error
+  that stops `build`, where 1.0 drew a broken chart. The same checks now
+  write the JSON Schemas, so the two can't disagree.
+- `transition-dur` takes a number of milliseconds (`600`, `600ms`) and
+  nothing else: 1.0 also took `1e3`, `0x10` and an empty value.
+- Slide `id`, `background`, `class` and `style` warn when they aren't text.
+  1.0 turned a list or mapping into `[object Object]`.
 - Value labels beside bars and points are in the theme's text colour. 1.0
   drew them in ECharts' dark grey with a white halo, which read as
   outlined text on a dark theme.
@@ -48,6 +56,8 @@ relied on it will notice.
   its data file. It never replaces a file.
 - `check --format json | github` and `build --format …`: diagnostics as one
   JSON document, or as GitHub Actions annotations on the pull request.
+- JSON Schemas for deck and slide frontmatter and for `chart`, `map` and
+  `embed` blocks, as `blitzstrahl/schema/*.json`, for editors.
 - `ThemeFont.unicodeRange`: a theme can split a family into subsets, and
   standalone files carry only the subsets their text uses.
 - `check` says when a theme doesn't ship its text font (info), and warns

@@ -1,0 +1,111 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "blitzstrahl deck frontmatter",
+  "description": "See https://github.com/karnaugh94/blitzstrahl/blob/main/docs/syntax.md#31-deck",
+  "type": "object",
+  "properties": {
+    "title": {
+      "description": "The document's title. Default: the first slide's title",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "author": {
+      "description": "The page's author (<meta name=\"author\">)",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "date": {
+      "description": "Free-form",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "lang": {
+      "description": "BCP 47 language tag (default en): the audience's text, and how numbers are written and read",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "thousands": {
+      "description": "How numbers are written in the data, when not plainly: \".\" reads 1.200,5 as 1200.5",
+      "enum": [
+        ",",
+        ".",
+        " "
+      ]
+    },
+    "theme": {
+      "description": "aurora (default), broadsheet, a package (acme finds blitzstrahl-theme-acme), or a ./path",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "canvas": {
+      "description": "Logical canvas size in CSS pixels, e.g. 1280x720 (the default)",
+      "type": "string",
+      "pattern": "^0*[1-9]\\d*\\s*x\\s*0*[1-9]\\d*$"
+    },
+    "transition": {
+      "description": "Default slide transition (default fade)",
+      "enum": [
+        "none",
+        "fade",
+        "zoom",
+        "auto-animate",
+        "push-left",
+        "cover-left",
+        "uncover-left",
+        "push-right",
+        "cover-right",
+        "uncover-right",
+        "push-up",
+        "cover-up",
+        "uncover-up",
+        "push-down",
+        "cover-down",
+        "uncover-down"
+      ]
+    },
+    "transition-dur": {
+      "description": "Default transition duration, in milliseconds",
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*\\d+(\\.\\d+)?(ms)?$"
+        }
+      ]
+    },
+    "plugins": {
+      "description": "Plugin packages or ./paths, loaded in order",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        }
+      ]
+    }
+  }
+}

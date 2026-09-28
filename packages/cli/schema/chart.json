@@ -1,0 +1,421 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "blitzstrahl chart block",
+  "description": "See https://github.com/karnaugh94/blitzstrahl/blob/main/docs/renderers/chart.md",
+  "type": "object",
+  "properties": {
+    "type": {
+      "description": "Chart type",
+      "enum": [
+        "bar",
+        "line",
+        "pie",
+        "scatter"
+      ]
+    },
+    "data": {
+      "description": "./file.csv, ./file.tsv or ./file.json next to the deck, or rows written inline",
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        }
+      ]
+    },
+    "x": {
+      "description": "Category axis; the slice names of a pie; the x axis of a scatter. Default: the first column",
+      "type": [
+        "string",
+        "number"
+      ]
+    },
+    "y": {
+      "description": "One series per column. Default: every other numeric column. A pie takes one",
+      "anyOf": [
+        {
+          "type": [
+            "string",
+            "number"
+          ]
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": [
+              "string",
+              "number"
+            ]
+          }
+        }
+      ]
+    },
+    "series": {
+      "description": "Long data: one series per distinct value of this column",
+      "type": [
+        "string",
+        "number"
+      ]
+    },
+    "stack": {
+      "description": "Bar and line: true stacks the series; a column name splits by it and stacks",
+      "type": [
+        "boolean",
+        "string",
+        "number"
+      ]
+    },
+    "horizontal": {
+      "description": "Bar: bars run left to right",
+      "type": "boolean"
+    },
+    "smooth": {
+      "description": "Line: curved lines",
+      "type": "boolean"
+    },
+    "area": {
+      "description": "Line: fill under lines",
+      "type": "boolean"
+    },
+    "labels": {
+      "description": "Value labels on bars and points; names and percentages on slices (pie: default true)",
+      "type": "boolean"
+    },
+    "legend": {
+      "description": "Show the legend (default: when there is more than one series)",
+      "type": "boolean"
+    },
+    "title": {
+      "description": "Chart title",
+      "type": [
+        "string",
+        "number"
+      ]
+    },
+    "donut": {
+      "description": "Pie: a ring instead of a disc",
+      "type": "boolean"
+    },
+    "size": {
+      "description": "Scatter: sizes each point by this numeric column (a bubble chart)",
+      "type": [
+        "string",
+        "number"
+      ]
+    },
+    "echarts": {
+      "description": "An ECharts option deep-merged over the generated one",
+      "type": "object"
+    },
+    "thousands": {
+      "description": "How this chart's data groups thousands, when not plainly. Default: the deck's",
+      "enum": [
+        ",",
+        ".",
+        " "
+      ]
+    },
+    "delimiter": {
+      "description": "What separates a CSV's cells, when the header doesn't make it clear",
+      "enum": [
+        ",",
+        ";",
+        "\t"
+      ]
+    },
+    "time": {
+      "description": "Bar and line: x holds ISO dates, placed to scale on a time axis",
+      "type": "boolean"
+    },
+    "aggregate": {
+      "description": "Bar, line and pie: how rows with the same x become one value (default sum)",
+      "enum": [
+        "sum",
+        "mean",
+        "min",
+        "max",
+        "count"
+      ]
+    },
+    "sort": {
+      "description": "Bar and pie: order the categories by value",
+      "enum": [
+        "asc",
+        "desc"
+      ]
+    },
+    "format": {
+      "description": "How numbers are shown: \"0\", \"0.0\", \"0%\", \"0.0%\" or compact",
+      "anyOf": [
+        {
+          "const": "compact"
+        },
+        {
+          "type": "string",
+          "pattern": "^0(?:\\.(0+))?(%?)$"
+        }
+      ]
+    },
+    "prefix": {
+      "description": "Written before every number shown, e.g. \"€\"",
+      "type": "string"
+    },
+    "suffix": {
+      "description": "Written after every number shown, e.g. \" t\"",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "required": [
+    "type",
+    "data"
+  ],
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "pie",
+              "scatter"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "stack"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "line",
+              "pie",
+              "scatter"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "horizontal"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "bar",
+              "pie",
+              "scatter"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "smooth"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "bar",
+              "pie",
+              "scatter"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "area"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "bar",
+              "line",
+              "scatter"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "donut"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "bar",
+              "line",
+              "pie"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "size"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "pie"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "series"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "pie",
+              "scatter"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "time"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "scatter"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "aggregate"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "type": {
+            "enum": [
+              "line",
+              "scatter"
+            ]
+          }
+        },
+        "required": [
+          "type"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "sort"
+          ]
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "time": {
+            "const": true
+          }
+        },
+        "required": [
+          "time"
+        ]
+      },
+      "then": {
+        "not": {
+          "required": [
+            "sort"
+          ]
+        }
+      }
+    }
+  ]
+}

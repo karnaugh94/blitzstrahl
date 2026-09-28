@@ -25,7 +25,7 @@ mkdirSync(stage, { recursive: true })
 
 /** Copy a package's shippable files, and its sources (EUPL: the source travels with the work). */
 function copyPackage(from, to, extra = []) {
-  for (const f of ['dist', 'src', 'client', 'fonts', 'starter', ...extra]) {
+  for (const f of ['dist', 'src', 'client', 'fonts', 'starter', 'schema', ...extra]) {
     if (existsSync(join(from, f))) cpSync(join(from, f), join(to, f), { recursive: true, filter: (p) => !p.endsWith('.tsbuildinfo') })
   }
   cpSync(join(root, 'LICENSE'), join(to, 'LICENSE'))
@@ -81,9 +81,11 @@ const pkg = {
     './plugin': pub('plugin'),
     './theme': pub('theme'),
     './renderer': pub('renderer'),
+    // JSON Schemas for editors (syntax.md §3.5).
+    './schema/*': './schema/*',
     './package.json': './package.json',
   },
-  files: ['dist', 'src', 'client', 'starter', 'docs', 'README.md', 'CHANGELOG.md', 'LICENSE', 'node_modules/@blitzstrahl'],
+  files: ['dist', 'src', 'client', 'starter', 'schema', 'docs', 'README.md', 'CHANGELOG.md', 'LICENSE', 'node_modules/@blitzstrahl'],
   dependencies: { ...Object.fromEntries(Object.entries(deps).sort()), ...Object.fromEntries(bundled.map((n) => [n, version])) },
   bundleDependencies: bundled,
 }

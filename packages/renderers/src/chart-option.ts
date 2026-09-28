@@ -4,7 +4,8 @@
  * validate specs without a browser.
  */
 import { THOUSANDS, type Thousands } from '@blitzstrahl/core/numbers'
-import { AGGREGATES, aggregate, DELIMITERS, distinct, pivot, rowsFrom, type Aggregate, type Row } from './data.js'
+import { keyProblem, type KeyRule, type KeyTable, type Schema } from '@blitzstrahl/core/schema'
+import { AGGREGATES, aggregate, DELIMITERS, distinct, pivot, type Aggregate, type Row } from './data.js'
 
 export type ChartType = 'bar' | 'line' | 'pie' | 'scatter'
 
@@ -46,9 +47,8 @@ export interface ChartSpec {
 }
 
 const TYPES: readonly ChartType[] = ['bar', 'line', 'pie', 'scatter']
-const KEYS = new Set(['type', 'data', 'x', 'y', 'series', 'stack', 'horizontal', 'smooth', 'area', 'labels', 'legend', 'title', 'donut', 'size', 'echarts', 'thousands', 'delimiter', 'time', 'aggregate', 'sort', 'format', 'prefix', 'suffix'])
 /** Keys that only mean something for some chart types. */
-const ONLY: Record<string, readonly ChartType[]> = {
+export const CHART_ONLY: Readonly<Record<string, readonly ChartType[]>> = {
   stack: ['bar', 'line'],
   horizontal: ['bar'],
   smooth: ['line'],
@@ -64,35 +64,77 @@ const ONLY: Record<string, readonly ChartType[]> = {
 const PATTERN = /^0(?:\.(0+))?(%?)$/
 
 const quoted = (vs: readonly string[]) => vs.map((v) => JSON.stringify(v)).join(', ')
+const BOOL: KeyRule = { schema: { type: 'boolean' }, message: 'must be one of true, false' }
+/** A column of the data. YAML reads `2024` as a number, and so does a CSV header's lookup. */
+const COLUMN: Schema = { type: ['string', 'number'] }
+const oneOf = (values: readonly string[], shown = values.join(', ')): KeyRule => ({ schema: { enum: values }, message: `must be one of ${shown}` })
+
+/** Every key a chart takes (docs/renderers/chart.md), and what each may hold (schema.ts). */
+export const CHART_SCHEMA: KeyTable = {
+  type: { schema: { enum: TYPES }, message: `must be one of ${TYPES.join(', ')}` },
+  data: {
+    schema: { anyOf: [{ type: 'string' }, { type: 'array', items: { type: 'object' } }] },
+    message: 'must be a ./file.csv path or a list of rows, e.g. [{ quarter: Q1, revenue: 1.2 }]',
+  },
+  x: { schema: COLUMN, message: 'must be a column name' },
+  y: { schema: { anyOf: [COLUMN, { type: 'array', items: COLUMN }] }, message: 'must be a column name or a list of them' },
+  series: { schema: COLUMN, message: 'must be a column name' },
+  stack: { schema: { type: ['boolean', 'string', 'number'] }, message: 'must be true, or a column name' },
+  horizontal: BOOL,
+  smooth: BOOL,
+  area: BOOL,
+  labels: BOOL,
+  legend: BOOL,
+  title: { schema: { type: ['string', 'number'] }, message: 'must be text' },
+  donut: BOOL,
+  size: { schema: COLUMN, message: 'must be a column name' },
+  echarts: { schema: { type: 'object' }, message: 'must be a mapping: an ECharts option' },
+  thousands: oneOf(THOUSANDS, quoted(THOUSANDS)),
+  delimiter: oneOf(DELIMITERS, '",", ";", "\\t"'),
+  time: BOOL,
+  aggregate: oneOf(AGGREGATES),
+  sort: oneOf(['asc', 'desc']),
+  format: {
+    schema: { anyOf: [{ const: 'compact' }, { type: 'string', pattern: PATTERN.source }] },
+    message: 'must be "0", "0.0", "0.00" (decimals), "0%", "0.0%" (a fraction as a percentage) or compact',
+  },
+  prefix: { schema: { type: 'string' }, message: 'must be a string, e.g. "€"' },
+  suffix: { schema: { type: 'string' }, message: 'must be a string, e.g. "€"' },
+}
+
+/** What `validate` checks across keys, as JSON Schema: the generated schema's top level. */
+export const CHART_RULES: Schema = {
+  required: ['type', 'data'],
+  allOf: [
+    // `CHART_ONLY`: a key another type takes is an error.
+    ...Object.entries(CHART_ONLY).map(([k, only]) => ({
+      if: { properties: { type: { enum: TYPES.filter((t) => !only.includes(t)) } }, required: ['type'] },
+      then: { not: { required: [k] } },
+    })),
+    // A time axis is in date order.
+    { if: { properties: { time: { const: true } }, required: ['time'] }, then: { not: { required: ['sort'] } } },
+  ],
+}
 
 /** Check a spec's shape (not its data). Throws a message fit for the author. */
 export function validate(spec: unknown): ChartSpec {
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('the block must be a YAML mapping')
   const s = spec as Record<string, unknown>
-  for (const k of Object.keys(s)) if (!KEYS.has(k)) throw new Error(`unknown key \`${k}\``)
+  for (const k of Object.keys(s)) if (!Object.hasOwn(CHART_SCHEMA, k)) throw new Error(`unknown key \`${k}\``)
   const types = TYPES.join(', ')
   if (!TYPES.includes(s.type as ChartType)) {
     throw new Error(s.type === undefined ? `\`type\` is required: ${types}` : `unsupported type \`${String(s.type)}\`: use ${types}`)
   }
   const type = s.type as ChartType
-  for (const [k, only] of Object.entries(ONLY)) {
+  for (const [k, only] of Object.entries(CHART_ONLY)) {
     if (s[k] !== undefined && !only.includes(type)) throw new Error(`\`${k}\` applies to ${only.slice(0, -1).join(', ')}${only.length > 1 ? ' and ' : ''}${only.at(-1)} charts, not ${type}`)
   }
-  const oneOf = (k: string, values: readonly unknown[], shown = values.join(', ')) => {
-    if (s[k] !== undefined && !values.includes(s[k])) throw new Error(`\`${k}\` must be one of ${shown}`)
-  }
-  oneOf('thousands', THOUSANDS, quoted(THOUSANDS))
-  oneOf('delimiter', DELIMITERS, '",", ";", "\\t"')
-  oneOf('aggregate', AGGREGATES)
-  oneOf('sort', ['asc', 'desc'])
-  for (const k of ['time', 'horizontal', 'smooth', 'area', 'labels', 'legend', 'donut']) oneOf(k, [true, false], 'true, false')
-  for (const k of ['prefix', 'suffix']) if (s[k] !== undefined && typeof s[k] !== 'string') throw new Error(`\`${k}\` must be a string, e.g. "€"`)
-  if (s.format !== undefined && !(s.format === 'compact' || (typeof s.format === 'string' && PATTERN.test(s.format)))) {
-    throw new Error('`format` must be "0", "0.0", "0.00" (decimals), "0%", "0.0%" (a fraction as a percentage) or compact')
+  for (const [k, v] of Object.entries(s)) {
+    const problem = keyProblem(CHART_SCHEMA, k, v)
+    if (problem) throw new Error(problem)
   }
   if (s.time && s.sort) throw new Error('a time axis is in date order: drop `sort`, or `time`')
   if (s.data === undefined) throw new Error('`data` is required: a ./file.csv path or a list of rows')
-  if (typeof s.data !== 'string') rowsFrom(s.data)
   return s as unknown as ChartSpec
 }
 

@@ -32,6 +32,8 @@ relied on it will notice.
 
 ### Changed
 
+- `check` loads the deck once: its overflow build reuses it (1.0 read,
+  parsed and highlighted the deck twice).
 - **Numbers in data are written plainly, in every language**: a dot for
   decimals and nothing between the thousands (`1200`, `3.5`; `2.000` is
   2). A data cell written any other way (`1,200`, `3,5`, `1.234,5`) stops

@@ -37,6 +37,8 @@ export interface BuildOptions {
    * on, unless `BLITZSTRAHL_SKIP_OVERFLOW_CHECK` is set. `strict` always checks.
    */
   overflowCheck?: boolean
+  /** The deck, already loaded from `deckPath` (`check` has it): saves loading it again. */
+  loaded?: LoadedDeck
 }
 
 /** Env var that turns the build-time overflow check off. */
@@ -60,7 +62,7 @@ export interface BuildResult {
 }
 
 export async function build(deckPath: string, options: BuildOptions = {}): Promise<BuildResult> {
-  const loaded = await loadDeck(deckPath, relative(process.cwd(), resolve(deckPath)) || deckPath)
+  const loaded = options.loaded ?? (await loadDeck(deckPath, relative(process.cwd(), resolve(deckPath)) || deckPath))
   const { theme } = loaded.extras
   const renderers = usedRenderers(loaded.deck, loaded.extras.renderers)
   if (options.standalone) loaded.diagnostics.push(...networkNotes(loaded.deck))

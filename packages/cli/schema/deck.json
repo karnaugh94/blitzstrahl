@@ -96,6 +96,123 @@
       "type": "string",
       "pattern": "^(\\./)?(?!_blitz(/|$))[^/.@][^/]*(/[^/.][^/]*)*/?$"
     },
+    "background": {
+      "description": "Every slide's background: an image or a CSS background, or one per layout (title:, section:, default: for the rest). A slide's own wins",
+      "anyOf": [
+        {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "title",
+              "section",
+              "default",
+              "two-col",
+              "three-col",
+              "quote",
+              "stat-grid",
+              "full-bleed",
+              "image-left",
+              "image-right",
+              "code",
+              "end"
+            ]
+          },
+          "properties": {
+            "title": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "section": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "default": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "two-col": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "three-col": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "quote": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "stat-grid": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "full-bleed": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "image-left": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "image-right": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "code": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "end": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            }
+          }
+        }
+      ]
+    },
     "plugins": {
       "description": "Plugin packages or ./paths, loaded in order",
       "anyOf": [

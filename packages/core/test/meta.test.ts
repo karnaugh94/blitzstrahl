@@ -26,3 +26,48 @@ describe('deck keys', () => {
     expect(RESERVED_DECK_KEYS.has('footer')).toBe(true)
   })
 })
+
+describe('deck `background` (syntax.md §3.6)', () => {
+  const slides = (fm: string, rest: string) => parseDeck(`---\n${fm}\n---\n\n# Title\n\n---\n\n# Content\n${rest}`, { file: 'deck.md' })
+
+  it('one value is every slide\'s, unless the slide sets its own', () => {
+    const { deck: d, diagnostics } = slides('background: ./bg.png', '\n---\nbackground: "#123"\n---\n\n# Own\n')
+    expect(diagnostics).toEqual([])
+    expect(d.slides.map((s) => s.attrs.background)).toEqual(['./bg.png', './bg.png', '#123'])
+    // The image is one asset, however many slides show it.
+    expect(d.assets.filter((a) => a.path === 'bg.png')).toHaveLength(1)
+  })
+
+  it('one per layout, `default` for the layouts not listed', () => {
+    const { deck: d, diagnostics } = slides(
+      'background:\n  title: ./t.png\n  default: ./d.png',
+      '\n---\nlayout: section\n---\n\n# Part two\n\n---\nbackground: none\n---\n\n# Bare\n',
+    )
+    expect(diagnostics).toEqual([])
+    expect(d.slides.map((s) => s.attrs.background)).toEqual(['./t.png', './d.png', './d.png', 'none'])
+    expect(d.assets.map((a) => a.path).sort()).toEqual(['d.png', 't.png'])
+  })
+
+  it('a layout left out, with no `default`, keeps the theme\'s', () => {
+    const { deck: d } = slides('background:\n  title: ./t.png', '')
+    expect(d.slides.map((s) => s.attrs.background)).toEqual(['./t.png', undefined])
+  })
+
+  it('an unknown layout is a warning at the key, and the rest still apply', () => {
+    const { deck: d, diagnostics } = slides('background:\n  titel: ./t.png\n  default: "#eee"', '')
+    expect(diagnostics.map((x) => [x.severity, x.code, x.span.start.line])).toEqual([['warning', 'layout/unknown', 2]])
+    expect(diagnostics[0]!.message).toContain('`titel`')
+    expect(d.slides.map((s) => s.attrs.background)).toEqual(['#eee', '#eee'])
+  })
+
+  it('a list is a warning, and nothing applies', () => {
+    const { deck: d, diagnostics } = slides('background: [a, b]', '')
+    expect(diagnostics.map((x) => x.code)).toEqual(['frontmatter/type'])
+    expect(d.meta.background).toBeUndefined()
+    expect(d.slides[1]!.attrs.background).toBeUndefined()
+  })
+
+  it('is no longer reserved', () => {
+    expect(RESERVED_DECK_KEYS.has('background')).toBe(false)
+  })
+})

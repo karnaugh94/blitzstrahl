@@ -231,9 +231,9 @@ in the page. Don't put secrets in frontmatter. Only deck frontmatter can be
 extended in 1.0; slide frontmatter can't.
 
 **Reserved names.** blitzstrahl 1.1 gives meaning to these deck keys, so a
-plugin can't register them: `css`, `background`, `footer`,
-`slide-numbers`, `logo` and `duration`. `public` is built in from 1.1, and
-a built-in key can't be registered either.
+plugin can't register them: `css`, `footer`, `slide-numbers`, `logo` and
+`duration`. `public` and `background` are built in from 1.1, and a
+built-in key can't be registered either.
 
 ---
 
@@ -257,7 +257,7 @@ export default defineTheme({
 |---|---|
 | `name` | Required |
 | `tokens` | Become `:root { --blitz-<name>: value }`. The **token names are the contract** (§3.1). A missing required token is an error, and an unknown one is a warning. |
-| `css` | Styles for slide content. Scope every rule to `.blitz-slide` or `[data-layout]`: bare `h1` or `table` would also style the overlays and the presenter view. |
+| `css` | Styles for slide content. Scope every rule to `.blitz-slide` or `[data-layout]`: bare `h1` or `table` would also style the overlays and the presenter view. Relative `url()`s are relative to the theme's module file, and the files they name are copied and inlined like fonts (a per-layout background, say). *(`url()`: 1.1)* |
 | `fonts` | `@font-face`s: `{ family, src, weight?, style?, unicodeRange? }`. `src` is a file URL or a path relative to the theme module. Files are copied into static builds. `unicodeRange` (CSS syntax, `U+0000-00FF, U+0131`) says which characters a file covers: split a family into subsets, one file each, and a standalone file inlines only the subsets its text uses (§3.2). *(`unicodeRange`: 1.1)* |
 
 Before the theme's `css`, every slide already gets `color: var(--blitz-fg)`,

@@ -33,6 +33,8 @@ export interface Schema {
   /** Objects: the schema of each named key, and which keys must be there. */
   properties?: Readonly<Record<string, Schema>>
   required?: readonly string[]
+  /** Objects: what every key's name must match. */
+  propertyNames?: Schema
   /** Objects: a key that needs others beside it. */
   dependentRequired?: Readonly<Record<string, readonly string[]>>
   description?: string
@@ -78,6 +80,7 @@ export function matches(schema: Schema, value: unknown): boolean {
   if (value && typeof value === 'object' && !Array.isArray(value)) {
     const o = value as Record<string, unknown>
     if (schema.required && !schema.required.every((k) => Object.hasOwn(o, k))) return false
+    if (schema.propertyNames && !Object.keys(o).every((k) => matches(schema.propertyNames!, k))) return false
     if (schema.properties && !Object.entries(schema.properties).every(([k, s]) => !Object.hasOwn(o, k) || matches(s, o[k]))) return false
     if (schema.dependentRequired && !Object.entries(schema.dependentRequired).every(([k, need]) => !Object.hasOwn(o, k) || need.every((n) => Object.hasOwn(o, n)))) return false
   }
@@ -118,6 +121,11 @@ export const DECK_SCHEMA: KeyTable = {
   public: {
     schema: { type: 'string', pattern: '^(\\./)?(?!_blitz(/|$))[^/.@][^/]*(/[^/.][^/]*)*/?$' },
     message: "must be a ./folder inside the deck's folder, not the folder itself, with no part of its path starting with `.`, and not named `_blitz` or starting with `@`",
+  },
+  // One background for every slide, or one per layout (syntax.md §3.6).
+  background: {
+    schema: { anyOf: [SCALAR, { type: 'object', propertyNames: { enum: Object.keys(LAYOUTS) }, properties: Object.fromEntries(Object.keys(LAYOUTS).map((l) => [l, SCALAR])) }] },
+    message: 'should be a string (an image, or a CSS background), or layout names each with one',
   },
   plugins: {
     schema: { anyOf: [{ type: 'string', pattern: '\\S' }, { type: 'array', items: { type: 'string', pattern: '\\S' } }] },

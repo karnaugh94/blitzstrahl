@@ -86,7 +86,9 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
     const style: string[] = []
     const bg = slide.attrs.background
     if (bg !== undefined) {
-      if (byRef.has(bg)) style.push(`background-image: ${background(byRef.get(bg)!)}`)
+      // `none` clears the deck's and the theme's images, and keeps the `bg` colour.
+      if (bg.trim() === 'none') style.push('background-image: none')
+      else if (byRef.has(bg)) style.push(`background-image: ${background(byRef.get(bg)!)}`)
       else if (isImageBackground(bg)) style.push(`background-image: url("${bg}")`)
       else style.push(`background: ${css(bg)}`)
     }

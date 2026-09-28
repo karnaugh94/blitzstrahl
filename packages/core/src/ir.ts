@@ -49,6 +49,12 @@ export interface DeckMeta {
   transition: TransitionSpec
   /** `public`: a folder served and copied as it is, deck-relative and normalised (`demos`) (syntax.md §3.5, 1.1). */
   public?: string
+  /**
+   * `background`: every slide's, or one per layout name (`default` for the
+   * rest), as written (syntax.md §3.6, 1.1). Already applied to each slide's
+   * `attrs.background` where the slide sets none.
+   */
+  background?: string | Record<string, string>
   /** Plugin module specifiers, as written (docs/plugins.md §1). */
   plugins: string[]
   /** Frontmatter keys that aren't built in, including those plugins register. */

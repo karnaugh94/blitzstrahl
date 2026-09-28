@@ -10,7 +10,7 @@ import { createServer, type Plugin, type ViteDevServer } from 'vite'
 import { toPayload, type Diagnostic } from '@blitzstrahl/core'
 import launchEditor from 'launch-editor'
 import type { Overflow } from '@blitzstrahl/runtime/overflow-report'
-import { fontCss } from './extend.js'
+import { fontCss, themeStylesheet } from './extend.js'
 import { renderNotes, renderPage, renderStage } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
 import { overflowDiagnostics } from './overflow.js'
@@ -86,7 +86,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
           const page = renderPage({
             deck: loaded.deck,
             inline: loaded.inline,
-            theme: loaded.extras.theme,
+            theme: { ...loaded.extras.theme, stylesheet: await themeStylesheet(loaded.extras, fsUrl) },
             assetUrl,
             entry: { src: fsUrl(ENTRY) },
             diagnostics: loaded.diagnostics,

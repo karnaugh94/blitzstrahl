@@ -8,7 +8,7 @@ import { existsSync } from 'node:fs'
 import { dirname, isAbsolute, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolve as resolveModule } from 'import-meta-resolve'
-import { DECK_KEYS, EFFECTS, RENDERERS, RESERVED_DECK_KEYS, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
+import { DECK_KEYS, EFFECTS, RENDERERS, RESERVED_DECK_KEYS, cssRefs, isLocalRef, rewriteCss, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
 import { BUILTIN_RENDERERS } from '@blitzstrahl/renderers'
 import { defineTheme, themes, tokenProblems, type Theme } from '@blitzstrahl/themes'
 import type { CheckCtx, EffectDef, KeyDef } from './plugin.js'
@@ -34,6 +34,12 @@ export interface ThemeFontFile {
 export interface Extras {
   theme: Theme
   fonts: ThemeFontFile[]
+  /**
+   * The local files the theme's CSS names in `url()`s (per-layout
+   * backgrounds, say), by the URL as written: copied, served or inlined
+   * like fonts (docs/themes.md, *Backgrounds by layout*).
+   */
+  themeFiles: Record<string, string>
   renderers: Record<string, PluginRenderer>
   effects: Record<string, EffectDef & { plugin: string }>
   keys: Record<string, KeyDef & { plugin: string }>
@@ -61,7 +67,7 @@ export function toExtensions(x: Extras): Extensions {
 
 /** A deck with no plugins and a built-in theme. */
 export function builtinExtras(theme: Theme = themes.aurora!): Extras {
-  return { theme, fonts: [], renderers: {}, effects: {}, keys: {}, served: [], diagnostics: [] }
+  return { theme, fonts: [], themeFiles: {}, renderers: {}, effects: {}, keys: {}, served: [], diagnostics: [] }
 }
 
 /**
@@ -97,7 +103,10 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
         const { unknown } = tokenProblems(theme.tokens)
         if (unknown.length) warn('theme', 'theme/unknown-token', `theme \`${themeName}\` sets unknown token${unknown.length > 1 ? 's' : ''} ${unknown.map((t) => `\`${t}\``).join(', ')} (docs/themes.md lists them)`)
         if (!problems.length) x.theme = theme
-        else x.fonts = []
+        else {
+          x.fonts = []
+          x.themeFiles = {}
+        }
       }
     }
   }
@@ -157,6 +166,13 @@ export async function fontCss(fonts: ThemeFontFile[], url: (file: string) => str
     faces.push(`@font-face { font-family: ${JSON.stringify(f.family)}; src: ${src}; font-weight: ${f.weight}; font-style: ${f.style};${f.unicodeRange ? ` unicode-range: ${f.unicodeRange};` : ''} font-display: block; }`)
   }
   return faces.join('\n')
+}
+
+/** The theme's stylesheet, with each file its CSS names at the URL `url` gives it (copied, served or inlined). */
+export async function themeStylesheet(x: Extras, url: (file: string) => string | Promise<string>): Promise<string> {
+  const urls = new Map<string, string>()
+  for (const [ref, file] of Object.entries(x.themeFiles)) urls.set(ref, await url(file))
+  return urls.size ? rewriteCss(x.theme.stylesheet, (ref) => urls.get(ref)) : x.theme.stylesheet
 }
 
 /** CSS the page needs for the plugins' emphasis effects, after the theme's. */
@@ -252,6 +268,17 @@ function validateTheme(value: unknown, file: string, problems: string[], x: Extr
   if (missing.length) problems.push(`missing required token${missing.length > 1 ? 's' : ''} ${missing.map((t) => `\`${t}\``).join(', ')}`)
 
   collectFonts(value.fonts ?? [], file, problems, x)
+  // Relative url()s in the CSS and tokens are relative to the theme module, like `fonts`.
+  const css = typeof value.css === 'string' ? value.css : ''
+  for (const ref of cssRefs([css, ...Object.values(tokens)].join('\n'))) {
+    if (!isLocalRef(ref) || Object.hasOwn(x.themeFiles, ref)) continue
+    const path = resolve(dirname(file), decodeURI(ref.replace(/[?#].*$/, '')))
+    if (!existsSync(path)) problems.push(`file not found: ${ref} (${path})`)
+    else {
+      x.themeFiles[ref] = path
+      x.served.push(path)
+    }
+  }
   return defineTheme({ name: String(value.name), tokens, css: typeof value.css === 'string' ? value.css : '' })
 }
 

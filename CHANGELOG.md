@@ -60,6 +60,13 @@ relied on it will notice.
 
 ### Added
 
+- Backgrounds for every slide from the deck: `background:` in the deck's
+  frontmatter, one value or one per layout (`title:`, `section:`,
+  `default:` for the rest). A slide's own still wins, and
+  `background: none` clears it.
+- Themes can give each layout its own background: relative `url()`s in a
+  theme's CSS are relative to the theme's file, and the files are copied
+  into builds, served by `dev` and inlined in standalone files.
 - `dev` shows the deck's errors and warnings on the page, each opening your
   editor at its line, with a banner while the deck has errors. It updates on
   every save.

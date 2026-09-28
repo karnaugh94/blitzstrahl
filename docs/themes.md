@@ -15,6 +15,25 @@ Built-in themes:
   (`packages/themes/src/broadsheet.ts`) uses only the public contract, so
   it's a good model for writing your own.
 
+## Backgrounds by layout *(1.1)*
+
+A theme sets backgrounds per layout with `[data-layout="…"]`:
+
+```js
+css: `[data-layout="section"] { background-image: url("./img/bg-section.png"); background-size: cover; }`,
+```
+
+Relative `url()`s in a theme's CSS are relative to the theme's file. The
+files they name are copied into static builds, served by `dev` and inlined
+in standalone files, as the deck's own images are. A missing one is an
+error. A slide's background, first match wins:
+
+1. the slide's own `background` key;
+2. the deck's `background` key, for that layout or for every slide
+   (docs/syntax.md §3.6);
+3. the theme's CSS for the slide's layout;
+4. the `bg` token.
+
 ## Fonts
 
 The built-in themes ship every font they name, so a deck breaks its lines

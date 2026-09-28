@@ -78,6 +78,14 @@
       "smaller": "Notas más pequeñas",
       "larger": "Notas más grandes",
       "noNotes": "No hay notas para esta diapositiva."
+    },
+    "dev": {
+      "problems": "Problemas en la presentación",
+      "errors": "Errores: {n}",
+      "warnings": "Avisos: {n}",
+      "wontBuild": "Esta presentación tiene errores: build y export se detienen hasta que se corrijan.",
+      "openInEditor": "Abrir en el editor",
+      "overflows": "Esta diapositiva se desborda"
     }
   }
 }

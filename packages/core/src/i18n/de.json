@@ -78,6 +78,14 @@
       "smaller": "Kleinere Notizen",
       "larger": "Größere Notizen",
       "noNotes": "Keine Notizen zu dieser Folie."
+    },
+    "dev": {
+      "problems": "Probleme in der Präsentation",
+      "errors": "Fehler: {n}",
+      "warnings": "Warnungen: {n}",
+      "wontBuild": "Diese Präsentation hat Fehler: build und export brechen ab, bis sie behoben sind.",
+      "openInEditor": "Im Editor öffnen",
+      "overflows": "Diese Folie läuft über"
     }
   }
 }

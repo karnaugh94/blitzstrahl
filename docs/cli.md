@@ -37,11 +37,30 @@ two columns, and presenter notes. It prints the command that previews it.
 A live preview. Saving the markdown (or a data file it uses) updates the open
 deck in place, on the same slide and step. Saving a local theme or plugin
 (`theme: ./brand.js`), or a file it imports, reloads the page with the change. Diagnostics print in the terminal
-and in the browser console.
+and in the browser console, and **on the page**:
+
+- A panel in the corner lists the deck's errors, then its warnings, each at
+  `deck.md:line:col`. Clicking one opens the file at that line in your
+  editor (see *Opening your editor*, below). Folded, the panel is a count
+  (`Errors: 2 · Warnings: 1`); it opens by itself when a save brings a new
+  error. Infos stay in the terminal and the console.
+- While the deck has errors, a banner says so: `build` and `export` would
+  stop until they're fixed.
+- Both update on every save, and neither is ever in a built deck, a PDF,
+  or the presenter's slide previews. Their words follow the browser's
+  language, like the presenter view's; the diagnostics themselves are in
+  English.
 
 It serves the deck and the files the deck uses, and nothing else in the
 deck's folder, so `--host` shares only the talk with the network. A folder
 named by the deck's `public:` key is served too, as it is (syntax.md §3.5).
+
+**Opening your editor.** blitzstrahl opens the editor named by
+`LAUNCH_EDITOR`, or else one it finds running (VS Code, the JetBrains IDEs,
+Sublime Text and others), or else `VISUAL` or `EDITOR`. It only opens the
+deck and the files it uses, and only when asked from the machine running
+`dev`: with `--host`, another device can't open anything. Vite's own
+`/__open-in-editor`, which would open any file, is turned off.
 
 Slides that overflow get a red badge, and the elements responsible get a
 dashed outline. The same overflow warnings print in the terminal at

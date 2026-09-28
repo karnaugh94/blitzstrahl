@@ -78,6 +78,14 @@
       "smaller": "Smaller notes",
       "larger": "Larger notes",
       "noNotes": "No notes for this slide."
+    },
+    "dev": {
+      "problems": "Problems in the deck",
+      "errors": "Errors: {n}",
+      "warnings": "Warnings: {n}",
+      "wontBuild": "This deck has errors: build and export stop until they’re fixed.",
+      "openInEditor": "Open in your editor",
+      "overflows": "This slide overflows"
     }
   }
 }

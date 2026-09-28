@@ -78,6 +78,14 @@
       "smaller": "Mindre anteckningar",
       "larger": "Större anteckningar",
       "noNotes": "Inga anteckningar för den här bilden."
+    },
+    "dev": {
+      "problems": "Problem i presentationen",
+      "errors": "Fel: {n}",
+      "warnings": "Varningar: {n}",
+      "wontBuild": "Presentationen har fel: build och export stoppar tills de är åtgärdade.",
+      "openInEditor": "Öppna i redigeraren",
+      "overflows": "Den här bilden flödar över"
     }
   }
 }

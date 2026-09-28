@@ -85,7 +85,7 @@
       "warnings": "Varningar: {n}",
       "wontBuild": "Presentationen har fel: build och export stoppar tills de är åtgärdade.",
       "openInEditor": "Öppna i redigeraren",
-      "overflows": "Den här bilden flödar över"
+      "overflows": "Innehållet får inte plats på bilden"
     }
   }
 }

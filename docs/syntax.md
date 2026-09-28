@@ -418,7 +418,7 @@ Keys fall into four groups:
 | Animation | `dur`, `delay`, `ease`, `reverse`, plus effect options (§6.3) | Consumed, drives the animation |
 | Structure | `reveal`, `key`, `lines` | Consumed (§6.4, §8.1, §9.1) |
 | Slide shorthand | `transition`, `transition-dur`, `layout`, `background` | First heading only (§3.2) |
-| HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes |
+| HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes. On a container, `width` and `height` set its size instead (§5.2) *(1.1)* |
 
 **Any other key is an error.** Unrecognised keys are *not* silently passed
 through. That leaves every un-prefixed key free for blitzstrahl to give meaning
@@ -478,6 +478,43 @@ The rules for opening and closing are Pandoc's
 |---|---|
 | `notes` | Presenter notes (§7) |
 | *layout slot names* | Fill a named slot of the slide's layout (§10) |
+
+### 5.2 Utility classes *(1.1)*
+
+Every theme styles these classes (docs/themes.md, "Utility classes"), so a
+deck can rely on them whatever its theme:
+
+| Class | On | Does |
+|---|---|---|
+| `.columns` | a container | Its children side by side, in equal columns, top-aligned |
+| `.column` | a container in `.columns` | One column. `width=40%` gives it that width; columns without one share the rest |
+| `.callout` | a container | A boxed aside |
+| `.muted` | anything | Secondary text colour |
+| `.accent` | anything | The accent colour |
+| `.small` | anything | Caption-sized text |
+| `.big` | anything | 1.6× the text around it |
+| `.center` | anything | Centred text, and centred in its column |
+| `.zebra` | a table | Striped body rows |
+
+The columns follow Pandoc's convention, so decks written for Pandoc's
+slide writers work unchanged:
+
+````markdown
+:::: columns
+::: {.column width=40%}
+The argument.
+:::
+::: column
+```chart
+…
+```
+:::
+::::
+````
+
+**`width` and `height` on a container** set its size, as CSS lengths or
+percentages (`width=440px`, `width=40%`; a bare number is pixels). On any
+other element they stay HTML attributes, as in 1.0.
 
 ---
 

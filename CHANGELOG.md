@@ -139,6 +139,15 @@ relied on it will notice.
   `data-as`, never a class. Pages that don't use them don't carry their CSS.
 - `reveal=items` on a container reveals its child blocks one step at a
   time.
+- Video and audio: `![caption](./demo.mp4)` (or `.webm`, `.mp3`, `.ogg`,
+  …) is a player. It plays when it appears, on entry or at its step, and
+  stops and rewinds when it's left. Keys `autoplay`, `loop`, `muted`,
+  `controls`, `poster`, `start` and `end`. The presenter's previews show
+  it paused and silent; PDFs print its poster or its frame at `start`;
+  standalone files carry it inline. 1.0 wrote an `<img>` that showed
+  nothing.
+- `dev`, and the overflow check's server, answer HTTP range requests, so
+  videos can seek.
 
 ## [1.0.1] — 2026-09-27
 

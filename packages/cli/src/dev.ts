@@ -3,7 +3,6 @@
  * uses) pushes the rebuilt deck over HMR, and the runtime swaps it in while
  * keeping the current slide and step (PLAN §7).
  */
-import { createReadStream } from 'node:fs'
 import { mkdir } from 'node:fs/promises'
 import { dirname, join, relative, resolve } from 'node:path'
 import { createServer, type Plugin, type ViteDevServer } from 'vite'
@@ -17,7 +16,7 @@ import { overflowDiagnostics } from './overflow.js'
 import { printDiagnostics, summary } from './report.js'
 import { inPublic, publicFile } from './public.js'
 import { mathCss, mathFont } from './math.js'
-import { mimeType } from './mime.js'
+import { sendFile } from './mime.js'
 import { allRenderers } from './standalone.js'
 import { ENTRY, cacheDir, servedDirs } from './vite.js'
 
@@ -116,8 +115,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             res.end()
             return
           }
-          res.setHeader('content-type', mimeType(file))
-          createReadStream(file).pipe(res)
+          sendFile(req, res, file)
           return
         }
         if (url.startsWith(ASSET_PREFIX)) {
@@ -127,13 +125,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             res.end()
             return
           }
-          const stream = createReadStream(file)
-          stream.on('error', () => {
-            res.statusCode = 404
-            res.end()
-          })
-          res.setHeader('content-type', mimeType(file))
-          stream.pipe(res)
+          sendFile(req, res, file)
           return
         }
         next()

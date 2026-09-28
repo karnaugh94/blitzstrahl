@@ -546,7 +546,7 @@
       {
         "ref": "./media/clip.mp4",
         "path": "media/clip.mp4",
-        "kind": "other",
+        "kind": "media",
         "span": {
           "start": {
             "line": 23,

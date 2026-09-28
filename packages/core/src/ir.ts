@@ -177,7 +177,8 @@ export interface RenderBlock {
   span: SourceSpan
 }
 
-export type AssetKind = 'image' | 'data' | 'font' | 'other'
+/** `media`: video and audio (1.1). */
+export type AssetKind = 'image' | 'media' | 'data' | 'font' | 'other'
 
 export interface AssetRef {
   /** Path exactly as written in the markdown. */

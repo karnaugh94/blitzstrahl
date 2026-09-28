@@ -83,10 +83,10 @@ export const layoutCss = /* css */ `
   position: relative; isolation: isolate; justify-content: flex-end;
   padding: var(--blitz-pad-y) var(--blitz-pad-x);
 }
-[data-layout="full-bleed"] > [data-slot="main"] > :is(p:has(> img:only-child), [data-blitz-block]) {
+[data-layout="full-bleed"] > [data-slot="main"] > :is(p:has(> :is(img, video):only-child), [data-blitz-block]) {
   position: absolute; inset: 0; z-index: -2; width: auto; height: auto;
 }
-[data-layout="full-bleed"] > [data-slot="main"] > p > img:only-child {
+[data-layout="full-bleed"] > [data-slot="main"] > p > :is(img, video):only-child {
   width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; border-radius: 0; display: block;
 }
 
@@ -97,8 +97,8 @@ export const layoutCss = /* css */ `
   padding: var(--blitz-pad-y) calc(var(--blitz-pad-x) * .7); justify-content: center;
 }
 :is([data-layout="image-left"], [data-layout="image-right"]) > [data-slot="image"] { gap: 0; }
-[data-slot="image"] > p:has(> img:only-child) { flex: 1 1 0; min-height: 0; }
-[data-slot="image"] > p > img:only-child {
+[data-slot="image"] > p:has(> :is(img, video):only-child) { flex: 1 1 0; min-height: 0; }
+[data-slot="image"] > p > :is(img, video):only-child {
   width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; border-radius: 0; display: block;
 }
 

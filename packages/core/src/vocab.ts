@@ -56,6 +56,8 @@ export const COMPONENTS: Readonly<Record<string, readonly ComponentTarget[]>> = 
 /** syntax.md §4.3 */
 export const ANIM_KEYS = new Set(['dur', 'delay', 'ease', 'reverse', 'from', 'cps'])
 export const SLIDE_SHORTHAND_KEYS = new Set(['transition', 'transition-dur', 'layout', 'background'])
+/** syntax.md §13: only on video and audio. */
+export const MEDIA_KEYS = new Set(['autoplay', 'loop', 'muted', 'controls', 'poster', 'start', 'end'])
 export const PASSTHROUGH_KEYS = new Set(['style', 'title', 'lang', 'dir', 'width', 'height', 'alt'])
 /** Reserved for a later milestone: accepted with a "not yet supported" warning. */
 export const RESERVED_KEYS: Readonly<Record<string, string>> = {}

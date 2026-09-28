@@ -85,3 +85,34 @@ describe('blitzstrahl new (M8.2)', () => {
     expect(run('new', 'talk.txt').err).toContain('a deck is a .md file')
   })
 })
+
+describe('--format (M8.3)', () => {
+  it('check --format json: one JSON document on stdout, the same exit code', () => {
+    writeFileSync(join(dir, 'gap.md'), '# A\n\nOne {@1}\n\nThree {@3}\n')
+    const r = run('check', 'gap.md', '--offline', '--format', 'json')
+    expect(r.code).toBe(0)
+    expect(r.err).toBe('')
+    const doc = JSON.parse(r.out)
+    expect(doc).toMatchObject({ version: 1, deck: 'gap.md', summary: { errors: 0, warnings: 1 } })
+    expect(doc.diagnostics[0]).toMatchObject({ code: 'step/gap', file: 'gap.md', line: 1 })
+    expect(run('check', 'gap.md', '--offline', '--strict', '--format', 'json').code).toBe(1)
+  })
+
+  it('check --format github: annotations on stdout', () => {
+    const r = run('check', 'gap.md', '--offline', '--format', 'github')
+    expect(r.out).toMatch(/^::warning file=gap\.md,line=1,col=1,endLine=1,endColumn=1,title=blitzstrahl step\/gap::slide `a`: step 2 changes nothing/)
+  })
+
+  it('build --format json says what it wrote, or null when errors stopped it', () => {
+    const built = run('build', 'talk.md', '--standalone', '--out', 'fmt.html', '--format', 'json')
+    expect(built.code, built.err).toBe(0)
+    expect(JSON.parse(built.out)).toMatchObject({ output: 'fmt.html', diagnostics: [] })
+    writeFileSync(join(dir, 'bad.md'), '# A\n\nText {colour=red}\n')
+    const stopped = run('build', 'bad.md', '--format', 'json')
+    expect(stopped.code).toBe(1)
+    const doc = JSON.parse(stopped.out)
+    expect(doc.output).toBeNull()
+    expect(doc.summary.errors).toBeGreaterThan(0)
+    expect(run('check', 'talk.md', '--format', 'xml').err).toContain('`--format` must be text, json, github')
+  })
+})

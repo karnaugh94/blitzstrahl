@@ -3,9 +3,9 @@
 ```
 blitzstrahl new [talk.md] [--theme aurora]
 blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
-blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
+blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
 blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
-blitzstrahl check <deck.md> [--offline] [--strict]
+blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
 blitzstrahl --version
 ```
 
@@ -77,6 +77,8 @@ deleted:
   wide code block, say), is listed as a warning.
 - `--strict` turns those warnings into a failed build (exit code 1), for CI.
   The files are still written.
+- `--format json` or `--format github` writes the diagnostics for a
+  machine instead of a person (see *Machine-readable diagnostics*).
 
 The overflow check needs a Chromium-based browser: an installed Chrome or
 Edge, or Playwright's Chromium. When it finds none, blitzstrahl prints the
@@ -176,4 +178,61 @@ at each problem as `deck.md:line:col`:
   both.
 - The overflow part needs a Chromium-based browser, like `build`'s. Without
   one, `check` says it was skipped.
+- `--format json` or `--format github` writes the findings for a machine
+  (below).
 
+## Machine-readable diagnostics
+
+`check` and `build` take `--format`:
+
+| `--format` | Writes |
+|---|---|
+| `text` | The default: one line per finding on stderr, `deck.md:42:7: warning: … [code]` |
+| `json` | One JSON document on stdout, and nothing else there |
+| `github` | GitHub Actions annotations on stdout, so findings show on the pull request's lines |
+
+The exit code is the same in every format.
+
+**JSON:**
+
+```json
+{
+  "version": 1,
+  "deck": "slides/talk.md",
+  "diagnostics": [
+    {
+      "severity": "warning",
+      "code": "step/gap",
+      "message": "slide `results`: step 2 changes nothing, so that press does nothing",
+      "file": "slides/talk.md",
+      "line": 42, "column": 1, "endLine": 42, "endColumn": 1
+    }
+  ],
+  "skipped": ["embedded sites (--offline)"],
+  "summary": { "errors": 0, "warnings": 1, "infos": 0 }
+}
+```
+
+- `file` is relative to the folder the command ran in, as in text output.
+  Lines and columns count from 1.
+- `code` names the kind of finding and is stable; the `message` is for
+  people and may be reworded.
+- `skipped` lists what couldn't be checked, and why.
+- `build` adds `"output"`: what it wrote (`"dist/index.html"`, or the
+  `.html` file), or `null` when it stopped because of errors.
+- `version` changes only if a field changes meaning or goes away. New
+  fields can appear without it changing.
+
+**GitHub** writes one workflow command per finding, errors as `::error`,
+warnings as `::warning` and infos as `::notice`:
+
+```
+::warning file=slides/talk.md,line=42,col=1,endLine=42,endColumn=1,title=blitzstrahl step/gap::slide `results`: step 2 changes nothing, so that press does nothing
+```
+
+GitHub reads file paths from the repository's root, so run the command
+there (the usual working directory of a workflow step):
+
+```yaml
+- run: npx blitzstrahl check slides/talk.md --offline --strict --format github
+```

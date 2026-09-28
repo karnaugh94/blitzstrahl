@@ -8,16 +8,16 @@ import { check } from './check.js'
 import { CliError } from './errors.js'
 import { exportPdf } from './export.js'
 import { newDeck } from './new.js'
-import { hasErrors, printDiagnostics, summary } from './report.js'
+import { FORMATS, formatReport, hasErrors, printDiagnostics, summary, type Format } from './report.js'
 
 const HELP = `blitzstrahl — Markdown in. A deck worth watching out.
 
 Usage:
   blitzstrahl new [talk.md] [--theme aurora]
   blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
-  blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
+  blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
   blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
-  blitzstrahl check <deck.md> [--offline] [--strict]
+  blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
 
 Commands:
   new     Start a deck: a short tour to edit, with a chart and its data
@@ -38,6 +38,7 @@ Options:
   --strict       build: fail if any slide overflows the canvas (or it can't be
                  checked); check: fail on warnings, not just errors
   --offline      check: don't contact embedded sites
+  --format       check, build: text (default), json, or github (annotations)
   --theme        new: the deck's theme (default aurora)
   --port, -p     dev: server port
   --host         dev: listen on all addresses (present from another device)
@@ -76,8 +77,8 @@ updates the open deck.
   --open         open the browser`,
   },
   build: {
-    usage: 'blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]',
-    options: ['out', 'standalone', 'force', 'strict'],
+    usage: 'blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]',
+    options: ['out', 'standalone', 'force', 'strict', 'format'],
     help: `A static site in dist/ next to the deck (serve it over HTTP), or with
 --standalone one .html file that opens straight from disk.
 
@@ -85,7 +86,9 @@ updates the open deck.
                  the .html file (default <deck>.html next to the deck)
   --standalone   everything in one self-contained .html file
   --force        build even if the deck has errors
-  --strict       fail if a slide overflows the canvas, or if that can't be checked`,
+  --strict       fail if a slide overflows the canvas, or if that can't be checked
+  --format       how to write diagnostics: text (default), json (one document
+                 on stdout), github (GitHub Actions annotations)`,
   },
   export: {
     usage: 'blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]',
@@ -97,13 +100,15 @@ updates the open deck.
   --force        export even if the deck has errors`,
   },
   check: {
-    usage: 'blitzstrahl check <deck.md> [--offline] [--strict]',
-    options: ['offline', 'strict'],
+    usage: 'blitzstrahl check <deck.md> [--offline] [--strict] [--format text]',
+    options: ['offline', 'strict', 'format'],
     help: `Find problems before the talk: errors, missing files, broken charts and
 maps, step gaps, overflow, embeds that refuse to be framed.
 
   --offline      don't contact embedded sites or map data URLs
-  --strict       exit 1 on warnings, not just errors`,
+  --strict       exit 1 on warnings, not just errors
+  --format       text (default), json (one document on stdout), github
+                 (GitHub Actions annotations)`,
   },
 }
 
@@ -115,6 +120,7 @@ const OPTIONS = {
   steps: { type: 'boolean' },
   offline: { type: 'boolean' },
   theme: { type: 'string' },
+  format: { type: 'string' },
   port: { type: 'string', short: 'p' },
   host: { type: 'boolean' },
   open: { type: 'boolean' },
@@ -198,10 +204,10 @@ async function main(argv: string[]): Promise<number> {
       throw new CliError(`\`--${name}\` is an option of \`${owner}\`, not \`${command}\` (see \`blitzstrahl ${command} --help\`)`)
     }
   }
+  const show = (f: string) => relative(process.cwd(), f) || f
   if (positionals.length > 2) throw new CliError(`one deck at a time: \`blitzstrahl ${command} ${deck}\``)
   if (command === 'new') {
     const r = await newDeck(deck, values.theme !== undefined ? { theme: values.theme } : {})
-    const show = (f: string) => relative(process.cwd(), f)
     process.stdout.write(`wrote ${show(r.deck)} and ${show(r.data)}\n\nPreview it (saving updates the page):\n  npx blitzstrahl dev ${show(r.deck)}\n`)
     return 0
   }
@@ -211,6 +217,9 @@ async function main(argv: string[]): Promise<number> {
     throw new CliError(`\`--port\` must be a number from 0 to 65535, not \`${values.port}\``)
   }
 
+  const format = (values.format ?? 'text') as Format
+  if (!FORMATS.includes(format)) throw new CliError(`\`--format\` must be ${FORMATS.join(', ')}, not \`${values.format}\``)
+  const machine = format === 'text' ? undefined : format
   switch (command) {
     case 'build': {
       const opts: Parameters<typeof build>[1] = {}
@@ -221,7 +230,13 @@ async function main(argv: string[]): Promise<number> {
       }
       if (values.force) opts.force = true
       if (values.strict) opts.strict = true
+      if (machine) Object.assign(opts, { report: false, quiet: true })
       const r = await build(deck, opts)
+      if (machine) {
+        const diagnostics = [...r.diagnostics, ...r.overflow].sort((a, b) => a.span.start.line - b.span.start.line || a.span.start.column - b.span.start.column)
+        const skipped = r.overflowSkipped ? [`overflow: ${r.overflowSkipped}`] : []
+        process.stdout.write(formatReport(machine, { deck, diagnostics, skipped, output: r.index ? show(r.index) : null }))
+      }
       if (!r.ok && !r.index) {
         process.stderr.write('blitzstrahl: build stopped because the deck has errors (use --force to build anyway)\n')
         return 1
@@ -235,7 +250,7 @@ async function main(argv: string[]): Promise<number> {
         )
         return 1
       }
-      process.stdout.write(`built ${r.index}\n`)
+      if (!machine) process.stdout.write(`built ${r.index}\n`)
       return 0
     }
     case 'export': {
@@ -254,9 +269,13 @@ async function main(argv: string[]): Promise<number> {
     }
     case 'check': {
       const r = await check(deck, values.offline ? { offline: true } : {})
+      const failed = hasErrors(r.diagnostics) || (!!values.strict && r.diagnostics.some((d) => d.severity === 'warning'))
+      if (machine) {
+        process.stdout.write(formatReport(machine, { deck, diagnostics: r.diagnostics, skipped: r.skipped }))
+        return failed ? 1 : 0
+      }
       printDiagnostics(r.diagnostics)
       for (const s of r.skipped) process.stderr.write(`blitzstrahl: not checked: ${s}\n`)
-      const failed = hasErrors(r.diagnostics) || (!!values.strict && r.diagnostics.some((d) => d.severity === 'warning'))
       process.stdout.write(`${deck}: ${r.diagnostics.length ? summary(r.diagnostics) : 'no problems found'}\n`)
       return failed ? 1 : 0
     }

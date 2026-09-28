@@ -5,6 +5,7 @@ import type { DeckMeta, SourceSpan, TransitionName, TransitionSpec } from './ir.
 import type { Diagnostics } from './diagnostics.js'
 import { keySpan, type Frontmatter } from './split.js'
 import type { Thousands } from './numbers.js'
+import { normalizeRelative } from './assets.js'
 import { DECK_SCHEMA, keyProblem, matches, MS } from './schema.js'
 import { LAYOUTS, SLIDE_KEYS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
 
@@ -58,6 +59,12 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
       case 'transition-dur': {
         const d = milliseconds(value, key, diags, span)
         if (d !== undefined) meta.transition.dur = d
+        break
+      }
+      case 'public': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/public', problem, span)
+        else meta.public = normalizeRelative(value as string)
         break
       }
       case 'plugins': {

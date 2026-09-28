@@ -91,6 +91,11 @@
         }
       ]
     },
+    "public": {
+      "description": "A ./folder served and copied as it is: a demo page with its scripts, downloads",
+      "type": "string",
+      "pattern": "^(\\./)?(?!_blitz(/|$))[^/.@][^/]*(/[^/.][^/]*)*/?$"
+    },
     "plugins": {
       "description": "Plugin packages or ./paths, loaded in order",
       "anyOf": [

@@ -232,7 +232,8 @@ extended in 1.0; slide frontmatter can't.
 
 **Reserved names.** blitzstrahl 1.1 gives meaning to these deck keys, so a
 plugin can't register them: `css`, `background`, `footer`,
-`slide-numbers`, `logo`, `duration` and `public`.
+`slide-numbers`, `logo` and `duration`. `public` is built in from 1.1, and
+a built-in key can't be registered either.
 
 ---
 

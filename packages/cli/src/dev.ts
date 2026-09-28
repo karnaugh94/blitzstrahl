@@ -14,6 +14,7 @@ import { renderNotes, renderPage, renderStage } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
 import { overflowDiagnostics } from './overflow.js'
 import { printDiagnostics, summary } from './report.js'
+import { inPublic, publicFile } from './public.js'
 import { mathCss, mathFont } from './math.js'
 import { mimeType } from './mime.js'
 import { allRenderers } from './standalone.js'
@@ -28,8 +29,6 @@ export interface DevOptions {
 const ASSET_PREFIX = '/_blitz/asset/'
 const RENDERERS_ID = 'virtual:blitzstrahl-renderers'
 const fsUrl = (file: string) => '/@fs/' + file.replace(/^\//, '')
-const assetUrl = (path: string) => ASSET_PREFIX + encodeURIComponent(path)
-
 
 export async function dev(deckPath: string, options: DevOptions = {}): Promise<ViteDevServer> {
   const abs = resolve(deckPath)
@@ -40,6 +39,8 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
   // why the deck loads only once the server exists.
   let server: ViteDevServer
   let loaded: LoadedDeck
+  /** Files in the `public` folder keep their path; the rest go through /_blitz/asset/. */
+  const assetUrl = (path: string) => (inPublic(loaded.publicDir && loaded.deck.meta.public, path) ? path : ASSET_PREFIX + encodeURIComponent(path))
   const load = async () => {
     const l = await loadDeck(abs, display, { importModule: (file) => server.ssrLoadModule(file) })
     printDiagnostics(l.diagnostics)
@@ -84,6 +85,24 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
           })
           res.setHeader('content-type', 'text/html; charset=utf-8')
           res.end(await s.transformIndexHtml(url, page))
+          return
+        }
+        const pub = loaded.publicDir && loaded.deck.meta.public
+        if (pub && url.startsWith(`/${pub}/`)) {
+          let rel: string
+          try {
+            rel = decodeURIComponent(url.slice(pub.length + 2))
+          } catch {
+            rel = ''
+          }
+          const file = publicFile(loaded.publicDir!, rel)
+          if (!file) {
+            res.statusCode = 404
+            res.end()
+            return
+          }
+          res.setHeader('content-type', mimeType(file))
+          createReadStream(file).pipe(res)
           return
         }
         if (url.startsWith(ASSET_PREFIX)) {

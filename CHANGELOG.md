@@ -44,6 +44,8 @@ relied on it will notice.
 
 ### Added
 
+- `blitzstrahl new [talk.md] [--theme]`: a starter deck with a chart and
+  its data file. It never replaces a file.
 - `ThemeFont.unicodeRange`: a theme can split a family into subsets, and
   standalone files carry only the subsets their text uses.
 - `check` says when a theme doesn't ship its text font (info), and warns

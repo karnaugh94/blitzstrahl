@@ -23,7 +23,8 @@
   },
   "files": [
     "dist",
-    "client"
+    "client",
+    "starter"
   ],
   "dependencies": {
     "@blitzstrahl/core": "workspace:*",

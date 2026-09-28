@@ -1,6 +1,7 @@
 # The command line
 
 ```
+blitzstrahl new [talk.md] [--theme aurora]
 blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
 blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict]
 blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
@@ -16,6 +17,20 @@ command (`build --steps`) is an error, not something quietly ignored.
 `--strict`, overflow or warnings); `2` the command line asked for something
 blitzstrahl won't do (an unknown option, a deck that isn't there, an output
 path that would overwrite something), said in one line.
+
+## `new`
+
+Starts a deck: `blitzstrahl new` writes `talk.md` in the current folder, and
+`blitzstrahl new q3/review.md` writes `review.md` in `q3/`, making the
+folder if it isn't there. The deck is a short tour to edit or delete: a
+title slide, bullets that appear one at a time, a chart with its data file,
+two columns, and presenter notes. It prints the command that previews it.
+
+- `--theme` sets the deck's `theme:` (default `aurora`), written as you
+  give it: `broadsheet`, a package, or a `./path`.
+- It never overwrites anything. If the deck or its data file
+  (`<name>-data.csv`, beside it) is already there, it writes neither and
+  says why.
 
 ## `dev`
 

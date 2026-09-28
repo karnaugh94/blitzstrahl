@@ -112,6 +112,7 @@ ${COLS('[data-as="cards"]')}
 /* compare: before → after. The arrow belongs to the "after" side. */
 .blitz-slide table[data-as="compare"] { width: 100%; border-collapse: collapse; }
 .blitz-slide table[data-as="compare"] :is(th, td):last-child { position: relative; padding-left: 104px; }
+.blitz-slide table[data-as="compare"] :is(th, td) { padding: 14px 16px; border-bottom: 1px solid var(--blitz-rule); }
 .blitz-slide table[data-as="compare"] th { text-align: left; }
 .blitz-slide table[data-as="compare"] :is(th, td):first-child { color: var(--blitz-fg-muted); }
 .blitz-slide table[data-as="compare"] :is(th, td):last-child { color: var(--blitz-accent); font-weight: 700; }

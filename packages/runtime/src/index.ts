@@ -38,17 +38,17 @@ export function start(options: StartOptions = {}): Started {
   const doc = options.document ?? document
   const payload = readPayload(doc)
   const mode = pageMode(doc.defaultView!.location.hash)
-  if (mode === 'presenter') return startPresenter(doc, payload)
+  if (mode === 'presenter') return startPresenter(doc, payload, options.renderers)
   const deck = new Deck(payload, { ...options, mode })
   doc.defaultView!.blitz = deck
   return deck
 }
 
-function startPresenter(doc: Document, payload: DeckPayload): Started {
+function startPresenter(doc: Document, payload: DeckPayload, renderers: StartOptions['renderers']): Started {
   let pending: Parameters<Started['update']> | undefined
   let view: Started | undefined
   void import('./presenter/view.js').then(({ PresenterView }) => {
-    view = new PresenterView(doc, payload)
+    view = new PresenterView(doc, payload, renderers)
     ;(doc.defaultView as unknown as { blitzPresenter: unknown }).blitzPresenter = view
     if (pending) view.update(...pending)
   })

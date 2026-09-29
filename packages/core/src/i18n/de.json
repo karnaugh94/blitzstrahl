@@ -38,6 +38,7 @@
       "laser": "Laserpointer",
       "draw": "Auf der Folie zeichnen",
       "clear": "Zeichnung auf dieser Folie löschen",
+      "print": "Alle Folien drucken oder als PDF speichern",
       "help": "Diese Hilfe"
     },
     "presenter": {
@@ -59,6 +60,8 @@
       "penTitle": "Auf der aktuellen Folie zeichnen (D)",
       "clear": "Löschen",
       "clearTitle": "Zeichnung auf dieser Folie löschen (C)",
+      "print": "Drucken",
+      "printTitle": "Alle Folien drucken oder als PDF speichern (Strg+P)",
       "connected": "Verbunden",
       "waiting": "Warte auf das Publikumsfenster…",
       "noAudience": "Kein Publikumsfenster",

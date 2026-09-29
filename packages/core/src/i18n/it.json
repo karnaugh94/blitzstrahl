@@ -38,6 +38,7 @@
       "laser": "Puntatore laser",
       "draw": "Disegna sulla diapositiva",
       "clear": "Cancella il disegno su questa diapositiva",
+      "print": "Stampa tutte le diapositive o salvale come PDF",
       "help": "Questa guida"
     },
     "presenter": {
@@ -59,6 +60,8 @@
       "penTitle": "Disegna sulla diapositiva corrente (D)",
       "clear": "Cancella",
       "clearTitle": "Cancella il disegno su questa diapositiva (C)",
+      "print": "Stampa",
+      "printTitle": "Stampa tutte le diapositive o salvale come PDF (Ctrl+P)",
       "connected": "Connesso",
       "waiting": "In attesa della finestra del pubblico…",
       "noAudience": "Nessuna finestra del pubblico",

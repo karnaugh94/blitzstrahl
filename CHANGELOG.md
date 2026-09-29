@@ -168,6 +168,12 @@ relied on it will notice.
   the slides' headings; and its properties carry the deck's `title`,
   `author` and `lang`, and `date` when it's a calendar date. With
   `--steps`, a heading is bookmarked once, on the first page that shows it.
+- **Printing from the browser**: `Ctrl+P` (`⌘P`) lays out every slide as a
+  page at its final step, waits for charts, maps and diagrams to draw, then
+  opens the print dialog, and the deck stays on screen as it was. The
+  presenter view has a **Print** button that prints the deck's slides.
+  The browser's own Print menu can't wait: it prints every slide, with
+  the charts shown so far. 1.0 printed the one slide on screen.
 
 ## [1.0.1] — 2026-09-27
 

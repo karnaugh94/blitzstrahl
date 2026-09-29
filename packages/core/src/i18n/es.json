@@ -38,6 +38,7 @@
       "laser": "Puntero láser",
       "draw": "Dibujar en la diapositiva",
       "clear": "Borrar el dibujo de esta diapositiva",
+      "print": "Imprimir todas las diapositivas o guardarlas como PDF",
       "help": "Esta ayuda"
     },
     "presenter": {
@@ -59,6 +60,8 @@
       "penTitle": "Dibujar en la diapositiva actual (D)",
       "clear": "Borrar",
       "clearTitle": "Borrar el dibujo de esta diapositiva (C)",
+      "print": "Imprimir",
+      "printTitle": "Imprimir todas las diapositivas o guardarlas como PDF (Ctrl+P)",
       "connected": "Conectado",
       "waiting": "Esperando la ventana del público…",
       "noAudience": "Sin ventana del público",

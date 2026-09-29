@@ -38,6 +38,7 @@
       "laser": "Wskaźnik laserowy",
       "draw": "Rysuj na slajdzie",
       "clear": "Wyczyść rysunek na tym slajdzie",
+      "print": "Wydrukuj wszystkie slajdy lub zapisz je jako PDF",
       "help": "Ta pomoc"
     },
     "presenter": {
@@ -59,6 +60,8 @@
       "penTitle": "Rysuj na bieżącym slajdzie (D)",
       "clear": "Wyczyść",
       "clearTitle": "Wyczyść rysunek na tym slajdzie (C)",
+      "print": "Drukuj",
+      "printTitle": "Wydrukuj wszystkie slajdy lub zapisz je jako PDF (Ctrl+P)",
       "connected": "Połączono",
       "waiting": "Oczekiwanie na okno publiczności…",
       "noAudience": "Brak okna publiczności",

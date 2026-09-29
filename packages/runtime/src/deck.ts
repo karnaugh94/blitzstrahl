@@ -5,11 +5,11 @@
  */
 import type { AnimSpec, DeckPayload, EffectKind, PayloadSlide, StepRange } from '@blitzstrahl/core'
 import { fill, strings } from '@blitzstrahl/core/i18n'
-import { dataNumerals, readNumber } from '@blitzstrahl/core/numbers'
 import { needsBox, playEntrance, playExit, registerEffects, type CustomEffect, type Played } from './effects.js'
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
-import type { BlockData, RenderCtx, RenderInstance, Renderer, RendererLoader } from './renderer.js'
-import { buildPrint, type PrintOptions, type PrintResult } from './print.js'
+import type { BlockData, RenderInstance, RendererLoader } from './renderer.js'
+import { Blocks } from './blocks.js'
+import { bindPrinting, buildPrint, buildStaticPrint, snapshot, type PrintOptions, type PrintResult } from './print.js'
 import { bindInk, InkLayer, type InkEvent, type Tool } from './ink.js'
 import { focusLines } from './lines.js'
 import { MEDIA, rewind, showMedia, wireMedia } from './media.js'
@@ -85,7 +85,7 @@ export class Deck implements NavTarget {
   private readonly viewport: HTMLElement
   private readonly stage: HTMLElement
   private readonly live: HTMLElement | null
-  private readonly renderers: Record<string, RendererLoader>
+  private readonly blocks: Blocks
   private readonly listeners = new Set<ChangeListener>()
   private readonly inkListeners = new Set<InkListener>()
   private readonly cleanups: Array<() => void> = []
@@ -113,7 +113,7 @@ export class Deck implements NavTarget {
   constructor(payload: DeckPayload, options: StartOptions = {}) {
     this.doc = options.document ?? document
     this.win = this.doc.defaultView!
-    this.renderers = options.renderers ?? {}
+    this.blocks = new Blocks(this.doc, () => this.payload, options.renderers)
     this.viewport = this.doc.querySelector<HTMLElement>('.blitz-viewport')!
     this.stage = this.doc.querySelector<HTMLElement>('.blitz-stage')!
     this.live = this.doc.querySelector<HTMLElement>('.blitz-sr')
@@ -139,6 +139,7 @@ export class Deck implements NavTarget {
     }
 
     this.cleanups.push(
+      bindPrinting(this.win, this.printing()).unbind,
       bindKeyboard(this.win, this, (e) => this.onKey(e)),
       bindPointer(this.viewport, this, () => this.tool === 'pen'),
       bindInk(
@@ -381,8 +382,11 @@ export class Deck implements NavTarget {
    */
   async print(options: PrintOptions = {}): Promise<PrintResult> {
     this.transitions.finish()
-    this.layers.close()
-    this.setBlackout(false)
+    // Printing from the browser leaves the deck on screen as it was.
+    if (!options.quiet) {
+      this.layers.close()
+      this.setBlackout(false)
+    }
     this.printed?.remove()
     const built = await buildPrint(
       {
@@ -390,16 +394,37 @@ export class Deck implements NavTarget {
         sections: this.views.map((v) => v.el),
         slides: this.payload.slides,
         canvas: this.payload.canvas,
-        mount: async (el, block, step) => {
-          const instance = await (await this.renderer(block.renderer)).mount(el, block.spec, this.renderCtx(el, block, true))
-          instance.update(step)
-          return instance
-        },
+        mount: (el, block, step) => this.blocks.mountStill(el, block, step),
       },
       options,
     )
     this.printed = built
     return built.result
+  }
+
+  /** What each block last drew, by id: printing from the browser's menu uses it. */
+  private readonly drawings = new Map<string, HTMLElement>()
+
+  private printing(): Parameters<typeof bindPrinting>[1] {
+    return {
+      prepare: async () => {
+        await this.print({ quiet: true })
+        return {
+          remove: () => {
+            this.printed?.remove()
+            this.printed = undefined
+          },
+        }
+      },
+      fallback: () => {
+        if (this.pos) this.keepDrawings(this.views[this.pos.slide]!)
+        return buildStaticPrint({ doc: this.doc, sections: this.views.map((v) => v.el), slides: this.payload.slides, canvas: this.payload.canvas, drawings: this.drawings })
+      },
+    }
+  }
+
+  private keepDrawings(view: SlideView) {
+    for (const b of view.blocks) if (b.instance && !b.enhance) this.drawings.set(b.data.id, snapshot(b.el))
   }
 
   /** Swap in a rebuilt deck (dev HMR), keeping the current slide and step. */
@@ -409,6 +434,7 @@ export class Deck implements NavTarget {
     const id = at ? this.ids[at.slide] : undefined
     if (at) this.leave(this.views[at.slide]!)()
     this.stage.innerHTML = stageHtml
+    this.drawings.clear()
     this.load(payload)
     this.pos = undefined
     const idx = id ? this.ids.indexOf(id) : -1
@@ -581,6 +607,7 @@ export class Deck implements NavTarget {
     view.el.setAttribute('aria-hidden', 'true')
     for (const s of view.stepped) s.running?.finish()
     for (const m of view.media) rewind(m)
+    if (this.mode === 'audience') this.keepDrawings(view)
     this.generation++
     const instances = view.blocks.map((b) => {
       const i = b.instance
@@ -745,13 +772,13 @@ export class Deck implements NavTarget {
     const gen = this.generation
     b.loading = true
     try {
-      const renderer = await this.renderer(b.data.renderer)
+      const renderer = await this.blocks.renderer(b.data.renderer)
       if (gen !== this.generation) return
       b.error?.remove()
       delete b.error
       if (!b.enhance) b.el.replaceChildren()
       // A block auto-animate moves in from the last slide is the same chart, already drawn: no entrance.
-      const instance = await renderer.mount(b.el, b.data.spec, this.renderCtx(b.el, b.data, this.still || this.morphing.has(b.el)))
+      const instance = await renderer.mount(b.el, b.data.spec, this.blocks.ctx(b.el, b.data, this.still || this.morphing.has(b.el)))
       if (gen !== this.generation) {
         instance.destroy()
         return
@@ -771,34 +798,6 @@ export class Deck implements NavTarget {
     } finally {
       b.loading = false
     }
-  }
-
-  private async renderer(name: string): Promise<Renderer> {
-    const loader = this.renderers[name]
-    if (!loader) throw new Error(`No \`${name}\` renderer in this build.`)
-    const mod = await loader()
-    return 'default' in mod ? mod.default : mod
-  }
-
-  private renderCtx(el: HTMLElement, block: BlockData, still: boolean): RenderCtx {
-    return {
-      block,
-      token: (name) => this.win.getComputedStyle(el).getPropertyValue(name).trim(),
-      reducedMotion: still,
-      loadAsset: (path) => this.loadAsset(path),
-      assetUrl: (path) => new URL(this.payload.urls[path] ?? path, this.doc.baseURI).href,
-      meta: this.payload.meta ?? {},
-      lang: this.payload.lang,
-      number: (text, thousands) => readNumber(text, dataNumerals(thousands ?? this.payload.thousands)),
-    }
-  }
-
-  private async loadAsset(path: string): Promise<string> {
-    const inline = this.payload.inline[path]
-    if (inline !== undefined) return inline
-    const res = await fetch(new URL(path, this.doc.baseURI))
-    if (!res.ok) throw new Error(`could not load \`${path}\` (${res.status})`)
-    return res.text()
   }
 
   private async toggleFullscreen() {

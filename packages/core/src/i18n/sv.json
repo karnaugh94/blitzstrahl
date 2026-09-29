@@ -38,6 +38,7 @@
       "laser": "Laserpekare",
       "draw": "Rita på bilden",
       "clear": "Rensa ritningen på den här bilden",
+      "print": "Skriv ut alla bilder eller spara dem som PDF",
       "help": "Den här hjälpen"
     },
     "presenter": {
@@ -59,6 +60,8 @@
       "penTitle": "Rita på den aktuella bilden (D)",
       "clear": "Rensa",
       "clearTitle": "Rensa ritningen på den här bilden (C)",
+      "print": "Skriv ut",
+      "printTitle": "Skriv ut alla bilder eller spara dem som PDF (Ctrl+P)",
       "connected": "Ansluten",
       "waiting": "Väntar på publikfönstret…",
       "noAudience": "Inget publikfönster",

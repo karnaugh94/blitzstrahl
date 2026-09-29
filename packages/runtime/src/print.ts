@@ -16,6 +16,11 @@ import { phaseAt } from './steps.js'
 export interface PrintOptions {
   /** One page per build step, instead of one per slide at its final step. */
   steps?: boolean
+  /**
+   * Printing from the browser (Ctrl+P): the pages are laid out out of
+   * sight, and the deck stays on screen as it was.
+   */
+  quiet?: boolean
 }
 
 export interface PrintResult {
@@ -40,16 +45,8 @@ const READY_TIMEOUT = 15_000
 const LIVE_STATE = ['data-blitz-hidden', 'data-blitz-active', 'data-blitz-dim', 'data-blitz-focus', 'data-blitz-lines-on', 'data-blitz-current', 'data-blitz-outgoing', 'data-blitz-overflow', 'aria-hidden']
 
 export async function buildPrint(host: PrintHost, options: PrintOptions = {}): Promise<{ result: PrintResult; remove(): void }> {
-  const { doc, canvas } = host
-  const root = doc.createElement('div')
-  root.className = 'blitz-print'
-  root.style.setProperty('--blitz-canvas-w', `${canvas.width}px`)
-  root.style.setProperty('--blitz-canvas-h', `${canvas.height}px`)
-  const page = doc.createElement('style')
-  page.textContent = `@page { size: ${canvas.width}px ${canvas.height}px; margin: 0; }`
-  root.append(page)
-  doc.documentElement.dataset.blitzPrinting = ''
-  doc.body.append(root)
+  const { doc } = host
+  const root = printRoot(doc, host.canvas, options.quiet ?? false)
 
   const instances: RenderInstance[] = []
   const waits: Array<Promise<string | undefined>> = []
@@ -98,8 +95,143 @@ export async function buildPrint(host: PrintHost, options: PrintOptions = {}): P
     result: { pages: root.querySelectorAll(':scope > .blitz-slide').length, warnings },
     remove() {
       instances.forEach((i) => i.destroy())
-      root.remove()
-      delete doc.documentElement.dataset.blitzPrinting
+      removeRoot(root)
+    },
+  }
+}
+
+/** The pages' container, at the end of `<body>`, and `<html>` in print state. */
+function printRoot(doc: Document, canvas: { width: number; height: number }, quiet: boolean): HTMLElement {
+  const root = doc.createElement('div')
+  root.className = 'blitz-print'
+  root.style.setProperty('--blitz-canvas-w', `${canvas.width}px`)
+  root.style.setProperty('--blitz-canvas-h', `${canvas.height}px`)
+  const page = doc.createElement('style')
+  page.textContent = `@page { size: ${canvas.width}px ${canvas.height}px; margin: 0; }`
+  root.append(page)
+  doc.documentElement.dataset.blitzPrinting = quiet ? 'quiet' : ''
+  doc.body.append(root)
+  return root
+}
+
+function removeRoot(root: HTMLElement) {
+  root.remove()
+  delete root.ownerDocument.documentElement.dataset.blitzPrinting
+}
+
+export interface StaticPrintHost {
+  doc: Document
+  sections: HTMLElement[]
+  slides: PayloadSlide[]
+  canvas: { width: number; height: number }
+  /** What each block (by id) last drew, from `snapshot`. */
+  drawings: ReadonlyMap<string, HTMLElement>
+}
+
+/**
+ * The print layout at once, for printing from the browser's menu, which
+ * can't wait for renderers: every slide at its final step, each block as it
+ * last drew (`snapshot`), or an empty frame, named by its alt text, if its
+ * slide hasn't been shown.
+ */
+export function buildStaticPrint(host: StaticPrintHost): { remove(): void } {
+  const { doc } = host
+  const root = printRoot(doc, host.canvas, true)
+  host.slides.forEach((data, i) => {
+    const copy = pageOf(host.sections[i]!, data, data.steps)
+    for (const block of data.blocks) {
+      const el = copy.querySelector<HTMLElement>(`[data-blitz-block="${CSS.escape(block.id)}"]`)
+      if (!el) continue
+      const drawn = host.drawings.get(block.id)
+      if (drawn) {
+        el.replaceChildren(...drawn.cloneNode(true).childNodes)
+      } else {
+        const missing = doc.createElement('div')
+        missing.className = 'blitz-print-missing'
+        missing.textContent = el.getAttribute('aria-label') ?? ''
+        el.replaceChildren(missing)
+      }
+    }
+    root.append(copy)
+  })
+  return { remove: () => removeRoot(root) }
+}
+
+/**
+ * A copy of what a block has drawn, to print later. Canvases become images
+ * (a clone has no pixels), and embedded pages are left out: a browser
+ * prints them blank.
+ */
+export function snapshot(el: HTMLElement): HTMLElement {
+  const copy = el.cloneNode(true) as HTMLElement
+  const canvases = el.querySelectorAll('canvas')
+  copy.querySelectorAll('canvas').forEach((c, k) => {
+    try {
+      const img = el.ownerDocument.createElement('img')
+      img.src = canvases[k]!.toDataURL()
+      img.alt = ''
+      img.style.cssText = c.style.cssText
+      c.replaceWith(img)
+    } catch {
+      c.remove() // tainted by another origin's image
+    }
+  })
+  copy.querySelectorAll('iframe').forEach((f) => f.remove())
+  return copy
+}
+
+export interface Printing {
+  /** Lay every page out, awaiting renders (Ctrl+P). */
+  prepare(): Promise<{ remove(): void }>
+  /** Lay the pages out at once (the browser's own Print menu). */
+  fallback(): { remove(): void }
+}
+
+/**
+ * Printing from the browser (M11.3). `Ctrl+P` (`⌘P`) is taken over, so the
+ * pages are complete before the dialog opens; the menu's Print can't be
+ * delayed, so `beforeprint` lays out what it can, synchronously.
+ */
+export function bindPrinting(win: Window, printing: Printing): { print(): void; unbind(): void } {
+  let laidOut: { remove(): void } | undefined
+  let preparing = false
+  const done = () => {
+    laidOut?.remove()
+    laidOut = undefined
+  }
+  const print = () => {
+    if (preparing) return
+    preparing = true
+    printing
+      .prepare()
+      .then((built) => {
+        done()
+        laidOut = built
+        win.print()
+      })
+      .catch((err: unknown) => console.error('[blitzstrahl] printing:', err))
+      .finally(() => (preparing = false))
+  }
+  const onKey = (e: KeyboardEvent) => {
+    if (!(e.ctrlKey || e.metaKey) || e.altKey || e.shiftKey || e.key.toLowerCase() !== 'p') return
+    e.preventDefault()
+    print()
+  }
+  const before = () => {
+    // Pages already laid out (by us, or by `export`) print as they are.
+    if (laidOut || preparing || win.document.documentElement.dataset.blitzPrinting !== undefined) return
+    laidOut = printing.fallback()
+  }
+  win.addEventListener('keydown', onKey)
+  win.addEventListener('beforeprint', before)
+  win.addEventListener('afterprint', done)
+  return {
+    print,
+    unbind() {
+      win.removeEventListener('keydown', onKey)
+      win.removeEventListener('beforeprint', before)
+      win.removeEventListener('afterprint', done)
+      done()
     },
   }
 }

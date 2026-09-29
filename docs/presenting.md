@@ -169,3 +169,25 @@ Edge) give one page per slide at the canvas's shape. Firefox and Safari
 use the paper size you choose and fit a slide to it. For a PDF that's the
 same everywhere, with bookmarks and the deck's metadata, use `blitzstrahl export`
 (cli.md).
+
+## Accessibility *(1.1)*
+
+- Each slide is announced as it's shown, by its title (or its number, in
+  the deck's language).
+- Everything works without a mouse. The overview, the go-to box and the
+  key help are dialogs: they open with the focus inside, `Tab` stays in
+  them, and closing one gives the keys back to the deck. The presenter
+  view's buttons are all within reach of `Tab`, and show where the focus
+  is.
+- `prefers-reduced-motion` turns every effect and transition into an
+  instant change; steps still work.
+- Charts, maps and diagrams take a description: `alt="…"` on the fence
+  (syntax.md §8.2). A chart without one is described from its data.
+- Document mode (above) is the whole deck as one page, for screen readers
+  and for reading at your own pace.
+- The PDF `export` writes is tagged (cli.md).
+
+Every example deck is tested with [axe](https://github.com/dequelabs/axe-core)
+in both built-in themes, in the deck, its overlays, the presenter view and
+document mode. A theme you write is yours to check: colour contrast is
+the usual finding.

@@ -18,6 +18,7 @@
     "site": "node scripts/site.mjs"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@playwright/test": "^1.63.0",
     "@shikijs/rehype": "^4.4.3",
     "@types/node": "^24.13.6",

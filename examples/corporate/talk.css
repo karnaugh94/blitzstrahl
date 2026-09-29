@@ -3,6 +3,9 @@
  * a theme*): the template set its title in white over the dark picture,
  * which `theme import` doesn't carry (placeholder text styles).
  */
+/* The template's grey (#767f89) is 4.1:1 on white, under the 4.5:1 that
+   WCAG AA asks of text this size (the footer, captions): a shade darker. */
+:root { --blitz-fg-muted: #646d77; }
 [data-layout="title"] { color: #ffffff; --blitz-fg-muted: #c9d6df; }
 [data-layout="title"] h1 { max-width: 900px; }
 .blitz-slide .kicker { color: var(--blitz-accent-2); font-weight: 700; text-transform: uppercase; letter-spacing: .06em; font-size: var(--blitz-text-small); }

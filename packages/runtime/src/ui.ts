@@ -34,6 +34,13 @@ export class LayerHost {
     this.close()
     this.returnFocus = this.doc.activeElement
     this.open_ = layer
+    // On the layer itself, so Tab stays in it from a text box too (the deck's keys skip those).
+    layer.el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return
+      e.preventDefault()
+      e.stopPropagation()
+      this.cycle(layer.el, e.shiftKey)
+    })
     this.doc.body.append(layer.el)
     ;(layer.focus ?? layer.el).focus()
   }
@@ -54,7 +61,18 @@ export class LayerHost {
     if (!layer) return false
     if (layer.onKey?.(e)) return true
     if (e.key === 'Escape') this.close()
+    // A focused button or link in the layer is pressed, as it would be anywhere else.
+    else if ((e.key === 'Enter' || e.key === ' ') && this.doc.activeElement !== layer.el && this.doc.activeElement?.matches('button, a[href]') && layer.el.contains(this.doc.activeElement)) (this.doc.activeElement as HTMLElement).click()
     return true
+  }
+
+  /** Tab moves between the layer's own controls, round and round: the keyboard stays in the dialog. */
+  private cycle(el: HTMLElement, back: boolean) {
+    const stops = [...el.querySelectorAll<HTMLElement>('button, a[href], input, [tabindex]')].filter((c) => !c.hidden && c.tabIndex >= 0 && !c.closest('[inert]'))
+    if (!stops.length) return el.focus()
+    const at = stops.indexOf(this.doc.activeElement as HTMLElement)
+    const next = at < 0 ? (back ? stops.length - 1 : 0) : (at + (back ? -1 : 1) + stops.length) % stops.length
+    stops[next]!.focus()
   }
 }
 
@@ -107,7 +125,8 @@ export function overview(doc: Document, o: OverviewOptions): Layer {
     const btn = h(doc, 'button', { class: 'blitz-thumb', type: 'button', role: 'option', 'data-index': String(i), 'aria-label': `${i + 1}. ${slideLabel(s, i, words)}` })
     const frame = h(doc, 'div', { class: 'blitz-thumb-frame' })
     frame.style.aspectRatio = `${o.canvas.width} / ${o.canvas.height}`
-    const canvas = h(doc, 'div', { class: 'blitz-thumb-canvas' })
+    // A picture of the slide: its links and text aren't the overview's.
+    const canvas = h(doc, 'div', { class: 'blitz-thumb-canvas', inert: '' })
     canvas.style.width = `${o.canvas.width}px`
     canvas.style.height = `${o.canvas.height}px`
     const section = sections[i]
@@ -122,7 +141,11 @@ export function overview(doc: Document, o: OverviewOptions): Layer {
   let selected = o.current
   const select = (i: number) => {
     selected = Math.max(0, Math.min(thumbs.length - 1, i))
-    thumbs.forEach((t, k) => t.setAttribute('aria-selected', String(k === selected)))
+    thumbs.forEach((t, k) => {
+      t.setAttribute('aria-selected', String(k === selected))
+      // One tab stop for the grid: the selected slide (arrows move it).
+      t.tabIndex = k === selected ? 0 : -1
+    })
     thumbs[selected]?.focus()
     thumbs[selected]?.scrollIntoView({ block: 'nearest' })
   }

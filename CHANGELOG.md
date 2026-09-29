@@ -14,6 +14,14 @@ relied on it will notice.
 
 ### Fixed (visible)
 
+- In the overview, the go-to box and the key help, `Tab` stays inside the
+  dialog and `Enter` presses the focused button. 1.0 ignored both keys
+  there (so the key help's close button couldn't be pressed without a
+  mouse), and `Tab` in the go-to box left the dialog. The overview is one
+  `Tab` stop, and its thumbnails' links can no longer take the focus.
+- The presenter view's "Open audience window" button writes its label in
+  the theme's `accent-fg`: 1.0's fixed dark text was hard to read on a
+  dark accent (broadsheet's).
 - Links are in the theme's `link` token (default: its `accent`) even when
   the theme's own CSS doesn't say so, as the token table promised. A
   theme that set `link` without styling links showed the browser's blue.

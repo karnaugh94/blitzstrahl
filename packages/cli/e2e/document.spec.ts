@@ -167,7 +167,7 @@ async function pdfShape(pdf: Buffer | Uint8Array) {
   return { pages: doc.getPageCount(), width: Math.round(width), height: Math.round(height) }
 }
 
-test('printed, two slides share a landscape sheet; long notes get a sheet of their own', async ({ page }) => {
+test('printed, every sheet is two slides; notes too long carry on after the sheets', async ({ page }) => {
   await page.addInitScript(() => {
     ;(window as unknown as { sheets: string[][] }).sheets = []
     window.print = () => {
@@ -178,17 +178,31 @@ test('printed, two slides share a landscape sheet; long notes get a sheet of the
   await page.keyboard.press('Control+p')
   await page.waitForFunction(() => (window as unknown as { sheets: string[][] }).sheets.length === 1)
   const [sheets] = await page.evaluate(() => (window as unknown as { sheets: string[][] }).sheets)
-  expect(sheets).toEqual(['Reading+Steps', 'A chart', 'A clip+Last'])
+  expect(sheets).toEqual(['Reading+Steps', 'A chart+A clip', 'Last'])
+  // The long note keeps what fits, and says where the rest is.
+  const chartNotes = pages(page).nth(2).locator('.blitz-doc-notes')
+  await expect(chartNotes.locator('.blitz-doc-more')).toHaveText('Continued on page 4.')
+  const continued = page.locator('.blitz-doc-continued')
+  await expect(continued.locator('h1')).toHaveText('Notes, continued')
+  await expect(continued.locator('h2')).toHaveText(['3. A chart'])
+  // Nothing lost, nothing twice: the paragraphs are split between the two.
+  const kept = await chartNotes.locator('p:not(.blitz-doc-more)').count()
+  const moved = await continued.locator('p').count()
+  expect(kept).toBeGreaterThan(0)
+  expect(kept + moved).toBe(14)
   // Its chart was drawn before the dialog, though never scrolled to.
   expect(await page.locator('#chart svg path').count()).toBeGreaterThan(2)
   const shape = await pdfShape(await page.pdf({ preferCSSPageSize: true }))
   expect([shape.width, shape.height]).toEqual([842, 595])
-  // One page per sheet: the long note fits the sheet it has to itself.
-  expect(shape.pages).toBe(3)
+  // One page per sheet, then the continuation.
+  expect(shape.pages).toBe(4)
 
   await page.evaluate(() => window.dispatchEvent(new Event('afterprint')))
   await expect(page.locator('.blitz-doc-sheet')).toHaveCount(0)
   await expect(pages(page)).toHaveCount(5)
+  // On screen again, the note is whole.
+  await expect(continued).toHaveCount(0)
+  expect(await chartNotes.locator('p').count()).toBe(14)
 })
 
 test('&orientation=portrait prints two rows to a portrait sheet', async ({ page }) => {
@@ -203,12 +217,12 @@ test('export --notes writes the handout, and names a slide whose notes are too l
   const r = await exportPdf(join(dir, 'deck.md'), { notes: true, outFile: out, quiet: true })
   expect(r.ok).toBe(true)
   expect(r.warnings).toHaveLength(1)
-  expect(r.warnings[0]).toMatch(/^slide 3 \(A chart\): its notes are about \d+ characters too long for half a sheet; it gets a sheet to itself in the handout$/)
+  expect(r.warnings[0]).toMatch(/^slide 3 \(A chart\): its notes are about \d+ characters too long for half a sheet; they continue on page 4$/)
   const bytes = readFileSync(out)
   const shape = await pdfShape(bytes)
   expect([shape.width, shape.height]).toEqual([842, 595])
   expect(shape.pages).toBe(r.pages)
-  expect(shape.pages).toBe(3)
+  expect(shape.pages).toBe(4)
   const doc = await PDFDocument.load(bytes, { updateMetadata: false })
   expect(doc.getTitle()).toBe('Document fixture')
 })

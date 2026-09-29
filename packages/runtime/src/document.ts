@@ -51,7 +51,7 @@ interface Box {
   notesHeight: number
 }
 
-/** Where things go on a sheet: two slides (`pair`), or one with long notes (`solo`, notes flow on). */
+/** Where things go on a sheet: two slides and their notes (`pair`), always. */
 export function sheetGeometry(layout: HandoutLayout, canvas: { width: number; height: number }) {
   const landscape = layout.orientation === 'landscape'
   const [short, long] = PAPER[layout.paper]
@@ -60,19 +60,15 @@ export function sheetGeometry(layout: HandoutLayout, canvas: { width: number; he
   const height = page.height - 2 * MARGIN_MM
   const tall = (w: number) => (w * canvas.height) / canvas.width
   let pair: Box
-  let solo: Box
   if (landscape) {
     const cell = (width - GAP_MM) / 2
     pair = { slide: cell, notesWidth: cell, notesHeight: height - tall(cell) - NOTES_GAP_MM }
-    const beside = width * BESIDE
-    solo = { slide: beside, notesWidth: width - beside - NOTES_GAP_MM, notesHeight: height }
   } else {
     const row = (height - GAP_MM) / 2
     const beside = Math.min(width * BESIDE, (row * canvas.width) / canvas.height)
     pair = { slide: beside, notesWidth: width - beside - NOTES_GAP_MM, notesHeight: row }
-    solo = { slide: width, notesWidth: width, notesHeight: height - tall(width) - NOTES_GAP_MM }
   }
-  return { page, width, height, pair, solo, landscape }
+  return { page, width, height, pair, landscape }
 }
 
 interface Page {
@@ -100,6 +96,8 @@ export class DocumentView {
   /** While printing: the pages, two to a sheet. */
   private sheets: HTMLElement[] = []
   private longNotes: string[] = []
+  /** While printing: where long notes carry on, how many pages it takes, and how to put them back. */
+  private continued: { section: HTMLElement; pages: number; restore: Array<() => void> } | undefined
 
   constructor(
     private readonly doc: Document,
@@ -169,7 +167,7 @@ export class DocumentView {
     for (const p of this.pages) this.mountIn(p.article)
     const warnings = await settle(this.root, [...this.mounted.values()])
     this.sheet()
-    return { pages: this.sheets.length, warnings: [...warnings, ...this.longNotes] }
+    return { pages: this.sheets.length + (this.continued?.pages ?? 0), warnings: [...warnings, ...this.longNotes] }
   }
 
   /** Dev HMR: a rebuilt deck. */
@@ -186,46 +184,104 @@ export class DocumentView {
   // --- internals ---------------------------------------------------------
 
   /**
-   * Group the pages two to a sheet for printing. A page whose notes don't
-   * fit half a sheet gets a sheet to itself, and says so (`longNotes`).
+   * Group the pages two to a sheet for printing, every sheet alike. Notes
+   * too long for their box keep what fits (whole paragraphs and list
+   * items) and say where the rest went: "Notes, continued", after the
+   * sheets, in two columns (decisions.md, "Handout: every sheet alike").
    */
   private sheet() {
     if (this.sheets.length) return
-    const geometry = sheetGeometry(this.layout, this.payload.canvas)
-    const measure = this.doc.createElement('div')
+    const { doc } = this
+    const g = sheetGeometry(this.layout, this.payload.canvas)
+    const words = strings(this.payload.lang).deck
+    const measure = doc.createElement('div')
     measure.className = 'blitz-doc-notes blitz-doc-measure'
-    measure.style.width = `${geometry.pair.notesWidth}mm`
+    measure.style.width = `${g.pair.notesWidth}mm`
     this.root.append(measure)
-    const room = geometry.pair.notesHeight * PX_PER_MM
-    const deckWords = strings(this.payload.lang).deck
+    const room = g.pair.notesHeight * PX_PER_MM
+    const fits = () => measure.scrollHeight <= room
+
     this.longNotes = []
-    let open: HTMLElement | undefined
+    const overflow: Array<{ page: Page; notes: HTMLElement; kept: Node[]; moved: Node[]; marker: HTMLElement }> = []
     for (const p of this.pages) {
-      const notes = p.article.querySelector('.blitz-doc-notes')
-      let solo = false
-      if (notes) {
-        measure.replaceChildren(...[...notes.childNodes].map((n) => n.cloneNode(true)))
-        const needed = measure.scrollHeight
-        if (needed > room) {
-          solo = true
-          const over = Math.round((notes.textContent?.length ?? 0) * (1 - room / needed))
-          const name = p.data.title ?? fill(deckWords.slide, { n: p.index + 1 })
-          this.longNotes.push(`slide ${p.index + 1} (${name}): its notes are about ${over} characters too long for half a sheet; it gets a sheet to itself in the handout`)
-        }
+      const notes = p.article.querySelector<HTMLElement>('.blitz-doc-notes')
+      if (!notes) continue
+      const blocks = [...notes.childNodes]
+      measure.replaceChildren(...blocks.map((n) => n.cloneNode(true)))
+      if (fits()) continue
+      // Keep blocks while they fit with the pointer after them (its number is at most three digits).
+      const marker = doc.createElement('p')
+      marker.className = 'blitz-doc-more'
+      marker.textContent = fill(words.continuedOn, { n: 999 })
+      measure.replaceChildren(marker)
+      let kept = 0
+      for (const block of blocks) {
+        marker.before(block.cloneNode(true))
+        if (!fits()) break
+        kept++
       }
-      if (solo || !open || open.childElementCount === 2) {
-        open = this.doc.createElement('div')
-        open.className = solo ? 'blitz-doc-sheet blitz-doc-solo' : 'blitz-doc-sheet'
-        this.sheets.push(open)
-        p.article.before(open)
-      }
-      open.append(p.article)
-      if (solo) open = undefined
+      overflow.push({ page: p, notes, kept: blocks.slice(0, kept), moved: blocks.slice(kept), marker })
     }
     measure.remove()
+
+    // Two to a sheet, in order.
+    for (let i = 0; i < this.pages.length; i += 2) {
+      const sheet = doc.createElement('div')
+      sheet.className = 'blitz-doc-sheet'
+      this.pages[i]!.article.before(sheet)
+      sheet.append(...this.pages.slice(i, i + 2).map((p) => p.article))
+      this.sheets.push(sheet)
+    }
+    if (!overflow.length) return
+
+    // The continuation, laid out as it will print (columns filled page by
+    // page), to learn which page each slide's notes carry on to.
+    const section = doc.createElement('section')
+    section.className = 'blitz-doc-continued'
+    const title = doc.createElement('h1')
+    title.textContent = words.notesContinued
+    section.append(title)
+    const heads = overflow.map(({ page, notes, moved }) => {
+      const head = doc.createElement('h2')
+      head.textContent = `${page.index + 1}. ${page.data.title ?? fill(words.slide, { n: page.index + 1 })}`
+      const entry = doc.createElement('div')
+      entry.className = 'blitz-doc-continued-entry'
+      entry.append(head, ...moved)
+      notes.dataset.blitzContinued = ''
+      section.append(entry)
+      return head
+    })
+    section.classList.add('blitz-doc-measure-pages')
+    section.style.width = `${g.width}mm`
+    section.style.height = `${g.height}mm`
+    this.root.append(section)
+    const left = section.getBoundingClientRect().left
+    const column = ((g.width - GAP_MM) / 2 + GAP_MM) * PX_PER_MM
+    const pageOf = (el: HTMLElement) => {
+      const rect = [...el.getClientRects()].find((r) => r.height > 0) ?? el.getBoundingClientRect()
+      return this.sheets.length + 1 + Math.floor(Math.round((rect.left - left) / column) / 2)
+    }
+    overflow.forEach(({ page, notes, kept, moved, marker }, k) => {
+      const at = pageOf(heads[k]!)
+      marker.textContent = fill(words.continuedOn, { n: at })
+      notes.replaceChildren(...kept, marker)
+      const name = page.data.title ?? fill(words.slide, { n: page.index + 1 })
+      const over = moved.reduce((n, b) => n + (b.textContent?.trim().length ?? 0), 0)
+      this.longNotes.push(`slide ${page.index + 1} (${name}): its notes are about ${over} characters too long for half a sheet; they continue on page ${at}`)
+    })
+    this.continued = { section, pages: pageOf(section.lastElementChild as HTMLElement) - this.sheets.length, restore: overflow.map(({ notes, kept, moved }) => () => notes.replaceChildren(...kept, ...moved)) }
+    section.classList.remove('blitz-doc-measure-pages')
+    section.style.removeProperty('width')
+    section.style.removeProperty('height')
   }
 
   private unsheet() {
+    if (this.continued) {
+      this.continued.restore.forEach((r) => r())
+      this.continued.section.remove()
+      for (const n of this.root.querySelectorAll<HTMLElement>('[data-blitz-continued]')) delete n.dataset.blitzContinued
+      this.continued = undefined
+    }
     for (const sheet of this.sheets) sheet.replaceWith(...sheet.childNodes)
     this.sheets = []
   }
@@ -362,6 +418,14 @@ html[data-blitz-mode="doc"] body { background: var(--blitz-bg); color: var(--bli
 .blitz-doc-notes > :last-child { margin-bottom: 0; }
 .blitz-doc-measure { position: absolute; left: -100000px; top: 0; visibility: hidden; max-width: none; margin: 0; ${notes} }
 
+.blitz-doc-continued { ${notes} column-count: 2; column-gap: ${GAP_MM}mm; column-fill: auto; }
+.blitz-doc-continued > h1 { font-size: 12pt; margin: 0 0 3mm; }
+.blitz-doc-continued h2 { font-size: ${NOTES_FONT}; margin: 4mm 0 1mm; break-after: avoid; }
+.blitz-doc-continued-entry > :nth-child(2) { margin-top: 0; }
+.blitz-doc-measure-pages { position: absolute; left: -100000px; top: 0; visibility: hidden; box-sizing: border-box; }
+.blitz-doc-more { font-style: italic; }
+@media screen { .blitz-doc-continued:not(.blitz-doc-measure-pages) { display: none; } }
+
 @page { size: ${g.page.width}mm ${g.page.height}mm; margin: ${MARGIN_MM}mm; @bottom-right { content: counter(page) " / " counter(pages); font: 8pt sans-serif; color: #666; } }
 @media print {
   html[data-blitz-mode="doc"] body { background: #fff; color: #111; }
@@ -377,11 +441,7 @@ html[data-blitz-mode="doc"] body { background: var(--blitz-bg); color: var(--bli
     margin: 0; flex: 0 0 auto; display: flex; gap: ${NOTES_GAP_MM}mm; min-width: 0; align-items: flex-start;
     flex-direction: ${g.landscape ? 'column' : 'row'}; ${g.landscape ? `width: ${g.pair.slide}mm;` : `height: ${g.pair.notesHeight}mm;`}
   }
-  .blitz-doc-solo {
-    height: auto; overflow: visible; display: block;
-    --blitz-doc-scale: ${zoom(g.solo.slide)}; --blitz-doc-frame: ${g.solo.slide}mm;
-  }
-  .blitz-doc-solo > .blitz-doc-page { width: auto; height: auto; flex-direction: ${g.landscape ? 'row' : 'column'}; align-items: flex-start; }
+  .blitz-doc-continued { break-before: page; }
   .blitz-doc-frame {
     width: var(--blitz-doc-frame); flex: none; box-shadow: none; break-inside: avoid;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;

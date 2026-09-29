@@ -188,8 +188,9 @@ relied on it will notice.
   readers. It works from `file://`. `&notes` adds the presenter notes.
 - **Handouts**: `export --notes`, or printing document mode, gives two
   slides to a landscape A4 sheet, each with its notes
-  (`&orientation=portrait` for two rows). A slide whose notes don't fit
-  gets a sheet of its own, and `export` names it.
+  (`&orientation=portrait` for two rows). Every sheet is alike: notes too
+  long for their half carry on after the sheets, and `export` names the
+  slide.
 - **`alt=` on charts, maps, diagrams and formulas** is what a screen reader
   says for them: each is one image, named by `alt`, in the deck, in
   document mode and in the exported PDF. On an embed, `alt` names the

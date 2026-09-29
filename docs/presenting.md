@@ -155,8 +155,10 @@ they're shown (`&notes`). `&orientation=portrait` prints two rows to a
 portrait sheet instead, notes beside each slide. That's the handout
 `export --notes` writes.
 
-Notes that don't fit their half of the sheet aren't cut: that slide gets a
-sheet of its own, and its notes carry on over the next page if they must
+Every sheet is laid out the same way. Notes that don't fit their half of
+the sheet aren't cut: they keep the paragraphs and list items that fit,
+end with *Continued on page 7*, and the rest follows the sheets under
+**Notes, continued**, headed by the slide's number and title
 (`export --notes` names the slide). As a rule of thumb, about 1,300
 characters of notes fit under a slide (1,000 beside one, in portrait):
 the prompts a speaker glances at, not a script.

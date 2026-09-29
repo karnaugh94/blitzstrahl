@@ -6,6 +6,8 @@
     "announce": "{title} ({n} von {total})",
     "footnotes": "Fußnoten",
     "notes": "Notizen",
+    "notesContinued": "Notizen, Fortsetzung",
+    "continuedOn": "Weiter auf Seite {n}.",
     "aria": {
       "chart": "Diagramm",
       "bar": "Balkendiagramm",

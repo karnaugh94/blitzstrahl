@@ -30,6 +30,7 @@
     "slide": "Folie {n}",
     "slides": "Folien",
     "allSlides": "Alle Folien",
+    "embeddedPage": "Eingebettete Seite",
     "gotoTitle": "Gehe zu Folie",
     "gotoLabel": "Foliennummer, ID oder Titel",
     "gotoPlaceholder": "1–{total}, ID oder Titel",

@@ -66,7 +66,17 @@ test('overview thumbnails show every step and duplicate no ids', async ({ page }
   await expect(thumb.getByText('Second')).toBeVisible()
   expect(await page.locator('[id="a"]').count()).toBe(1)
   expect(await thumb.locator('[data-blitz-placeholder]').count()).toBe(0)
-  expect(await page.getByRole('option', { name: '3. Links and charts' }).locator('[data-blitz-placeholder="chart"]').count()).toBe(1)
+  // A chart never shown is drawn for its thumbnail (M12.5), with ids of its own.
+  const charts = page.getByRole('option', { name: '3. Links and charts' })
+  await expect(charts.locator('[data-blitz-block] svg')).toHaveCount(1)
+  await expect(charts.locator('[data-blitz-placeholder]')).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  // Slide 3, and the step that brings its chart in: now the live chart and its drawing are both on the page.
+  await page.evaluate(() => window.blitz!.goto(2, 1))
+  await expect(page.locator('.blitz-slide[data-blitz-current] [data-blitz-block] svg')).toHaveCount(1)
+  await page.keyboard.press('Escape')
+  const ids = await page.evaluate(() => [...document.querySelectorAll('[id]')].map((e) => e.id))
+  expect(ids.filter((id, k) => ids.indexOf(id) !== k)).toEqual([])
 })
 
 test('B blacks out; navigation still works underneath; B or . brings it back', async ({ page }) => {

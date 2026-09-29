@@ -30,6 +30,7 @@
     "slide": "Bild {n}",
     "slides": "Bilder",
     "allSlides": "Alla bilder",
+    "embeddedPage": "Inbäddad sida",
     "gotoTitle": "Gå till bild",
     "gotoLabel": "Bildnummer, id eller rubrik",
     "gotoPlaceholder": "1–{total}, id eller rubrik",

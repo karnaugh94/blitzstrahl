@@ -9,7 +9,8 @@ import { needsBox, playEntrance, playExit, registerEffects, type CustomEffect, t
 import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
 import type { BlockData, RenderInstance, RendererLoader } from './renderer.js'
 import { Blocks } from './blocks.js'
-import { bindPrinting, buildPrint, buildStaticPrint, snapshot, type PrintOptions, type PrintResult } from './print.js'
+import { bindPrinting, buildPrint, buildStaticPrint, type PrintOptions, type PrintResult } from './print.js'
+import { Drawings } from './drawings.js'
 import { bindInk, draws, inkKey, InkLayer, penFor, type InkEvent, type Tool } from './ink.js'
 import { focusLines } from './lines.js'
 import { MEDIA, rewind, showMedia, wireMedia } from './media.js'
@@ -17,7 +18,7 @@ import { flipFrames, isCode, pairSlides, place, textPair, type MorphPair } from 
 import { CodeMorph } from './code-morph.js'
 import { clamp, documentUrl, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type SlideMotion, type TransitionEngine } from './transitions.js'
-import { LayerHost, gotoPrompt, help, overview, presenterBlocked, uiWords } from './ui.js'
+import { LayerHost, embedCard, gotoPrompt, help, overview, presenterBlocked, uiWords } from './ui.js'
 import { DeckBridge } from './presenter/bridge.js'
 import { measureOverflow } from './overflow.js'
 import { describeOverflow, type Overflow } from './overflow-report.js'
@@ -377,6 +378,8 @@ export class Deck implements NavTarget {
   /** Open the slide overview (`Esc`). */
   showOverview(): void {
     const at = this.pos?.slide ?? 0
+    // The slide on screen as it is now.
+    if (this.pos) this.keepDrawings(this.views[this.pos.slide]!)
     this.layers.open(
       overview(this.doc, {
         stage: this.stage,
@@ -385,6 +388,7 @@ export class Deck implements NavTarget {
         current: at,
         pick: (i) => this.goto(i, 0),
         host: this.layers,
+        drawings: this.drawings,
       }),
     )
   }
@@ -418,8 +422,13 @@ export class Deck implements NavTarget {
     return built.result
   }
 
-  /** What each block last drew, by id: printing from the browser's menu uses it. */
-  private readonly drawings = new Map<string, HTMLElement>()
+  /** What each block last drew, by id: printing from the browser's menu, and the overview. */
+  private readonly drawings = new Drawings({
+    canvas: () => this.payload.canvas,
+    section: (i) => this.views[i]?.el,
+    slide: (i) => this.payload.slides[i],
+    mount: (el, block, step) => this.blocks.mountStill(el, block, step),
+  })
 
   private printing(): Parameters<typeof bindPrinting>[1] {
     return {
@@ -440,7 +449,7 @@ export class Deck implements NavTarget {
   }
 
   private keepDrawings(view: SlideView) {
-    for (const b of view.blocks) if (b.instance && !b.enhance) this.drawings.set(b.data.id, snapshot(b.el))
+    for (const b of view.blocks) if (b.instance && !b.enhance && !b.el.querySelector('.blitz-embed-card')) this.drawings.keep(b.data.id, b.el)
   }
 
   /** Swap in a rebuilt deck (dev HMR), keeping the current slide and step. */
@@ -778,6 +787,12 @@ export class Deck implements NavTarget {
   }
 
   private async mount(b: BlockView, step: number) {
+    // The next preview never loads an embedded page: a second copy of a site costs the presenter's load (M12.4).
+    if (this.mode === 'mirror-still' && b.data.renderer === 'embed') {
+      b.el.replaceChildren(embedCard(this.doc, b.el, b.data.spec))
+      b.instance = { update() {}, resize() {}, destroy: () => b.el.replaceChildren() }
+      return
+    }
     const gen = this.generation
     b.loading = true
     try {

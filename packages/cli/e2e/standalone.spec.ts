@@ -172,5 +172,8 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * additions, the next preview's ink (M12.3, M12.7), +6.0 kB: nine words
  * in seven languages (2.6 kB, three of them in the key help, which the
  * audience window has too), the rest code and the swatches' CSS.
+ * Then 232.5 kB: the overview's real thumbnails and the next preview's
+ * embed card (M12.4–5), +4.2 kB: drawing blocks off screen, giving copies
+ * ids of their own, the card and its one word in seven languages.
  */
-const BUDGET = { minimal: 229_000, withChart: 885_000 }
+const BUDGET = { minimal: 233_000, withChart: 889_000 }

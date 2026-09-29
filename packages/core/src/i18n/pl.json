@@ -30,6 +30,7 @@
     "slide": "Slajd {n}",
     "slides": "Slajdy",
     "allSlides": "Wszystkie slajdy",
+    "embeddedPage": "Osadzona strona",
     "gotoTitle": "Przejdź do slajdu",
     "gotoLabel": "Numer, identyfikator lub tytuł slajdu",
     "gotoPlaceholder": "1–{total}, identyfikator lub tytuł",

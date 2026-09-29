@@ -9,6 +9,7 @@
 import type { DeckPayload } from '@blitzstrahl/core'
 import { INK_COLORS, InkBook, bindInk, inkKey, penFor, type Tool } from '../ink.js'
 import { Blocks } from '../blocks.js'
+import { Drawings } from '../drawings.js'
 import { bindKeyboard, type NavTarget } from '../input.js'
 import { bindPrinting, buildPrint, buildStaticPrint } from '../print.js'
 import type { RendererLoader } from '../renderer.js'
@@ -70,6 +71,13 @@ export class PresenterView implements NavTarget {
   private lastElapsed = 0
 
   private readonly blocks: Blocks
+  /** The grid's charts, maps and diagrams, drawn here in the background (M12.5). */
+  private readonly drawings = new Drawings({
+    canvas: () => this.payload.canvas,
+    section: (i) => this.sections()[i],
+    slide: (i) => this.payload.slides[i],
+    mount: (el, block, step) => this.blocks.mountStill(el, block, step),
+  })
   private readonly printer: ReturnType<typeof bindPrinting>
 
   constructor(
@@ -212,6 +220,7 @@ export class PresenterView implements NavTarget {
     const notes = this.doc.getElementById('blitz-notes')
     if (notes instanceof HTMLTemplateElement && notesHtml !== undefined) notes.innerHTML = notesHtml
     delete this.el.notes!.dataset.for
+    this.drawings.clear()
     this.render()
   }
 
@@ -368,6 +377,7 @@ export class PresenterView implements NavTarget {
         current: this.state?.slide ?? 0,
         pick: (i) => this.goto(i),
         host: this.layers,
+        drawings: this.drawings,
         extra: (i) => {
           const s = this.payload.slides[i]!
           const marks: string[] = []

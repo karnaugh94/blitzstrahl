@@ -8,19 +8,32 @@
  * slide for as long as the page is open; they're never printed or saved.
  */
 
-export type Tool = 'none' | 'laser' | 'pen'
+export type Tool = 'none' | 'laser' | 'pen' | 'highlighter'
+
+/** The pen's three colours (`1`, `2`, `3`): the theme's ink, then two chart colours. */
+export const INK_COLORS = ['--blitz-ink', '--blitz-chart-2', '--blitz-chart-3'] as const
+/** How wide each tool draws, in canvas pixels. */
+export const WIDTH = { pen: 6, highlighter: 28 } as const
 
 export interface Stroke {
-  /** Unique per window that drew it; a repeat replaces (the stroke grows as it's drawn). */
+  /** Unique per window that drew it; a repeat replaces. */
   id: string
   color: string
   width: number
+  /** A highlighter stroke: broad, and see-through. */
+  kind?: 'highlight'
   /** Flat `x, y` pairs in canvas pixels. */
   points: number[]
 }
 
 export type InkEvent =
+  /** A stroke begins (or, in a sync, is whole). */
   | { op: 'stroke'; slide: number; stroke: Stroke }
+  /** More points for a stroke under way: only the new ones (PLAN §15, M12.3). */
+  | { op: 'extend'; slide: number; id: string; points: number[] }
+  /** `Z`: an intent; the deck turns it into a `remove` of the slide's last stroke. */
+  | { op: 'undo'; slide: number }
+  | { op: 'remove'; slide: number; id: string }
   | { op: 'clear'; slide: number }
   /** Where the laser points, in canvas pixels; `null` when it's off the canvas. */
   | { op: 'laser'; at: [number, number] | null }
@@ -35,9 +48,17 @@ export class InkBook {
     if (e.op === 'stroke') {
       const list = this.strokes.get(e.slide) ?? []
       const k = list.findIndex((s) => s.id === e.stroke.id)
-      if (k >= 0) list[k] = e.stroke
-      else list.push(e.stroke)
+      // A copy: the points grow in place as `extend`s arrive.
+      const stroke = { ...e.stroke, points: [...e.stroke.points] }
+      if (k >= 0) list[k] = stroke
+      else list.push(stroke)
       this.strokes.set(e.slide, list)
+    } else if (e.op === 'extend') {
+      this.find(e.slide, e.id)?.points.push(...e.points)
+    } else if (e.op === 'remove') {
+      const list = this.strokes.get(e.slide)?.filter((s) => s.id !== e.id)
+      if (list?.length) this.strokes.set(e.slide, list)
+      else this.strokes.delete(e.slide)
     } else if (e.op === 'clear') {
       this.strokes.delete(e.slide)
     } else if (e.op === 'sync') {
@@ -48,6 +69,15 @@ export class InkBook {
 
   snapshot(): InkEvent {
     return { op: 'sync', strokes: Object.fromEntries(this.strokes) }
+  }
+
+  find(slide: number, id: string): Stroke | undefined {
+    return this.strokes.get(slide)?.find((s) => s.id === id)
+  }
+
+  /** The slide's last stroke, which `undo` takes back. */
+  last(slide: number): Stroke | undefined {
+    return this.strokes.get(slide)?.at(-1)
   }
 }
 
@@ -121,9 +151,15 @@ export class InkLayer {
       this.drawLaser()
       return
     }
+    // An intent, never applied as it is (the deck resolves it).
+    if (e.op === 'undo') return
     this.book.apply(e)
-    if (e.op === 'stroke' && e.slide === this.slide) this.drawStroke(e.stroke)
-    else if (e.op !== 'stroke' && (e.op === 'sync' || e.slide === this.slide)) this.drawStrokes()
+    if (e.op !== 'sync' && e.slide !== this.slide) return
+    if (e.op === 'stroke') this.drawStroke(this.book.find(e.slide, e.stroke.id)!)
+    else if (e.op === 'extend') {
+      const s = this.book.find(e.slide, e.id)
+      if (s) this.drawStroke(s)
+    } else this.drawStrokes()
   }
 
   destroy(): void {
@@ -147,6 +183,7 @@ export class InkLayer {
     path.setAttribute('d', strokePath(s.points))
     path.setAttribute('stroke', s.color)
     path.setAttribute('stroke-width', String(s.width))
+    if (s.kind) path.dataset.kind = s.kind
   }
 
   /** The dot where the laser is, and a short trail behind it that fades out. */
@@ -165,6 +202,58 @@ export class InkLayer {
   }
 }
 
+/** The tools that leave strokes. */
+export const draws = (tool: Tool) => tool === 'pen' || tool === 'highlighter'
+
+/** What the tool in hand draws with: colour `color` (0–2) of `INK_COLORS`, read through `token`. */
+export function penFor(tool: Tool, color: number, token: (name: string) => string): Pick<Stroke, 'color' | 'width' | 'kind'> {
+  const ink = token('--blitz-ink') || token('--blitz-accent') || '#ff4d6d'
+  const c = (color > 0 && token(INK_COLORS[color] ?? '')) || ink
+  return tool === 'highlighter' ? { color: c, width: WIDTH.highlighter, kind: 'highlight' } : { color: c, width: WIDTH.pen }
+}
+
+/** A window that holds the tools: the deck, and the presenter view. */
+export interface InkKeys {
+  tool: Tool
+  setTool(tool: Tool): void
+  setColor(color: number): void
+  undoInk(): void
+  clearInk(): void
+}
+
+/**
+ * The tools' keys, the same in both windows: `L`, `D`, `H` pick up or put
+ * down, `1`–`3` pick a colour (and the pen, unless a drawing tool is in
+ * hand), `Z` undoes, `C` clears. True when the key was one of them.
+ */
+export function inkKey(key: string, w: InkKeys): boolean {
+  const toggle = (t: Tool) => w.setTool(w.tool === t ? 'none' : t)
+  switch (key.toLowerCase()) {
+    case 'l':
+      toggle('laser')
+      return true
+    case 'd':
+      toggle('pen')
+      return true
+    case 'h':
+      toggle('highlighter')
+      return true
+    case 'z':
+      w.undoInk()
+      return true
+    case 'c':
+      w.clearInk()
+      return true
+    case '1':
+    case '2':
+    case '3':
+      w.setColor(Number(key) - 1)
+      if (!draws(w.tool)) w.setTool('pen')
+      return true
+  }
+  return false
+}
+
 export interface InkInput {
   tool(): Tool
   /** The slide ink goes on. */
@@ -172,8 +261,8 @@ export interface InkInput {
   /** The canvas, as the page shows it (for pointer → canvas pixels). */
   stage: HTMLElement
   canvas: { width: number; height: number }
-  /** The pen's colour and width, read when a stroke starts. */
-  pen(): { color: string; width: number }
+  /** The stroke's colour, width and kind, read when it starts (the tool in hand). */
+  pen(): Pick<Stroke, 'color' | 'width' | 'kind'>
   emit(e: InkEvent): void
 }
 
@@ -186,8 +275,10 @@ let strokes = 0
  * `bindPointer`.) Returns the cleanup.
  */
 export function bindInk(surface: HTMLElement, input: InkInput, origin: string): () => void {
-  let drawing: { slide: number; stroke: Stroke; pointer: number } | undefined
+  /** The stroke under way, and how many of its coordinates have gone out. */
+  let drawing: { slide: number; stroke: Stroke; pointer: number; sent: number } | undefined
   let pending = 0
+  const drawn = () => draws(input.tool())
 
   const toCanvas = (e: PointerEvent): [number, number] | null => {
     const r = input.stage.getBoundingClientRect()
@@ -197,24 +288,27 @@ export function bindInk(surface: HTMLElement, input: InkInput, origin: string): 
     return [x, y]
   }
 
-  /** Stroke updates go out at most once a frame; the stroke keeps growing in between. */
+  /** The start goes out at once, then new points at most once a frame: only those not sent yet. */
   const flush = () => {
     pending = 0
-    if (drawing) input.emit({ op: 'stroke', slide: drawing.slide, stroke: { ...drawing.stroke, points: [...drawing.stroke.points] } })
+    if (!drawing) return
+    const { slide, stroke } = drawing
+    if (drawing.sent === 0) input.emit({ op: 'stroke', slide, stroke: { ...stroke, points: [...stroke.points] } })
+    else if (stroke.points.length > drawing.sent) input.emit({ op: 'extend', slide, id: stroke.id, points: stroke.points.slice(drawing.sent) })
+    drawing.sent = stroke.points.length
   }
   const later = () => {
     if (!pending) pending = requestAnimationFrame(flush)
   }
 
   const onDown = (e: PointerEvent) => {
-    if (input.tool() !== 'pen' || e.button !== 0 || !e.isPrimary) return
+    if (!drawn() || e.button !== 0 || !e.isPrimary) return
     const at = toCanvas(e)
     const slide = input.slide()
     if (!at || slide === undefined) return
     e.preventDefault()
     surface.setPointerCapture?.(e.pointerId)
-    const { color, width } = input.pen()
-    drawing = { slide, pointer: e.pointerId, stroke: { id: `${origin}${++strokes}`, color, width, points: at } }
+    drawing = { slide, pointer: e.pointerId, sent: 0, stroke: { id: `${origin}${++strokes}`, ...input.pen(), points: at } }
     flush()
   }
 

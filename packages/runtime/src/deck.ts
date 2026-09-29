@@ -10,7 +10,7 @@ import { bindKeyboard, bindPointer, type NavTarget } from './input.js'
 import type { BlockData, RenderInstance, RendererLoader } from './renderer.js'
 import { Blocks } from './blocks.js'
 import { bindPrinting, buildPrint, buildStaticPrint, snapshot, type PrintOptions, type PrintResult } from './print.js'
-import { bindInk, InkLayer, type InkEvent, type Tool } from './ink.js'
+import { bindInk, draws, inkKey, InkLayer, penFor, type InkEvent, type Tool } from './ink.js'
 import { focusLines } from './lines.js'
 import { MEDIA, rewind, showMedia, wireMedia } from './media.js'
 import { flipFrames, isCode, pairSlides, place, textPair, type MorphPair } from './morph.js'
@@ -104,8 +104,9 @@ export class Deck implements NavTarget {
   private readonly blackoutEl: HTMLElement
   /** Drawing and the laser, over the slides (ink.ts). */
   readonly ink: InkLayer
-  /** The tool in this window's hands (`L`, `D`). */
+  /** The tool in this window's hands (`L`, `D`, `H`), and the pen's colour (`1`–`3`, as 0–2). */
   tool: Tool = 'none'
+  color = 0
   readonly mode: NonNullable<StartOptions['mode']>
   /** The presenter link (audience mode only). */
   readonly presenter: DeckBridge | undefined
@@ -141,7 +142,7 @@ export class Deck implements NavTarget {
     this.cleanups.push(
       bindPrinting(this.win, this.printing()).unbind,
       bindKeyboard(this.win, this, (e) => this.onKey(e)),
-      bindPointer(this.viewport, this, () => this.tool === 'pen'),
+      bindPointer(this.viewport, this, () => draws(this.tool)),
       bindInk(
         this.viewport,
         {
@@ -220,8 +221,8 @@ export class Deck implements NavTarget {
     const onMessage = (e: MessageEvent) => {
       if (e.source !== parent || !isEnvelope(e.data)) return
       if (e.data.type === 'state') this.goto(e.data.slide, e.data.step, { history: 'none' })
-      // The current-slide preview shows the talk's ink too.
-      else if (e.data.type === 'ink' && this.mode === 'mirror') this.ink.apply(e.data.event)
+      // Both previews show the talk's ink (the presenter sends the next one no laser).
+      else if (e.data.type === 'ink') this.ink.apply(e.data.event)
     }
     this.win.addEventListener('message', onMessage)
     this.cleanups.push(() => this.win.removeEventListener('message', onMessage))
@@ -263,6 +264,12 @@ export class Deck implements NavTarget {
 
   /** Apply drawing or laser input, from this window or the presenter, and pass it on. */
   applyInk(e: InkEvent): void {
+    // `Z`, from either window: the deck decides which stroke that is, and says so.
+    if (e.op === 'undo') {
+      const last = this.ink.book.last(e.slide)
+      if (last) this.applyInk({ op: 'remove', slide: e.slide, id: last.id })
+      return
+    }
     this.ink.apply(e)
     for (const cb of this.inkListeners) cb(e)
   }
@@ -275,14 +282,23 @@ export class Deck implements NavTarget {
     else this.viewport.dataset.blitzTool = tool
   }
 
+  setColor(color: number): void {
+    this.color = color
+  }
+
+  /** `Z`: take back the current slide's last stroke. */
+  undoInk(): void {
+    if (this.pos) this.applyInk({ op: 'undo', slide: this.pos.slide })
+  }
+
   /** `C`: wipe the current slide's drawing. */
   clearInk(): void {
     if (this.pos) this.applyInk({ op: 'clear', slide: this.pos.slide })
   }
 
-  private pen(): { color: string; width: number } {
-    const token = (name: string) => this.win.getComputedStyle(this.stage).getPropertyValue(name).trim()
-    return { color: token('--blitz-ink') || token('--blitz-accent') || '#ff4d6d', width: 6 }
+  private pen() {
+    const style = this.win.getComputedStyle(this.stage)
+    return penFor(this.tool, this.color, (name) => style.getPropertyValue(name).trim())
   }
 
   advance(): void {
@@ -466,19 +482,8 @@ export class Deck implements NavTarget {
       this.setTool('none')
       return true
     }
+    if (inkKey(e.key, this)) return true
     switch (e.key) {
-      case 'l':
-      case 'L':
-        this.setTool(this.tool === 'laser' ? 'none' : 'laser')
-        return true
-      case 'd':
-      case 'D':
-        this.setTool(this.tool === 'pen' ? 'none' : 'pen')
-        return true
-      case 'c':
-      case 'C':
-        this.clearInk()
-        return true
       case 'Escape':
       case 'o':
       case 'O':

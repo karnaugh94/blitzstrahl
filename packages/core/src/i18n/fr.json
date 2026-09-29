@@ -53,6 +53,9 @@
       "presenter": "Mode présentateur",
       "laser": "Pointeur laser",
       "draw": "Dessiner sur la diapositive",
+      "highlighter": "Surligneur",
+      "colors": "Couleur du stylo : l’encre, puis deux couleurs des graphiques",
+      "undo": "Annuler le dernier trait sur cette diapositive",
       "clear": "Effacer le dessin de cette diapositive",
       "print": "Imprimer toutes les diapositives, ou les enregistrer en PDF",
       "document": "Lire comme un document : toutes les diapositives sur une page",
@@ -111,7 +114,13 @@
       "forgetTitle": "Oublier les temps de répétition",
       "paceOk": "Dans les temps",
       "paceBehind": "En retard de {time}",
-      "paceOver": "Temps dépassé de {time}"
+      "paceOver": "Temps dépassé de {time}",
+      "highlighter": "Surligneur",
+      "highlighterTitle": "Surligner sur la diapositive actuelle (H)",
+      "undo": "Annuler",
+      "undoTitle": "Annuler le dernier trait sur cette diapositive (Z)",
+      "colors": "Couleurs du stylo",
+      "color": "Couleur {n} ({n})"
     },
     "document": {
       "label": "Document",

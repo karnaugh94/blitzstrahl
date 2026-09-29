@@ -7,7 +7,7 @@
  * deck's `state` messages.
  */
 import type { DeckPayload } from '@blitzstrahl/core'
-import { InkBook, bindInk, type Tool } from '../ink.js'
+import { INK_COLORS, InkBook, bindInk, inkKey, penFor, type Tool } from '../ink.js'
 import { Blocks } from '../blocks.js'
 import { bindKeyboard, type NavTarget } from '../input.js'
 import { bindPrinting, buildPrint, buildStaticPrint } from '../print.js'
@@ -57,6 +57,8 @@ export class PresenterView implements NavTarget {
   private inkSynced = false
   /** The tool in the presenter's hands: it draws and points on the current preview. */
   tool: Tool = 'none'
+  /** The pen's colour, 0–2 (`1`–`3`). */
+  color = 0
 
   /** Time on each slide in this talk, and in the rehearsal under way (presenting.md, *Pacing*). */
   private readonly talk = new SlideClock()
@@ -112,10 +114,7 @@ export class PresenterView implements NavTarget {
         slide: () => this.state?.slide,
         stage: this.el.currentBox!,
         canvas: payload.canvas,
-        pen: () => {
-          const token = (name: string) => this.win.getComputedStyle(doc.documentElement).getPropertyValue(name).trim()
-          return { color: token('--blitz-ink') || token('--blitz-accent') || '#ff4d6d', width: 6 }
-        },
+        pen: () => penFor(this.tool, this.color, (name) => this.token(name)),
         emit: (event) => this.transport.send({ type: 'ink', event }),
       },
       'p',
@@ -168,6 +167,16 @@ export class PresenterView implements NavTarget {
     this.el.root!.dataset.tool = tool
     this.el.laser!.setAttribute('aria-pressed', String(tool === 'laser'))
     this.el.pen!.setAttribute('aria-pressed', String(tool === 'pen'))
+    this.el.highlighter!.setAttribute('aria-pressed', String(tool === 'highlighter'))
+  }
+
+  setColor(color: number): void {
+    this.color = color
+    this.el.colors!.querySelectorAll('button').forEach((b, i) => b.setAttribute('aria-pressed', String(i === color)))
+  }
+
+  undoInk(): void {
+    if (this.state) this.transport.send({ type: 'ink', event: { op: 'undo', slide: this.state.slide } })
   }
 
   clearInk(): void {
@@ -244,6 +253,8 @@ export class PresenterView implements NavTarget {
       if (m.event.op === 'sync') this.inkSynced = true
       this.book.apply(m.event)
       this.post(this.current, { type: 'ink', event: m.event })
+      // The next preview shows what's drawn on the slide it shows; the laser is the current slide's.
+      if (m.event.op !== 'laser') this.post(this.upcoming, { type: 'ink', event: m.event })
     } else if (m.type === 'bye') {
       this.lastHeard = 0
       this.render()
@@ -258,7 +269,7 @@ export class PresenterView implements NavTarget {
         delete m.sent
       }
     }
-    if (e.source === this.current.frame.contentWindow) this.post(this.current, { type: 'ink', event: this.book.snapshot() })
+    for (const m of [this.current, this.upcoming]) if (e.source === m.frame.contentWindow) this.post(m, { type: 'ink', event: this.book.snapshot() })
     this.render()
   }
 
@@ -311,19 +322,8 @@ export class PresenterView implements NavTarget {
       this.setTool('none')
       return true
     }
+    if (inkKey(e.key, this)) return true
     switch (e.key) {
-      case 'l':
-      case 'L':
-        this.setTool(this.tool === 'laser' ? 'none' : 'laser')
-        return true
-      case 'd':
-      case 'D':
-        this.setTool(this.tool === 'pen' ? 'none' : 'pen')
-        return true
-      case 'c':
-      case 'C':
-        this.clearInk()
-        return true
       case 'Escape':
       case 'o':
       case 'O':
@@ -440,6 +440,35 @@ export class PresenterView implements NavTarget {
     this.tick()
   }
 
+  /** The pen's three colours, as buttons: `1`–`3`, each in its colour. */
+  private swatches(): HTMLElement {
+    const box = this.doc.createElement('span')
+    box.className = 'bp-swatches'
+    box.setAttribute('role', 'group')
+    box.setAttribute('aria-label', this.words.presenter.colors)
+    INK_COLORS.forEach((_, i) => {
+      const b = this.doc.createElement('button')
+      b.type = 'button'
+      b.className = 'bp-swatch'
+      const title = fill(this.words.presenter.color, { n: i + 1 })
+      b.title = title
+      b.setAttribute('aria-label', title)
+      b.setAttribute('aria-pressed', String(i === this.color))
+      b.style.setProperty('--bp-swatch', penFor('pen', i, (name) => this.token(name)).color)
+      b.addEventListener('click', () => {
+        this.setColor(i)
+        if (this.tool !== 'highlighter') this.setTool('pen')
+      })
+      box.append(b)
+    })
+    this.el.colors = box
+    return box
+  }
+
+  private token(name: string): string {
+    return this.win.getComputedStyle(this.doc.documentElement).getPropertyValue(name).trim()
+  }
+
   private notesFor(id: string): Element | null {
     const tpl = this.doc.getElementById('blitz-notes')
     return tpl instanceof HTMLTemplateElement ? tpl.content.querySelector(`[data-for="${CSS.escape(id)}"]`) : null
@@ -497,6 +526,8 @@ export class PresenterView implements NavTarget {
       button(w.rehearse, w.rehearseTitle, () => this.toggleRehearsal(), 'rehearse'),
       button(w.forget, w.forgetTitle, () => this.forgetRehearsal(), 'forget'),
       el('span', 'bp-clock', 'clock'),
+      button(w.print, w.printTitle, () => this.print()),
+      button(w.document, w.documentTitle, () => this.openDocument()),
       el('span', 'bp-status', 'status'),
     )
     // Under the current slide: what acts on the talk and on the slide.
@@ -509,10 +540,10 @@ export class PresenterView implements NavTarget {
       el('span', 'bp-gap'),
       button(w.laser, w.laserTitle, () => this.setTool(this.tool === 'laser' ? 'none' : 'laser'), 'laser'),
       button(w.pen, w.penTitle, () => this.setTool(this.tool === 'pen' ? 'none' : 'pen'), 'pen'),
+      button(w.highlighter, w.highlighterTitle, () => this.setTool(this.tool === 'highlighter' ? 'none' : 'highlighter'), 'highlighter'),
+      this.swatches(),
+      button(w.undo, w.undoTitle, () => this.undoInk()),
       button(w.clear, w.clearTitle, () => this.clearInk()),
-      el('span', 'bp-gap'),
-      button(w.print, w.printTitle, () => this.print()),
-      button(w.document, w.documentTitle, () => this.openDocument()),
     )
     const connect = el(
       'div',

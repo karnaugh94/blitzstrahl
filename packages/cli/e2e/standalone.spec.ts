@@ -168,5 +168,9 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * unminified string), the rest code. A `file://` deck needs its presenter
  * view, so none of it can stay out. The chart deck carries the same
  * (870.5 kB).
+ * Then 228.4 kB: the pen's colours, highlighter and undo, strokes sent as
+ * additions, the next preview's ink (M12.3, M12.7), +6.0 kB: nine words
+ * in seven languages (2.6 kB, three of them in the key help, which the
+ * audience window has too), the rest code and the swatches' CSS.
  */
-const BUDGET = { minimal: 223_000, withChart: 879_000 }
+const BUDGET = { minimal: 229_000, withChart: 885_000 }

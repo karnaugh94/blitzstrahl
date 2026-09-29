@@ -12,7 +12,7 @@ import { Blocks } from '../blocks.js'
 import { bindKeyboard, type NavTarget } from '../input.js'
 import { bindPrinting, buildPrint, buildStaticPrint } from '../print.js'
 import type { RendererLoader } from '../renderer.js'
-import { next, type Position } from '../steps.js'
+import { documentUrl, next, type Position } from '../steps.js'
 import { fill } from '@blitzstrahl/core/i18n'
 import { LayerHost, gotoPrompt, help, overview, slideLabel, uiWords } from '../ui.js'
 import { PROTOCOL, elapsed, formatElapsed, isEnvelope, type PresenterMsg } from './protocol.js'
@@ -175,6 +175,13 @@ export class PresenterView implements NavTarget {
     this.printer.print()
   }
 
+  /** Document mode in a new tab, at the current slide: the talk carries on here. */
+  openDocument(): void {
+    const id = this.state ? this.payload.slides[this.state.slide]?.id : undefined
+    const url = documentUrl(this.win.location.href, id ? `#/${encodeURIComponent(id)}` : '')
+    this.win.open(url, '_blank', 'noopener')
+  }
+
   private sections(): HTMLElement[] {
     return [...this.doc.querySelectorAll<HTMLElement>('.blitz-stage > .blitz-slide')]
   }
@@ -261,6 +268,10 @@ export class PresenterView implements NavTarget {
         return true
       case '?':
         this.layers.open(help(this.doc, this.layers))
+        return true
+      case 'r':
+      case 'R':
+        this.openDocument()
         return true
     }
     return false
@@ -391,6 +402,7 @@ export class PresenterView implements NavTarget {
       button(w.pen, w.penTitle, () => this.setTool(this.tool === 'pen' ? 'none' : 'pen'), 'pen'),
       button(w.clear, w.clearTitle, () => this.clearInk()),
       button(w.print, w.printTitle, () => this.print()),
+      button(w.document, w.documentTitle, () => this.openDocument()),
       el('span', 'bp-status', 'status'),
     )
     const connect = el(

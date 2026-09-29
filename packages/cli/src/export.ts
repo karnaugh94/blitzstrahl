@@ -28,6 +28,8 @@ export interface ExportOptions {
   outFile?: string
   /** One page per build step. */
   steps?: boolean
+  /** A handout: document mode with notes, printed (M11.2). */
+  notes?: boolean
   /** Export even if the deck has errors. */
   force?: boolean
   quiet?: boolean
@@ -61,6 +63,7 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
     try {
       // 2x, for sharp screenshots of embedded pages; text and charts stay vector.
       const tab = await browser.newPage({ reducedMotion: 'reduce', deviceScaleFactor: 2 })
+      if (options.notes) return await handout(tab, url, file, loaded.deck.meta)
       await tab.goto(url)
       await tab.waitForFunction(() => (globalThis as { blitz?: unknown }).blitz, undefined, { timeout: 15_000 })
       const canvas = await tab.evaluate(() => (globalThis as unknown as { blitz: { canvas: { width: number; height: number } } }).blitz.canvas)
@@ -80,6 +83,22 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
   } finally {
     await rm(tmp, { recursive: true, force: true })
   }
+}
+
+/**
+ * `--notes`: document mode with the notes, printed on the paper its own
+ * CSS asks for (A4 portrait), one slide per page and its notes after it.
+ */
+async function handout(tab: Tab, url: string, file: string, meta: DeckMeta): Promise<ExportResult> {
+  await tab.setViewportSize({ width: 1280, height: 900 })
+  await tab.goto(`${url}?mode=doc&notes`)
+  await tab.waitForFunction(() => (globalThis as { blitzDocument?: unknown }).blitzDocument, undefined, { timeout: 15_000 })
+  const printed = await tab.evaluate(() => (globalThis as unknown as { blitzDocument: { print(): Promise<PrintResult> } }).blitzDocument.print())
+  const frames = await pictureFrames(tab, '.blitz-doc iframe')
+  const pdf = await withMetadata(await tab.pdf({ printBackground: true, preferCSSPageSize: true, tagged: true, outline: true }), meta)
+  await writeFile(file, pdf)
+  const pages = (await PDFDocument.load(pdf, { updateMetadata: false })).getPageCount()
+  return { ok: true, file, pages, warnings: [...printed.warnings, ...frames] }
 }
 
 /**
@@ -118,9 +137,9 @@ type Tab = Awaited<ReturnType<NonNullable<Awaited<ReturnType<typeof launchBrowse
  * before printing (PLAN §11's "build-time screenshot fallback"). A page that
  * didn't load is swapped for its `fallback` image, if it has one.
  */
-async function pictureFrames(tab: Tab): Promise<string[]> {
+async function pictureFrames(tab: Tab, frames = '.blitz-print iframe'): Promise<string[]> {
   const warnings: string[] = []
-  for (const handle of await tab.locator('.blitz-print iframe').elementHandles()) {
+  for (const handle of await tab.locator(frames).elementHandles()) {
     // Chromium doesn't render cross-origin frames that are off screen, and
     // pages keep drawing after their `load` event (a map fetches its tiles):
     // bring each into view and let it settle, within reason.

@@ -264,6 +264,7 @@ export const KEYS: ReadonlyArray<[string, keyof Strings['ui']['keys']]> = [
   ['D', 'draw'],
   ['C', 'clear'],
   ['Ctrl+P  ⌘P', 'print'],
+  ['R', 'document'],
   ['?', 'help'],
 ]
 

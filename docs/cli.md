@@ -4,7 +4,7 @@
 blitzstrahl new [talk.md] [--theme aurora]
 blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
 blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
-blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
+blitzstrahl export <deck.md> [--out deck.pdf] [--steps | --notes] [--force]
 blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
 blitzstrahl theme import <template.potx> [--out folder]
 blitzstrahl --version
@@ -166,7 +166,13 @@ there is replaced.
 - `--steps` gives a page for **every step** instead: the slide as it looks
   on arrival, then after each press. Good for sharing a talk that builds
   up an argument.
-- Pages are the canvas size (1280×720 unless the deck sets `canvas`), text
+- `--notes` gives a **handout** instead: two slides to a landscape A4
+  sheet, each at its final step with its presenter notes under it. A slide
+  whose notes don't fit half a sheet gets a sheet to itself, and `export`
+  names it. It's document mode's printout with notes (presenting.md,
+  *Reading and printing*). `--notes` and `--steps` don't go together.
+  *(1.1)*
+- Without `--notes`, pages are the canvas size (1280×720 unless the deck sets `canvas`), text
   stays selectable text, and charts are vector graphics.
 - **The PDF is accessible** *(1.1)*: it's tagged, so screen readers read
   it in order, with headings, lists and tables as such; its **bookmarks**
@@ -183,12 +189,16 @@ there is replaced.
   another site's page inside a frame.
 - Video and audio print their poster, or the video's frame at `start`
   (syntax.md §13).
-- Presenter notes aren't included.
+- Presenter notes are only in the `--notes` handout.
 - Like `build`, a deck with errors isn't exported unless you pass `--force`.
 
 `export` builds the deck into a temporary folder, serves it on the loopback
 interface for as long as it prints, and deletes it afterwards. `export`
 needs a Chromium-based browser, just like the overflow check.
+
+To print from the browser instead, or to save a PDF without the command
+line, see presenting.md, *Reading and printing*. `export`'s PDF is the one
+with bookmarks and the deck's metadata in every browser.
 
 ## `check`
 

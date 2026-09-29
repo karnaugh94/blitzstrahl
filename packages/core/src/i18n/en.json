@@ -5,6 +5,7 @@
     "deckRole": "slide deck",
     "announce": "{title} ({n} of {total})",
     "footnotes": "Footnotes",
+    "notes": "Notes",
     "backToReference": "Back to reference {ref}",
     "needsNetwork": "{host} needs a network connection",
     "offlineCopy": "{host} (offline copy)",
@@ -39,6 +40,7 @@
       "draw": "Draw on the slide",
       "clear": "Clear the drawing on this slide",
       "print": "Print every slide, or save them as a PDF",
+      "document": "Read as a document: every slide in one page",
       "help": "This help"
     },
     "presenter": {
@@ -62,6 +64,8 @@
       "clearTitle": "Clear the drawing on this slide (C)",
       "print": "Print",
       "printTitle": "Print every slide, or save them as a PDF (Ctrl+P)",
+      "document": "Document",
+      "documentTitle": "Read the deck as one page, in a new tab (R)",
       "connected": "Connected",
       "waiting": "Waiting for the audience window…",
       "noAudience": "No audience window",
@@ -83,6 +87,13 @@
       "smaller": "Smaller notes",
       "larger": "Larger notes",
       "noNotes": "No notes for this slide."
+    },
+    "document": {
+      "label": "Document",
+      "present": "Present",
+      "presentTitle": "Back to the slides, at this one",
+      "print": "Print",
+      "printTitle": "Print the document, or save it as a PDF (Ctrl+P)"
     },
     "dev": {
       "problems": "Problems in the deck",

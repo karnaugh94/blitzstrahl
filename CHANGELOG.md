@@ -174,6 +174,14 @@ relied on it will notice.
   presenter view has a **Print** button that prints the deck's slides.
   The browser's own Print menu can't wait: it prints every slide, with
   the charts shown so far. 1.0 printed the one slide on screen.
+- **Document mode**: `?mode=doc` (or `R` in the deck, or **Document** in
+  the presenter view) shows every slide in one scrolling page, at its
+  final step, as its own HTML: for reading, find-in-page and screen
+  readers. It works from `file://`. `&notes` adds the presenter notes.
+- **Handouts**: `export --notes`, or printing document mode, gives two
+  slides to a landscape A4 sheet, each with its notes
+  (`&orientation=portrait` for two rows). A slide whose notes don't fit
+  gets a sheet of its own, and `export` names it.
 
 ## [1.0.1] — 2026-09-27
 

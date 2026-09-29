@@ -39,7 +39,7 @@ export interface PrintHost {
 }
 
 /** How long one block may take to be ready before printing goes ahead without it. */
-const READY_TIMEOUT = 15_000
+export const READY_TIMEOUT = 15_000
 
 /** Attributes that belong to the live deck's current state, not the slide. */
 const LIVE_STATE = ['data-blitz-hidden', 'data-blitz-active', 'data-blitz-dim', 'data-blitz-focus', 'data-blitz-lines-on', 'data-blitz-current', 'data-blitz-outgoing', 'data-blitz-overflow', 'aria-hidden']
@@ -62,34 +62,12 @@ export async function buildPrint(host: PrintHost, options: PrintOptions = {}): P
         // Enhanced blocks (sortable tables) are already complete as HTML.
         if (!el || el.closest('[data-blitz-hidden]')) continue
         el.replaceChildren()
-        waits.push(
-          host.mount(el, block, step).then(
-            async (instance) => {
-              instances.push(instance)
-              const late = await timeout(instance.ready ?? Promise.resolve(), READY_TIMEOUT)
-              return late ? `slide ${i + 1}: the ${block.renderer} wasn't ready after ${READY_TIMEOUT / 1000}s; printed as it was` : undefined
-            },
-            (err: unknown) => {
-              const box = doc.createElement('div')
-              box.className = 'blitz-block-error'
-              box.textContent = `${block.renderer}: ${err instanceof Error ? err.message : String(err)}`
-              el.replaceChildren(box)
-              return `slide ${i + 1}: ${box.textContent}`
-            },
-          ),
-        )
+        waits.push(mountReady(el, block, i, () => host.mount(el, block, step), instances))
       }
     }
   })
 
-  await doc.fonts?.ready
-  const images = [...root.querySelectorAll('img')].map((img) => img.decode().catch(() => {}))
-  // Video prints its poster, or its frame at `start` (syntax.md §13).
-  const frames = [...root.querySelectorAll<HTMLMediaElement>('video, audio')].map((m) => mediaFrame(m, READY_TIMEOUT))
-  const warnings = (await Promise.all(waits)).filter((w): w is string => w !== undefined)
-  await Promise.all([...images, ...frames])
-  // One more frame, so the last renders are painted.
-  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  const warnings = await settle(root, waits)
 
   return {
     result: { pages: root.querySelectorAll(':scope > .blitz-slide').length, warnings },
@@ -98,6 +76,41 @@ export async function buildPrint(host: PrintHost, options: PrintOptions = {}): P
       removeRoot(root)
     },
   }
+}
+
+/**
+ * Mount one block and wait until it's ready, within reason. Resolves to a
+ * warning when it wasn't (or failed, when it shows its error instead).
+ */
+export function mountReady(el: HTMLElement, block: BlockData, slide: number, mount: () => Promise<RenderInstance>, instances: RenderInstance[]): Promise<string | undefined> {
+  return mount().then(
+    async (instance) => {
+      instances.push(instance)
+      const late = await timeout(instance.ready ?? Promise.resolve(), READY_TIMEOUT)
+      return late ? `slide ${slide + 1}: the ${block.renderer} wasn't ready after ${READY_TIMEOUT / 1000}s; printed as it was` : undefined
+    },
+    (err: unknown) => {
+      const box = el.ownerDocument.createElement('div')
+      box.className = 'blitz-block-error'
+      box.textContent = `${block.renderer}: ${err instanceof Error ? err.message : String(err)}`
+      el.replaceChildren(box)
+      return `slide ${slide + 1}: ${box.textContent}`
+    },
+  )
+}
+
+/** Wait for `blocks`, then for everything else under `root` to arrive and paint. */
+export async function settle(root: HTMLElement, blocks: Array<Promise<string | undefined>>): Promise<string[]> {
+  await root.ownerDocument.fonts?.ready
+  const images = [...root.querySelectorAll('img')].map((img) => img.decode().catch(() => {}))
+  // Video prints its poster, or its frame at `start` (syntax.md §13).
+  const frames = [...root.querySelectorAll<HTMLMediaElement>('video, audio')].map((m) => mediaFrame(m, READY_TIMEOUT))
+  const warnings = (await Promise.all(blocks)).filter((w): w is string => w !== undefined)
+  // Images a renderer added (map tiles) are only there now.
+  await Promise.all([...images, ...frames, ...[...root.querySelectorAll('img')].map((img) => img.decode().catch(() => {}))])
+  // One more frame, so the last renders are painted.
+  await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)))
+  return warnings
 }
 
 /** The pages' container, at the end of `<body>`, and `<html>` in print state. */
@@ -239,11 +252,17 @@ export function bindPrinting(win: Window, printing: Printing): { print(): void; 
 /** A clone of a slide showing `step`, as a static page. */
 function pageOf(section: HTMLElement, data: PayloadSlide, step: number): HTMLElement {
   const copy = section.cloneNode(true) as HTMLElement
+  showStep(copy, data, step)
+  copy.dataset.blitzPrintPage = String(step)
+  return copy
+}
+
+/** Make a slide show `step`, statically: the live deck's state goes. */
+export function showStep(copy: HTMLElement, data: PayloadSlide, step: number): void {
   for (const el of [copy, ...copy.querySelectorAll<HTMLElement>('*')]) {
     for (const a of LIVE_STATE) el.removeAttribute(a)
     el.style.removeProperty('z-index')
   }
-  copy.dataset.blitzPrintPage = String(step)
 
   const dimmed = new Set<HTMLElement>()
   for (const el of copy.querySelectorAll<HTMLElement>('[data-blitz-step-in]')) {
@@ -263,7 +282,6 @@ function pageOf(section: HTMLElement, data: PayloadSlide, step: number): HTMLEle
   }
   for (const p of dimmed) p.dataset.blitzDim = ''
   for (const pre of copy.querySelectorAll<HTMLElement>('pre[data-blitz-lines]')) focusLines(pre, step)
-  return copy
 }
 
 /**
@@ -279,7 +297,7 @@ function bookmarkOnce(copy: HTMLElement, outlined: Set<number>) {
 }
 
 /** Resolves true if `p` didn't settle within `ms`. */
-function timeout(p: Promise<unknown>, ms: number): Promise<boolean> {
+export function timeout(p: Promise<unknown>, ms: number): Promise<boolean> {
   return new Promise((resolve) => {
     const t = setTimeout(() => resolve(true), ms)
     p.then(

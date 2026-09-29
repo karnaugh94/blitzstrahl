@@ -5,6 +5,7 @@
     "deckRole": "prezentacja",
     "announce": "{title} ({n} z {total})",
     "footnotes": "Przypisy",
+    "notes": "Notatki",
     "backToReference": "Powrót do odwołania {ref}",
     "needsNetwork": "{host} wymaga połączenia z siecią",
     "offlineCopy": "{host} (kopia offline)",
@@ -39,6 +40,7 @@
       "draw": "Rysuj na slajdzie",
       "clear": "Wyczyść rysunek na tym slajdzie",
       "print": "Wydrukuj wszystkie slajdy lub zapisz je jako PDF",
+      "document": "Czytaj jako dokument: wszystkie slajdy na jednej stronie",
       "help": "Ta pomoc"
     },
     "presenter": {
@@ -62,6 +64,8 @@
       "clearTitle": "Wyczyść rysunek na tym slajdzie (C)",
       "print": "Drukuj",
       "printTitle": "Wydrukuj wszystkie slajdy lub zapisz je jako PDF (Ctrl+P)",
+      "document": "Dokument",
+      "documentTitle": "Czytaj prezentację jako jedną stronę, w nowej karcie (R)",
       "connected": "Połączono",
       "waiting": "Oczekiwanie na okno publiczności…",
       "noAudience": "Brak okna publiczności",
@@ -83,6 +87,13 @@
       "smaller": "Mniejsze notatki",
       "larger": "Większe notatki",
       "noNotes": "Brak notatek do tego slajdu."
+    },
+    "document": {
+      "label": "Dokument",
+      "present": "Prezentuj",
+      "presentTitle": "Wróć do slajdów, do tego",
+      "print": "Drukuj",
+      "printTitle": "Wydrukuj dokument lub zapisz go jako PDF (Ctrl+P)"
     },
     "dev": {
       "problems": "Problemy w prezentacji",

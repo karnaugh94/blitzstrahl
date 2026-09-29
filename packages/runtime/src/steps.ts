@@ -81,3 +81,16 @@ export function formatHash(pos: Position, ids: readonly string[]): string {
   const id = ids[pos.slide] ?? String(pos.slide + 1)
   return `#/${encodeURIComponent(id)}${pos.step > 0 ? `/${pos.step}` : ''}`
 }
+
+/** `?mode=doc`: is this page document mode (M11.4)? */
+export function isDocumentMode(win: Window): boolean {
+  return new URLSearchParams(win.location.search).get('mode') === 'doc'
+}
+
+/** The document-mode address of `href`, at `hash` (a slide's, from `formatHash`). */
+export function documentUrl(href: string, hash: string): string {
+  const url = new URL(href)
+  url.searchParams.set('mode', 'doc')
+  url.hash = hash
+  return url.href
+}

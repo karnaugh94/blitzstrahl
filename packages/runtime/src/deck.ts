@@ -15,7 +15,7 @@ import { focusLines } from './lines.js'
 import { MEDIA, rewind, showMedia, wireMedia } from './media.js'
 import { flipFrames, isCode, pairSlides, place, textPair, type MorphPair } from './morph.js'
 import { CodeMorph } from './code-morph.js'
-import { clamp, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
+import { clamp, documentUrl, formatHash, motion, next, parseHash, phaseAt, prev, type Motion, type Phase, type Position } from './steps.js'
 import { ViewTransitionEngine, WaapiEngine, slideMotion, type SlideMotion, type TransitionEngine } from './transitions.js'
 import { LayerHost, gotoPrompt, help, overview, presenterBlocked, uiWords } from './ui.js'
 import { DeckBridge } from './presenter/bridge.js'
@@ -499,6 +499,10 @@ export class Deck implements NavTarget {
       case 'f':
       case 'F':
         void this.toggleFullscreen()
+        return true
+      case 'r':
+      case 'R':
+        this.win.location.assign(documentUrl(this.win.location.href, this.pos ? formatHash({ slide: this.pos.slide, step: 0 }, this.ids) : ''))
         return true
       case 'p':
       case 'P':

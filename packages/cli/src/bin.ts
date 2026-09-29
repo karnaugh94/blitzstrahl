@@ -18,7 +18,7 @@ Usage:
   blitzstrahl new [talk.md] [--theme aurora]
   blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
   blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
-  blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]
+  blitzstrahl export <deck.md> [--out deck.pdf] [--steps | --notes] [--force]
   blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
   blitzstrahl theme import <template.potx> [--out folder]
 
@@ -27,7 +27,8 @@ Commands:
   dev     Live preview with reload on save (keeps your slide and step)
   build   Static site in dist/ (serve it over HTTP), or with --standalone,
           one .html file that opens straight from disk
-  export  PDF: one page per slide at its final step (--steps: every step)
+  export  PDF: one page per slide at its final step (--steps: every step;
+          --notes: a handout with the presenter notes)
   check   Find problems before the talk: errors, missing files, broken
           charts and maps, step gaps, overflow, embeds that refuse framing
   theme   theme import: a CSS theme from a PowerPoint template (.potx, .pptx)
@@ -38,7 +39,8 @@ Options:
                  export: the PDF (default: <deck>.pdf next to the deck)
                  theme import: the folder (default: next to the template)
   --standalone   build: everything in one self-contained .html file
-  --steps        export: a page for every build step (handouts)
+  --steps        export: a page for every build step
+  --notes        export: a handout, each slide with its notes (A4)
   --force        Build even if the deck has errors
   --strict       build: fail if any slide overflows the canvas (or it can't be
                  checked); check: fail on warnings, not just errors
@@ -96,12 +98,13 @@ updates the open deck.
                  on stdout), github (GitHub Actions annotations)`,
   },
   export: {
-    usage: 'blitzstrahl export <deck.md> [--out deck.pdf] [--steps] [--force]',
-    options: ['out', 'steps', 'force'],
+    usage: 'blitzstrahl export <deck.md> [--out deck.pdf] [--steps | --notes] [--force]',
+    options: ['out', 'steps', 'notes', 'force'],
     help: `A PDF, one page per slide at its final step.
 
   --out, -o      the .pdf (default <deck>.pdf next to the deck)
-  --steps        a page for every build step (handouts)
+  --steps        a page for every build step
+  --notes        a handout: A4 pages, each slide with its presenter notes
   --force        export even if the deck has errors`,
   },
   check: {
@@ -134,6 +137,7 @@ const OPTIONS = {
   strict: { type: 'boolean' },
   standalone: { type: 'boolean' },
   steps: { type: 'boolean' },
+  notes: { type: 'boolean' },
   offline: { type: 'boolean' },
   theme: { type: 'string' },
   format: { type: 'string' },
@@ -272,7 +276,9 @@ async function main(argv: string[]): Promise<number> {
     case 'export': {
       const opts: Parameters<typeof exportPdf>[1] = {}
       if (values.out) opts.outFile = values.out
+      if (values.steps && values.notes) throw new CliError('--steps and --notes don\'t go together: a handout shows each slide at its final step')
       if (values.steps) opts.steps = true
+      if (values.notes) opts.notes = true
       if (values.force) opts.force = true
       const r = await exportPdf(deck, opts)
       for (const w of r.warnings) process.stderr.write(`blitzstrahl: ${w}\n`)

@@ -5,6 +5,7 @@
     "deckRole": "presentazione",
     "announce": "{title} ({n} di {total})",
     "footnotes": "Note a piè di pagina",
+    "notes": "Note",
     "backToReference": "Torna al riferimento {ref}",
     "needsNetwork": "{host} richiede una connessione di rete",
     "offlineCopy": "{host} (copia offline)",
@@ -39,6 +40,7 @@
       "draw": "Disegna sulla diapositiva",
       "clear": "Cancella il disegno su questa diapositiva",
       "print": "Stampa tutte le diapositive o salvale come PDF",
+      "document": "Leggi come documento: tutte le diapositive in una pagina",
       "help": "Questa guida"
     },
     "presenter": {
@@ -62,6 +64,8 @@
       "clearTitle": "Cancella il disegno su questa diapositiva (C)",
       "print": "Stampa",
       "printTitle": "Stampa tutte le diapositive o salvale come PDF (Ctrl+P)",
+      "document": "Documento",
+      "documentTitle": "Leggi la presentazione in una sola pagina, in una nuova scheda (R)",
       "connected": "Connesso",
       "waiting": "In attesa della finestra del pubblico…",
       "noAudience": "Nessuna finestra del pubblico",
@@ -83,6 +87,13 @@
       "smaller": "Note più piccole",
       "larger": "Note più grandi",
       "noNotes": "Nessuna nota per questa diapositiva."
+    },
+    "document": {
+      "label": "Documento",
+      "present": "Presenta",
+      "presentTitle": "Torna alle diapositive, a questa",
+      "print": "Stampa",
+      "printTitle": "Stampa il documento o salvalo come PDF (Ctrl+P)"
     },
     "dev": {
       "problems": "Problemi nella presentazione",

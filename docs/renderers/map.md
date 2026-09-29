@@ -75,6 +75,10 @@ change it.
 **Moving the map.** Dragging and scrolling pan and zoom the map, and never
 change the slide. Leaving the slide and coming back resets the view.
 
+**Screen readers** *(1.1)*. A map is read as one image, described by its
+places (markers and regions, by name) in the deck's language. `alt=` on the fence says
+what it shows instead, and the description follows it (syntax.md §8.2).
+
 ## Limits
 
 - **The street map needs the network**, and so it's missing offline, even

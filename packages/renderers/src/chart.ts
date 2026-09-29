@@ -6,16 +6,17 @@
  * carries only what charts use. SVG output stays sharp at any canvas scale.
  */
 import { BarChart, LineChart, PieChart, ScatterChart } from 'echarts/charts'
-import { GridComponent, LegendComponent, TitleComponent, TooltipComponent } from 'echarts/components'
+import { AriaComponent, GridComponent, LegendComponent, TitleComponent, TooltipComponent } from 'echarts/components'
 import * as echarts from 'echarts/core'
 import { SVGRenderer } from 'echarts/renderers'
 import type { RenderCtx, RenderInstance, Renderer } from '@blitzstrahl/runtime'
+import { ariaWords, asImage, chartAria } from './aria.js'
 import { chartOption, validate, type ChartSpec } from './chart-option.js'
 import { parseData } from './data.js'
 
 export { validate, type ChartSpec }
 
-echarts.use([BarChart, LineChart, PieChart, ScatterChart, GridComponent, LegendComponent, TitleComponent, TooltipComponent, SVGRenderer])
+echarts.use([BarChart, LineChart, PieChart, ScatterChart, AriaComponent, GridComponent, LegendComponent, TitleComponent, TooltipComponent, SVGRenderer])
 
 /** Tokens → an ECharts theme, so charts share the deck's palette and type. */
 function themeFrom(ctx: RenderCtx) {
@@ -79,13 +80,21 @@ const chart: Renderer = {
   async mount(el: HTMLElement, raw: unknown, ctx: RenderCtx): Promise<RenderInstance> {
     const spec = validate(raw)
     const option = await buildOption(spec, el, ctx)
+    // One picture to a screen reader: `alt=`, then a description from the data (syntax.md §8.2).
+    const alt = el.getAttribute('aria-label') ?? undefined
+    const restore = asImage(el)
     const instance = echarts.init(el, themeName(ctx), { renderer: 'svg' })
     const ready = new Promise<void>((resolve) => instance.on('finished', () => resolve()))
-    instance.setOption(option)
+    // Bars and lines: a point is (category, value), or (value, category) lying down.
+    const category = spec.type === 'bar' || spec.type === 'line' ? (spec.type === 'bar' && spec.horizontal ? 1 : 0) : undefined
+    instance.setOption({ ...option, aria: chartAria(ariaWords(ctx.lang), spec.type, alt, category) })
     return {
       update() {},
       resize: () => instance.resize(),
-      destroy: () => instance.dispose(),
+      destroy: () => {
+        instance.dispose()
+        restore()
+      },
       ready,
     }
   },

@@ -182,6 +182,12 @@ relied on it will notice.
   slides to a landscape A4 sheet, each with its notes
   (`&orientation=portrait` for two rows). A slide whose notes don't fit
   gets a sheet of its own, and `export` names it.
+- **`alt=` on charts, maps, diagrams and formulas** is what a screen reader
+  says for them: each is one image, named by `alt`, in the deck, in
+  document mode and in the exported PDF. On an embed, `alt` names the
+  frame. Charts and maps also describe themselves from their data, in the
+  deck's language. `check` notes a chart, map or diagram without `alt`. In
+  1.0, `alt` on a fence was accepted and did nothing.
 
 ## [1.0.1] — 2026-09-27
 

@@ -156,5 +156,8 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * it rather than put it behind a flag. The rest is printing from the
  * browser (Ctrl+P, the menu's synchronous layout, snapshots) and the new
  * words, which a standalone file carries in all seven languages.
+ * Then 211.1 kB: what charts and maps say to screen readers (M11.5), eleven
+ * words and templates in seven languages, +1.9 kB. They ship with the
+ * page's other words even when the deck has no chart.
  */
-const BUDGET = { minimal: 210_500, withChart: 870_000 }
+const BUDGET = { minimal: 212_000, withChart: 870_000 }

@@ -138,10 +138,27 @@ describe('check: chart notes', () => {
     const { check } = await import('../src/check.js')
     const dir = mkdtempSync(join(tmpdir(), 'blitz-check-notes-'))
     const deck = join(dir, 'deck.md')
-    writeFileSync(deck, '# S\n\n```chart\ntype: bar\nx: region\ny: v\ndata:\n  - { region: North, v: 4 }\n  - { region: North, v: 5 }\n  - { region: South, v: 6 }\n```\n')
+    writeFileSync(deck, '# S\n\n```chart {alt="Sales by region"}\ntype: bar\nx: region\ny: v\ndata:\n  - { region: North, v: 4 }\n  - { region: North, v: 5 }\n  - { region: South, v: 6 }\n```\n')
     const r = await check(deck, { offline: true, overflow: false })
     expect(r.diagnostics).toEqual([
       expect.objectContaining({ severity: 'info', code: 'renderer/chart-note', message: expect.stringContaining('`region` repeats (North is on 2 rows)'), span: expect.objectContaining({ start: { line: 3, column: 1 } }) }),
+    ])
+  })
+
+  it('notes a chart, map or diagram without alt=, never an embed or one that has it (M11.5)', async () => {
+    const { mkdtempSync, writeFileSync } = await import('node:fs')
+    const { join } = await import('node:path')
+    const { tmpdir } = await import('node:os')
+    const { check } = await import('../src/check.js')
+    const dir = mkdtempSync(join(tmpdir(), 'blitz-check-alt-'))
+    const deck = join(dir, 'deck.md')
+    const chart = 'type: pie\nx: k\ny: v\ndata:\n  - { k: a, v: 1 }\n'
+    writeFileSync(deck, `# S\n\n\`\`\`chart\n${chart}\`\`\`\n\n\`\`\`chart {alt="Mostly a"}\n${chart}\`\`\`\n\n\`\`\`mermaid\nflowchart LR\n  A --> B\n\`\`\`\n\n\`\`\`embed\nsrc: https://example.org/\n\`\`\`\n`)
+    const r = await check(deck, { offline: true, overflow: false })
+    const notes = r.diagnostics.filter((d) => d.code === 'block/no-alt')
+    expect(notes.map((d) => [d.severity, d.span.start.line, d.message])).toEqual([
+      ['info', 3, 'this chart has no `alt=`: say what it shows, for screen readers (syntax.md §8.2)'],
+      ['info', 19, 'this mermaid has no `alt=`: say what it shows, for screen readers (syntax.md §8.2)'],
     ])
   })
 })

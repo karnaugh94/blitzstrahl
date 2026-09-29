@@ -420,7 +420,7 @@ Keys fall into these groups:
 | Structure | `reveal`, `key`, `lines`, `as` *(1.1)* | Consumed (§6.4, §8.1, §9.1, §5.1) |
 | Slide shorthand | `transition`, `transition-dur`, `layout`, `background` | First heading only (§3.2) |
 | Media *(1.1)* | `autoplay`, `loop`, `muted`, `controls`, `poster`, `start`, `end` | Video and audio only (§13); an error anywhere else |
-| HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes. On a container, `width` and `height` set its size instead (§5.2) *(1.1)* |
+| HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes. On a container, `width` and `height` set its size instead (§5.2) *(1.1)*. On a render block, `alt` is its description for screen readers (§8.2) *(1.1)* |
 
 **Any other key is an error.** Unrecognised keys are *not* silently passed
 through. That leaves every un-prefixed key free for blitzstrahl to give meaning
@@ -814,6 +814,36 @@ separated by `|` are successive steps:
   emphasis effects (§6.3). PDFs print each page's group.
 - `lines=` on anything but a code block is an error; a line number past the
   end of the block is a warning.
+
+### 8.2 `alt`: what a screen reader says *(1.1)*
+
+A chart, map or diagram is a picture to a screen reader. `alt=` on the
+fence says what it shows, as `![alt](…)` does for an image:
+
+````markdown
+```chart {alt="Revenue doubled from Q1 to Q4; the East region led every quarter."}
+type: bar
+data: ./sales.csv
+```
+````
+
+- On `chart`, `map`, `mermaid` and a plugin's render blocks, the block is
+  read as one image (`role="img"`) named by `alt`. Say what the picture
+  *means*, not what it looks like.
+- A **chart** or **map** is also described from its data, in the deck's
+  language, after `alt`: a chart's kind, title, series and their first
+  values; a map's places, by name. Without `alt`, that description is its
+  name.
+- A **Mermaid** diagram also has Mermaid's own `accTitle:` and `accDescr:`
+  lines (docs/renderers/mermaid.md); `alt` wins over `accTitle`.
+- On an **`embed`**, `alt` names the frame (as the embed's `title:` does,
+  and over it): the page inside stays readable on its own.
+- On **math**, `alt` is read instead of the formula.
+- `alt` works in the deck, in document mode, and in the PDF `export` writes.
+
+`check` notes a chart, map or diagram without `alt` (an info, never a
+warning: a chart's generated description is a fallback, not a failure).
+In 1.0, `alt` on a fence was accepted and did nothing.
 
 ---
 

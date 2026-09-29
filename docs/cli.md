@@ -180,7 +180,8 @@ there is replaced.
   are bookmarked on its first page only); and its properties carry the
   deck's `title`, `author` and `lang`. If `date` is a calendar date
   (`2026-10-14`), it's the PDF's creation date; otherwise the creation date
-  is when it was exported.
+  is when it was exported. A chart's, map's or diagram's `alt=` is what a
+  screen reader says for it (syntax.md §8.2).
 - Charts, maps and embeds are drawn in full before the page is printed,
   without their entrance animations. A map's street tiles and embedded pages
   come from the network at export time. If one isn't ready within 15

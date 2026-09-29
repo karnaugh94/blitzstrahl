@@ -25,7 +25,38 @@ describe('deck keys', () => {
     expect(RESERVED_DECK_KEYS.has('decimal')).toBe(false)
     expect(RESERVED_DECK_KEYS.has('footer')).toBe(false)
     expect(RESERVED_DECK_KEYS.has('css')).toBe(false)
-    expect(RESERVED_DECK_KEYS.has('duration')).toBe(true)
+    expect(RESERVED_DECK_KEYS.has('duration')).toBe(false)
+  })
+})
+
+describe('`duration` and `pace-margin` (presenting.md, *Pacing*)', () => {
+  it('a time with units, in ms, reaching the page', () => {
+    for (const [v, ms] of [['20min', 1_200_000], ['1h', 3_600_000], ['1h30min', 5_400_000], ['1h 30min', 5_400_000], ['90s', 90_000], ['2.5min', 150_000]] as const) {
+      const { deck: d, diagnostics } = deck(`duration: ${v}`)
+      expect(diagnostics).toEqual([])
+      expect(d.meta.duration).toBe(ms)
+      expect(toPayload(d).duration).toBe(ms)
+    }
+    expect(toPayload(deck('title: x').deck)).not.toHaveProperty('duration')
+  })
+
+  it('a bare number is an error that suggests minutes', () => {
+    for (const v of ['20', '"20"', 'soon', 'min']) {
+      const { deck: d, diagnostics } = deck(`duration: ${v}`)
+      expect(d.meta.duration).toBeUndefined()
+      expect(diagnostics.map((x) => [x.severity, x.code])).toEqual([['error', 'frontmatter/time']])
+    }
+    expect(deck('duration: 20').diagnostics[0]!.message).toContain('`20min`')
+  })
+
+  it('`pace-margin`: a share of the duration or a time, only with a duration', () => {
+    expect(deck('duration: 20min\npace-margin: 10%').deck.meta.paceMargin).toBe(120_000)
+    expect(toPayload(deck('duration: 20min\npace-margin: 2min').deck).paceMargin).toBe(120_000)
+    expect(deck('duration: 20min').deck.meta.paceMargin).toBeUndefined()
+    const alone = deck('pace-margin: 10%')
+    expect(alone.deck.meta.paceMargin).toBeUndefined()
+    expect(alone.diagnostics.map((x) => [x.severity, x.code])).toEqual([['warning', 'frontmatter/pace-margin']])
+    expect(deck('duration: 20min\npace-margin: lots').diagnostics.map((x) => x.code)).toEqual(['frontmatter/time'])
   })
 })
 

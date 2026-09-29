@@ -255,6 +255,24 @@
       "type": "string",
       "pattern": "\\S"
     },
+    "duration": {
+      "description": "How long the talk should take (20min, 1h30min, 90s): the presenter view counts down and shows your pace",
+      "type": "string",
+      "pattern": "^\\s*(?=\\d)(?:(\\d+(?:\\.\\d+)?)\\s*h)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*min)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*s)?\\s*$"
+    },
+    "pace-margin": {
+      "description": "How far behind the clock before the pace bar turns amber: 10% of the duration, or a time (2min). Default 5%",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\s*(?=\\d)(?:(\\d+(?:\\.\\d+)?)\\s*h)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*min)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*s)?\\s*$"
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*\\d+(\\.\\d+)?\\s*%\\s*$"
+        }
+      ]
+    },
     "plugins": {
       "description": "Plugin packages or ./paths, loaded in order",
       "anyOf": [
@@ -271,5 +289,10 @@
         }
       ]
     }
+  },
+  "dependentRequired": {
+    "pace-margin": [
+      "duration"
+    ]
   }
 }

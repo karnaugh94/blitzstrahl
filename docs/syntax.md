@@ -172,6 +172,8 @@ blitzstrahl 1.1 will use (listed there).
 | `footer` | inline markdown | — | A line on every slide (§3.6). *(1.1)* |
 | `slide-numbers` | `true` or a string | — | Number the slides: `true` shows `3`, `"{n} / {total}"` shows `3 / 12` (§3.6). *(1.1)* |
 | `logo` | image path or URL | — | A logo on every slide (§3.6). *(1.1)* |
+| `duration` | time | — | How long the talk should take: `20min`, `1h`, `1h30min`, `90s`. The presenter view counts down from it and shows whether you're on pace (presenting.md, *Pacing*). A bare number is an error (is `20` minutes or milliseconds?). Nothing the audience sees changes. *(1.1)* |
+| `pace-margin` | percentage or time | `5%` | How far behind the clock you may fall before the presenter view's pace bar turns amber: `10%` of the `duration`, or a time (`2min`). Needs `duration` *(1.1)* |
 
 ### 3.2 Slide
 

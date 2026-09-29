@@ -101,7 +101,17 @@
       "notes": "Notizen",
       "smaller": "Kleinere Notizen",
       "larger": "Größere Notizen",
-      "noNotes": "Keine Notizen zu dieser Folie."
+      "noNotes": "Keine Notizen zu dieser Folie.",
+      "elapsed": "{time} vergangen",
+      "slideTime": "Diese Folie {time}",
+      "rehearsedTime": "geprobt {time}",
+      "rehearse": "Probe",
+      "rehearseTitle": "Jede Folie beim Proben stoppen; erneut drücken, um die Zeiten zu behalten",
+      "forget": "Probe vergessen",
+      "forgetTitle": "Die geprobten Zeiten vergessen",
+      "paceOk": "Im Zeitplan",
+      "paceBehind": "{time} im Verzug",
+      "paceOver": "{time} über der Zeit"
     },
     "document": {
       "label": "Dokument",

@@ -233,10 +233,9 @@ A registered key is no longer an "unknown key" warning. Its value is passed to e
 in the page. Don't put secrets in frontmatter. Only deck frontmatter can be
 extended in 1.0; slide frontmatter can't.
 
-**Reserved names.** blitzstrahl 1.1 gives meaning to the deck key
-`duration`, so a plugin can't register it. `public`, `css`, `background`,
-`footer`, `slide-numbers` and `logo` are built in from 1.1, and a built-in
-key can't be registered either.
+**Reserved names.** `public`, `css`, `background`, `footer`,
+`slide-numbers`, `logo`, `duration` and `pace-margin` are built in from
+1.1, and a built-in key can't be registered.
 
 ---
 

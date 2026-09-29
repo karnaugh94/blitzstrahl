@@ -101,7 +101,17 @@
       "notes": "Anteckningar",
       "smaller": "Mindre anteckningar",
       "larger": "Större anteckningar",
-      "noNotes": "Inga anteckningar för den här bilden."
+      "noNotes": "Inga anteckningar för den här bilden.",
+      "elapsed": "{time} har gått",
+      "slideTime": "Den här bilden {time}",
+      "rehearsedTime": "repeterad {time}",
+      "rehearse": "Repetera",
+      "rehearseTitle": "Ta tid på varje bild medan du repeterar; tryck igen för att behålla tiderna",
+      "forget": "Glöm repetitionen",
+      "forgetTitle": "Glöm de repeterade tiderna",
+      "paceOk": "I fas",
+      "paceBehind": "{time} efter",
+      "paceOver": "{time} över tiden"
     },
     "document": {
       "label": "Dokument",

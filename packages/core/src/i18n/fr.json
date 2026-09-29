@@ -101,7 +101,17 @@
       "notes": "Notes",
       "smaller": "Notes plus petites",
       "larger": "Notes plus grandes",
-      "noNotes": "Aucune note pour cette diapositive."
+      "noNotes": "Aucune note pour cette diapositive.",
+      "elapsed": "{time} écoulé",
+      "slideTime": "Cette diapositive {time}",
+      "rehearsedTime": "répétée {time}",
+      "rehearse": "Répéter",
+      "rehearseTitle": "Chronométrer chaque diapositive pendant la répétition ; appuyer à nouveau pour garder les temps",
+      "forget": "Oublier la répétition",
+      "forgetTitle": "Oublier les temps de répétition",
+      "paceOk": "Dans les temps",
+      "paceBehind": "En retard de {time}",
+      "paceOver": "Temps dépassé de {time}"
     },
     "document": {
       "label": "Document",

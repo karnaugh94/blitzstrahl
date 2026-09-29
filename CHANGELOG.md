@@ -197,6 +197,15 @@ relied on it will notice.
   frame. Charts and maps also describe themselves from their data, in the
   deck's language. `check` notes a chart, map or diagram without `alt`. In
   1.0, `alt` on a fence was accepted and did nothing.
+- **Pacing** in the presenter view: the deck key `duration` (`20min`)
+  makes the timer count down, with a bar for how far through the deck you
+  are against where the clock says you should be (amber when behind by
+  more than `pace-margin`, default 5 %; red past the end). **Rehearse**
+  times each slide; the times are kept in the presenter's browser and
+  weigh the pace, and they're shown beside each slide.
+- In the presenter view, `J` and `K` scroll the notes, and the overview
+  marks the slides that have notes. The drawing tools, **Slides**,
+  **Black out**, **Print** and **Document** moved under the current slide.
 
 ## [1.0.1] — 2026-09-27
 

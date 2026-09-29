@@ -37,7 +37,7 @@ export const SLIDE_KEYS: ReadonlySet<string> = new Set(SLIDE_KEY_NAMES)
  * 1.0.1, so no plugin registers one first and breaks when it arrives. Each
  * leaves this list for `DECK_KEYS` when it's built.
  */
-export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set(['duration'])
+export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set()
 
 /** What `as=` can go on (syntax.md §5.1). */
 export type ComponentTarget = 'list' | 'table' | 'container'

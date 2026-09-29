@@ -15,6 +15,7 @@ import type { RendererLoader } from '../renderer.js'
 import { documentUrl, next, type Position } from '../steps.js'
 import { fill } from '@blitzstrahl/core/i18n'
 import { LayerHost, gotoPrompt, help, overview, slideLabel, uiWords } from '../ui.js'
+import { Rehearsals, SlideClock, formatSigned, pace, weights } from './pace.js'
 import { PROTOCOL, elapsed, formatElapsed, isEnvelope, type PresenterMsg } from './protocol.js'
 import { WindowTransport } from './transport.js'
 import { presenterCss } from './view-css.js'
@@ -25,6 +26,8 @@ type DeckState = Extract<PresenterMsg, { type: 'state' }>
 const SILENCE_MS = 4000
 const HEARTBEAT_MS = 1500
 const NOTES_SIZE_KEY = 'blitzstrahl:notes-size'
+/** How far `J` and `K` scroll the notes: a few lines. */
+const NOTES_STEP = 0.2
 
 export type ConnectionStatus = 'connected' | 'waiting' | 'none'
 
@@ -55,6 +58,15 @@ export class PresenterView implements NavTarget {
   /** The tool in the presenter's hands: it draws and points on the current preview. */
   tool: Tool = 'none'
 
+  /** Time on each slide in this talk, and in the rehearsal under way (presenting.md, *Pacing*). */
+  private readonly talk = new SlideClock()
+  private readonly rehearsal = new SlideClock()
+  private rehearsing = false
+  private readonly rehearsals: Rehearsals
+  /** Rehearsed times by slide id. */
+  private rehearsed: Record<string, number>
+  private lastElapsed = 0
+
   private readonly blocks: Blocks
   private readonly printer: ReturnType<typeof bindPrinting>
 
@@ -69,6 +81,8 @@ export class PresenterView implements NavTarget {
     this.layers = new LayerHost(doc)
     this.words = uiWords(doc)
     this.notesSize = readNumber(this.win, NOTES_SIZE_KEY) ?? 24
+    this.rehearsals = new Rehearsals(this.win, `${this.win.location.pathname}|${payload.title}`)
+    this.rehearsed = this.rehearsals.load()
     doc.title = fill(this.words.presenter.windowTitle, { title: payload.title })
 
     const style = doc.createElement('style')
@@ -160,6 +174,27 @@ export class PresenterView implements NavTarget {
     if (this.state) this.transport.send({ type: 'ink', event: { op: 'clear', slide: this.state.slide } })
   }
 
+  /** Start a rehearsal (the timer from zero), or end one and keep its times. */
+  toggleRehearsal(): void {
+    if (this.rehearsing) {
+      this.clockAt()
+      this.rehearsed = this.rehearsals.save(this.rehearsal.times)
+      this.rehearsing = false
+    } else {
+      this.rehearsal.reset()
+      this.rehearsing = true
+      this.transport.send({ type: 'timer', action: 'reset' })
+      this.transport.send({ type: 'timer', action: 'start' })
+    }
+    this.render()
+  }
+
+  forgetRehearsal(): void {
+    this.rehearsals.forget()
+    this.rehearsed = {}
+    this.render()
+  }
+
   /** Dev HMR: a rebuilt deck. The mirrors update themselves. */
   update(payload: DeckPayload, stageHtml: string, notesHtml?: string): void {
     this.payload = payload
@@ -167,6 +202,7 @@ export class PresenterView implements NavTarget {
     if (stage) stage.innerHTML = stageHtml
     const notes = this.doc.getElementById('blitz-notes')
     if (notes instanceof HTMLTemplateElement && notesHtml !== undefined) notes.innerHTML = notesHtml
+    delete this.el.notes!.dataset.for
     this.render()
   }
 
@@ -226,11 +262,47 @@ export class PresenterView implements NavTarget {
     this.render()
   }
 
+  /** Credit the time since the last call to the slide on show. */
+  private clockAt() {
+    const s = this.state
+    const t = s ? elapsed(s.timer) : 0
+    // The timer went back (reset): this talk's times start again.
+    if (t < this.lastElapsed) this.talk.reset()
+    this.lastElapsed = t
+    const id = s ? this.payload.slides[s.slide]?.id : undefined
+    this.talk.at(id, t)
+    if (this.rehearsing) this.rehearsal.at(id, t)
+    return t
+  }
+
   private tick() {
     const before = this.el.status!.dataset.status
     if (before !== this.status) this.render()
     this.el.clock!.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    this.el.elapsed!.textContent = formatElapsed(this.state ? elapsed(this.state.timer) : 0)
+    const t = this.clockAt()
+    const w = this.words.presenter
+    const { duration } = this.payload
+    this.el.elapsed!.textContent = duration ? formatSigned(duration - t, formatElapsed) : formatElapsed(t)
+    this.el.elapsedSub!.textContent = duration ? fill(w.elapsed, { time: formatElapsed(t) }) : ''
+
+    const s = this.state
+    const id = s ? this.payload.slides[s.slide]?.id : undefined
+    const here = id ? this.talk.times[id] : undefined
+    const rehearsed = id ? this.rehearsed[id] : undefined
+    this.el.slideTime!.textContent = [here ? fill(w.slideTime, { time: formatElapsed(here) }) : '', rehearsed ? fill(w.rehearsedTime, { time: formatElapsed(rehearsed) }) : ''].filter(Boolean).join(' · ')
+
+    const bar = this.el.pace!
+    bar.hidden = !duration || !s
+    if (!duration || !s) {
+      delete this.el.root!.dataset.pace
+      return
+    }
+    const slides = this.payload.slides
+    const p = pace(s, slides.map((x) => x.steps), weights(slides.map((x) => x.id), this.rehearsed), t, duration, this.payload.paceMargin)
+    this.el.root!.dataset.pace = p.status
+    bar.style.setProperty('--bp-progress', String(p.progress))
+    bar.style.setProperty('--bp-clock', String(Math.min(1, p.clock)))
+    bar.setAttribute('aria-label', p.status === 'over' ? fill(w.paceOver, { time: formatElapsed(t - duration) }) : p.status === 'behind' ? fill(w.paceBehind, { time: formatElapsed(p.behind) }) : w.paceOk)
   }
 
   private onKey(e: KeyboardEvent): boolean {
@@ -273,6 +345,14 @@ export class PresenterView implements NavTarget {
       case 'R':
         this.openDocument()
         return true
+      case 'j':
+      case 'J':
+      case 'k':
+      case 'K': {
+        const notes = this.el.notes!
+        notes.scrollBy({ top: (e.key.toLowerCase() === 'j' ? 1 : -1) * notes.clientHeight * NOTES_STEP })
+        return true
+      }
     }
     return false
   }
@@ -288,6 +368,13 @@ export class PresenterView implements NavTarget {
         current: this.state?.slide ?? 0,
         pick: (i) => this.goto(i),
         host: this.layers,
+        extra: (i) => {
+          const s = this.payload.slides[i]!
+          const marks: string[] = []
+          if (this.notesFor(s.id)) marks.push(this.words.presenter.notes)
+          if (this.rehearsed[s.id]) marks.push(formatElapsed(this.rehearsed[s.id]!))
+          return marks
+        },
       }),
     )
   }
@@ -322,6 +409,7 @@ export class PresenterView implements NavTarget {
 
     if (!s) {
       this.el.position!.textContent = fill(w.slideCount, { total: slides.length })
+      delete this.el.notes!.dataset.for
       this.el.notes!.replaceChildren(note(this.doc, status === 'none' ? w.openToStart : w.connecting))
       this.tick()
       return
@@ -340,10 +428,21 @@ export class PresenterView implements NavTarget {
     this.el.root!.toggleAttribute('data-at-end', !n)
     if (n) this.show(this.upcoming, n)
 
-    const tpl = this.doc.getElementById('blitz-notes')
-    const body = tpl instanceof HTMLTemplateElement && slide ? tpl.content.querySelector(`[data-for="${CSS.escape(slide.id)}"]`) : null
-    this.el.notes!.replaceChildren(...(body ? [...body.cloneNode(true).childNodes] : [note(this.doc, w.noNotes)]))
+    this.el.rehearse!.setAttribute('aria-pressed', String(this.rehearsing))
+    this.el.forget!.hidden = !Object.keys(this.rehearsed).length || this.rehearsing
+    // Only on arriving at a slide: the heartbeat re-renders, and must keep where `J` scrolled to.
+    if (slide && this.el.notes!.dataset.for !== slide.id) {
+      const body = this.notesFor(slide.id)
+      this.el.notes!.dataset.for = slide.id
+      this.el.notes!.replaceChildren(...(body ? [...body.cloneNode(true).childNodes] : [note(this.doc, w.noNotes)]))
+      this.el.notes!.scrollTop = 0
+    }
     this.tick()
+  }
+
+  private notesFor(id: string): Element | null {
+    const tpl = this.doc.getElementById('blitz-notes')
+    return tpl instanceof HTMLTemplateElement ? tpl.content.querySelector(`[data-for="${CSS.escape(id)}"]`) : null
   }
 
   private setNotesSize(size: number) {
@@ -390,20 +489,30 @@ export class PresenterView implements NavTarget {
       undefined,
       button('←', w.previous, () => this.retreat()),
       button('→', w.next, () => this.advance()),
-      el('div', 'bp-where', undefined, el('span', 'bp-position', 'position'), el('span', 'bp-title', 'title')),
+      el('div', 'bp-where', undefined, el('span', 'bp-position', 'position'), el('span', 'bp-title', 'title'), el('span', 'bp-slide-time', 'slideTime')),
       el('div', 'bp-spacer'),
-      el('span', 'bp-elapsed', 'elapsed', '00:00'),
+      el('div', 'bp-timer', undefined, el('span', 'bp-elapsed', 'elapsed', '00:00'), el('span', 'bp-elapsed-sub', 'elapsedSub')),
       button(w.start, w.timerToggle, () => this.transport.send({ type: 'timer', action: this.state?.timer.running ? 'pause' : 'start' }), 'timerToggle'),
       button(w.reset, w.resetTitle, () => this.transport.send({ type: 'timer', action: 'reset' })),
+      button(w.rehearse, w.rehearseTitle, () => this.toggleRehearsal(), 'rehearse'),
+      button(w.forget, w.forgetTitle, () => this.forgetRehearsal(), 'forget'),
       el('span', 'bp-clock', 'clock'),
+      el('span', 'bp-status', 'status'),
+    )
+    // Under the current slide: what acts on the talk and on the slide.
+    const tools = el(
+      'div',
+      'bp-tools',
+      undefined,
       button(w.slides, w.slidesTitle, () => this.showGrid()),
       button(w.blackout, w.blackoutTitle, () => this.toggleBlackout(), 'blackout'),
+      el('span', 'bp-gap'),
       button(w.laser, w.laserTitle, () => this.setTool(this.tool === 'laser' ? 'none' : 'laser'), 'laser'),
       button(w.pen, w.penTitle, () => this.setTool(this.tool === 'pen' ? 'none' : 'pen'), 'pen'),
       button(w.clear, w.clearTitle, () => this.clearInk()),
+      el('span', 'bp-gap'),
       button(w.print, w.printTitle, () => this.print()),
       button(w.document, w.documentTitle, () => this.openDocument()),
-      el('span', 'bp-status', 'status'),
     )
     const connect = el(
       'div',
@@ -412,7 +521,8 @@ export class PresenterView implements NavTarget {
       el('p', '', undefined, w.notConnected),
       button(w.openAudience, w.openAudience, () => this.openAudience()),
     )
-    const current = el('section', 'bp-current', undefined, el('div', 'bp-frame', 'currentBox', frame('currentFrame', w.currentSlide), el('div', 'bp-black', undefined, w.audienceBlack)), connect)
+    const stage = el('div', 'bp-stagebox', undefined, el('div', 'bp-frame', 'currentBox', frame('currentFrame', w.currentSlide), el('div', 'bp-black', undefined, w.audienceBlack)), connect)
+    const current = el('section', 'bp-current', undefined, stage, tools)
     const notesTools = el(
       'div',
       'bp-notes-tools',
@@ -430,10 +540,15 @@ export class PresenterView implements NavTarget {
       el('section', 'bp-next', undefined, el('h2', '', 'nextLabel', w.nextHeading), el('div', 'bp-frame', undefined, frame('nextFrame', w.nextSlideFrame), el('div', 'bp-end', undefined, w.endOfDeck))),
       el('section', 'bp-notes-pane', undefined, notesTools, notes),
     )
-    const root = el('div', 'bp', 'root', bar, current, side)
+    // How far through the deck, and where the clock says you should be.
+    const paceBar = el('div', 'bp-pace', 'pace', el('div', 'bp-pace-fill'), el('div', 'bp-pace-mark'))
+    paceBar.setAttribute('role', 'img')
+    paceBar.hidden = true
+    const root = el('div', 'bp', 'root', bar, paceBar, current, side)
     root.setAttribute('role', 'application')
     root.setAttribute('aria-label', this.words.presenterView)
     for (const f of root.querySelectorAll<HTMLElement>('.bp-frame')) f.style.aspectRatio = `${this.payload.canvas.width} / ${this.payload.canvas.height}`
+    root.style.setProperty('--bp-ratio', String(this.payload.canvas.width / this.payload.canvas.height))
     return root
   }
 }

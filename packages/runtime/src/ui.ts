@@ -110,6 +110,8 @@ export interface OverviewOptions {
   /** Close after picking (the deck); the presenter keeps its grid. */
   closeOnPick?: boolean
   host?: LayerHost
+  /** Short marks after a slide's label (the presenter's: has notes, rehearsed time). */
+  extra?(index: number): string[]
 }
 
 /**
@@ -132,7 +134,10 @@ export function overview(doc: Document, o: OverviewOptions): Layer {
     const section = sections[i]
     if (section) canvas.append(thumbnail(section))
     frame.append(canvas)
-    btn.append(frame, h(doc, 'span', { class: 'blitz-thumb-label' }, h(doc, 'b', {}, String(i + 1)), ' ', slideLabel(s, i, words)))
+    const marks = o.extra?.(i) ?? []
+    const label = h(doc, 'span', { class: 'blitz-thumb-label' }, h(doc, 'b', {}, String(i + 1)), ' ', slideLabel(s, i, words))
+    btn.append(frame, marks.length ? h(doc, 'span', { class: 'blitz-thumb-caption' }, label, ...marks.map((m) => h(doc, 'span', { class: 'blitz-thumb-mark' }, m))) : label)
+    if (marks.length) btn.setAttribute('aria-label', `${btn.getAttribute('aria-label')} (${marks.join(', ')})`)
     btn.addEventListener('click', () => choose(i))
     grid.append(btn)
     return btn

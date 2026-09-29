@@ -6,7 +6,7 @@ import type { Diagnostics } from './diagnostics.js'
 import { keySpan, type Frontmatter } from './split.js'
 import type { Thousands } from './numbers.js'
 import { normalizeRelative } from './assets.js'
-import { DECK_SCHEMA, keyProblem, matches, MS } from './schema.js'
+import { DECK_SCHEMA, keyProblem, matches, MS, TIME_PATTERN } from './schema.js'
 import { LAYOUTS, SLIDE_KEYS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
 
 export const DECK_KEYS: ReadonlySet<string> = new Set(Object.keys(DECK_SCHEMA))
@@ -103,6 +103,15 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         else if (value !== false) meta.slideNumbers = value === true ? '{n}' : (value as string)
         break
       }
+      case 'duration':
+      case 'pace-margin': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) {
+          const bare = typeof value === 'number' || /^\s*\d+(\.\d+)?\s*$/.test(String(value))
+          diags.error('frontmatter/time', bare ? `${problem}: is \`${String(value).trim()}\` minutes? Write \`${String(value).trim()}min\`` : problem, span)
+        } else if (key === 'duration') meta.duration = timeMs(value as string)
+        break
+      }
       case 'plugins': {
         const problem = keyProblem(DECK_SCHEMA, key, value)
         if (problem) diags.error('frontmatter/plugins', problem, span)
@@ -116,7 +125,19 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         }
     }
   }
+  // A margin is a share of the duration, so it's resolved once both are known.
+  const margin = data['pace-margin']
+  if (margin !== undefined && keyProblem(DECK_SCHEMA, 'pace-margin', margin) === undefined) {
+    if (meta.duration === undefined) diags.warn('frontmatter/pace-margin', '`pace-margin` does nothing without a `duration`', keySpan(fm, 'pace-margin', none))
+    else meta.paceMargin = String(margin).includes('%') ? Math.round((meta.duration * parseFloat(String(margin))) / 100) : timeMs(String(margin))
+  }
   return meta
+}
+
+/** `1h30min` → ms. The value has passed `TIME_PATTERN`. */
+export function timeMs(value: string): number {
+  const [, h = '0', min = '0', s = '0'] = new RegExp(TIME_PATTERN).exec(value)!
+  return Math.round((Number(h) * 3600 + Number(min) * 60 + Number(s)) * 1000)
 }
 
 export function transitionName(value: unknown, diags: Diagnostics, span: SourceSpan | undefined): TransitionName | undefined {

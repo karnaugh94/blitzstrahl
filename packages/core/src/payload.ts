@@ -21,6 +21,9 @@ export interface DeckPayload {
   /** The deck's `thousands`, for `RenderCtx.number`. */
   thousands?: Thousands
   canvas: { width: number; height: number }
+  /** `duration` and `pace-margin`, in ms: the presenter's pacing (1.1). */
+  duration?: number
+  paceMargin?: number
   slides: PayloadSlide[]
   /**
    * Text of data assets, keyed by deck-relative path, when the build inlines
@@ -53,6 +56,8 @@ export function toPayload(deck: Deck, inline: Record<string, string> = {}, asset
     lang: deck.meta.lang,
     ...(deck.meta.thousands ? { thousands: deck.meta.thousands } : {}),
     canvas: deck.meta.canvas,
+    ...(deck.meta.duration !== undefined ? { duration: deck.meta.duration } : {}),
+    ...(deck.meta.paceMargin !== undefined ? { paceMargin: deck.meta.paceMargin } : {}),
     slides: deck.slides.map((s) => {
       const slide: PayloadSlide = {
         id: s.id,

@@ -61,6 +61,10 @@ export interface DeckMeta {
   slideNumbers?: string
   /** `logo`: an image, as written; a local one is also in `assets` (1.1). */
   logo?: string
+  /** `duration`: how long the talk should take, in ms (presenting.md, *Pacing*; 1.1). */
+  duration?: number
+  /** `pace-margin`, in ms: how far behind the clock the presenter may fall before the pace bar warns. Only with `duration` (1.1). */
+  paceMargin?: number
   /** `css`: stylesheets after the theme's, `./paths` as written (docs/themes.md, 1.1). */
   css?: string[]
   /** Plugin module specifiers, as written (docs/plugins.md §1). */

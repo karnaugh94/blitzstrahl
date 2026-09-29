@@ -5,7 +5,7 @@
  * and would only weigh down the pages. `schema.test.ts` writes the files
  * (`pnpm test -u`) and keeps them in step.
  */
-import { DECK_SCHEMA, SLIDE_SCHEMA, type KeyTable, type Schema } from '@blitzstrahl/core/schema'
+import { DECK_RULES, DECK_SCHEMA, SLIDE_SCHEMA, type KeyTable, type Schema } from '@blitzstrahl/core/schema'
 import { CHART_RULES, CHART_SCHEMA, EMBED_RULES, EMBED_SCHEMA, EMBED_SHORT, MAP_RULES, MAP_SCHEMA } from '@blitzstrahl/renderers/specs'
 
 const DOCS = 'https://github.com/karnaugh94/blitzstrahl/blob/main/docs'
@@ -27,6 +27,8 @@ const DESCRIPTIONS: Record<string, Record<string, string>> = {
     footer: 'One line of inline markdown on every slide, bottom left by default',
     'slide-numbers': 'Number the slides: true shows 3, "{n} / {total}" shows 3 / 12',
     logo: 'An image on every slide, top right by default',
+    duration: 'How long the talk should take (20min, 1h30min, 90s): the presenter view counts down and shows your pace',
+    'pace-margin': 'How far behind the clock before the pace bar turns amber: 10% of the duration, or a time (2min). Default 5%',
     background: "Every slide's background: an image or a CSS background, or one per layout (title:, section:, default: for the rest). A slide's own wins",
     plugins: 'Plugin packages or ./paths, loaded in order',
   },
@@ -108,7 +110,7 @@ export function schemas(): Record<string, object> {
   const embed = { type: 'object', properties: properties('embed', EMBED_SCHEMA), additionalProperties: false, ...EMBED_RULES }
   return {
     // Frontmatter allows other keys: plugins add their own.
-    deck: { ...header('blitzstrahl deck frontmatter', 'syntax.md#31-deck'), type: 'object', properties: properties('deck', DECK_SCHEMA) },
+    deck: { ...header('blitzstrahl deck frontmatter', 'syntax.md#31-deck'), type: 'object', properties: properties('deck', DECK_SCHEMA), ...DECK_RULES },
     slide: { ...header('blitzstrahl slide frontmatter', 'syntax.md#32-slide'), type: 'object', properties: properties('slide', SLIDE_SCHEMA) },
     chart: { ...header('blitzstrahl chart block', 'renderers/chart.md'), type: 'object', properties: properties('chart', CHART_SCHEMA), additionalProperties: false, ...CHART_RULES },
     map: { ...header('blitzstrahl map block', 'renderers/map.md'), type: 'object', properties: properties('map', MAP_SCHEMA), additionalProperties: false, ...MAP_RULES },

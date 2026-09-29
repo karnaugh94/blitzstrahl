@@ -71,10 +71,15 @@ Press `P` in the deck. A second window opens with:
   animations included);
 - the **next** state: the next build step, or the next slide, fully built;
 - your **notes** (`::: notes`, see [syntax.md §7](syntax.md#7-presenter-notes)),
-  with `A−`/`A+` to resize them;
+  with `A−`/`A+` to resize them. `J` and `K` scroll them down and up, so
+  long notes never need the mouse; the arrows, `Space` and the page keys
+  still turn slides *(1.1)*;
 - the **timer**, which starts when you first move, plus Start/Pause and
-  Reset, and the time of day;
-- **Slides** (the overview, `Esc`), **Black out** (`B`) and go-to (`G`);
+  Reset, and the time of day. With a `duration`, it counts down and shows
+  your pace (*Pacing*, below) *(1.1)*;
+- **Slides** (the overview, `Esc`), **Black out** (`B`) and go-to (`G`).
+  In the presenter's overview, a mark on a slide says it has notes, and
+  its rehearsed time is beside it *(1.1)*;
 - **Laser** (`L`), **Pen** (`D`) and **Clear** (`C`): point and draw on
   the current slide in the presenter window, and the audience sees it on
   the screen, where you pointed. What's drawn in either window shows in
@@ -93,6 +98,50 @@ open turns that tab into the presenter view.
 Reloading either window reconnects it. The timer and the drawings live in
 the deck, so they survive the presenter window reloading (and a reloaded
 deck starts with clean slides).
+
+### Pacing *(1.1)*
+
+Give the deck a `duration` (syntax.md §3.1):
+
+```yaml
+---
+title: Quarterly review
+duration: 20min
+---
+```
+
+and the presenter view's timer counts **down** from 20:00, with the time
+elapsed beside it. Under the timer, a bar shows how far through the deck
+you are (slides and their steps), and a mark on it shows where the clock
+says you should be:
+
+- the bar is **neutral** while you're on pace or ahead;
+- **amber** once you're behind by more than a twentieth of the talk (a
+  minute, in a twenty-minute talk), or by the deck's `pace-margin`
+  (`pace-margin: 10%`, or `2min`);
+- **red**, with the time counting up (`+1:30`), once the time is over.
+
+Where the clock says you should be assumes every slide takes as long as
+any other, until you've rehearsed: then it follows your rehearsal. A
+slide you spent three minutes on then gets three minutes' share.
+
+**Rehearsing.** **Rehearse** in the presenter view starts the timer from
+zero and times each slide as you go through the talk (pausing the timer
+pauses the rehearsal). Press **Rehearse** again when you're done: the
+times are kept, and from then on the presenter view shows each slide's
+rehearsed time beside the time spent on it, in the overview beside every
+slide, and uses them for your pace. A rehearsal replaces the times of the
+slides it went through, so you can rehearse one part again; a slide never
+rehearsed counts as long as the average one. **Forget rehearsal** clears
+them all.
+
+Rehearsed times are kept in the presenter's browser (its local storage),
+per deck and per slide id, so reordering slides or editing them keeps
+their times; a new slide simply has none. They're never in the built
+deck, never sent anywhere, and the audience's window doesn't store
+anything. blitzstrahl sets no cookies, in any window. A different browser, or a private window, starts without them.
+Without `duration`, rehearsed times are still shown, and there's no pace
+bar.
 
 ### Limits
 

@@ -101,7 +101,17 @@
       "notes": "Notes",
       "smaller": "Smaller notes",
       "larger": "Larger notes",
-      "noNotes": "No notes for this slide."
+      "noNotes": "No notes for this slide.",
+      "elapsed": "{time} elapsed",
+      "slideTime": "This slide {time}",
+      "rehearsedTime": "rehearsed {time}",
+      "rehearse": "Rehearse",
+      "rehearseTitle": "Time each slide as you rehearse; press again to keep the times",
+      "forget": "Forget rehearsal",
+      "forgetTitle": "Forget the rehearsed times",
+      "paceOk": "On pace",
+      "paceBehind": "Behind by {time}",
+      "paceOver": "Over time by {time}"
     },
     "document": {
       "label": "Document",

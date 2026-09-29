@@ -162,5 +162,11 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * Then 214.1 kB: the handout's "Notes, continued" (every sheet alike, the
  * rest of long notes after the sheets, its page found by laying it out),
  * +3.0 kB.
+ * Then 222.4 kB: pacing and rehearsal in the presenter view (M12.1–2),
+ * +8.3 kB against develop: ten words in seven languages (2.7 kB), the
+ * pace bar's and timer's CSS (1.5 kB, the presenter's stylesheet is an
+ * unminified string), the rest code. A `file://` deck needs its presenter
+ * view, so none of it can stay out. The chart deck carries the same
+ * (870.5 kB).
  */
-const BUDGET = { minimal: 215_000, withChart: 870_000 }
+const BUDGET = { minimal: 223_000, withChart: 879_000 }

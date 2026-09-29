@@ -104,6 +104,9 @@ export const MS: KeyRule = {
   schema: { anyOf: [{ type: 'number', minimum: 0 }, { type: 'string', pattern: '^\\s*\\d+(\\.\\d+)?(ms)?$' }] },
   message: 'must be a duration in milliseconds',
 }
+/** A length of time with units, as an author writes a talk's: `20min`, `1h30min`, `90s`. */
+export const TIME_PATTERN = '^\\s*(?=\\d)(?:(\\d+(?:\\.\\d+)?)\\s*h)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*min)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*s)?\\s*$'
+const TIME: Schema = { type: 'string', pattern: TIME_PATTERN }
 const CSS_PATH: Schema = { type: 'string', pattern: '^\\.\\.?/.*\\.css$' }
 const TRANSITION: KeyRule = { schema: { enum: [...TRANSITIONS] }, message: `must be a transition: ${[...TRANSITIONS].join(', ')}` }
 
@@ -139,11 +142,20 @@ export const DECK_SCHEMA: KeyTable = {
     message: 'must be true, false, or a string with `{n}` in it (and `{total}` if you like): "{n} / {total}"',
   },
   logo: { schema: { type: 'string', pattern: '\\S' }, message: 'should be an image: a path or a URL' },
+  // How long the talk should take, for the presenter's pacing (presenting.md, *Pacing*).
+  duration: { schema: TIME, message: 'must be a time with units: `20min`, `1h30min`, `90s`' },
+  'pace-margin': {
+    schema: { anyOf: [TIME, { type: 'string', pattern: '^\\s*\\d+(\\.\\d+)?\\s*%\\s*$' }] },
+    message: 'must be a share of the `duration` (`10%`) or a time (`2min`)',
+  },
   plugins: {
     schema: { anyOf: [{ type: 'string', pattern: '\\S' }, { type: 'array', items: { type: 'string', pattern: '\\S' } }] },
     message: 'must be a list of module names or paths',
   },
 }
+
+/** Rules across deck keys, which the validator (meta.ts) checks too. */
+export const DECK_RULES: Schema = { dependentRequired: { 'pace-margin': ['duration'] } }
 
 /** Slide frontmatter (syntax.md §3.2). */
 export const SLIDE_SCHEMA: Readonly<Record<SlideKey, KeyRule>> = {

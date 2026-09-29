@@ -1,6 +1,8 @@
 {
   "deck": {
     "slide": "Diapositive {n}",
+    "slideRole": "diapositive",
+    "deckRole": "présentation",
     "announce": "{title} ({n} sur {total})",
     "footnotes": "Notes de bas de page",
     "backToReference": "Retour à la référence {ref}",

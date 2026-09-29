@@ -2,15 +2,14 @@
  * Deck IR → the HTML page. Slide content is rendered here, at build time; the
  * runtime only hydrates it.
  */
-import { readFileSync } from 'node:fs'
 import type { Element, ElementContent, Root } from 'hast'
 import { toHtml } from 'hast-util-to-html'
 import { isImageBackground, rewriteCss, rewriteHtml, toPayload, type Deck, type Diagnostic, type HastNode, type PayloadPlugins } from '@blitzstrahl/core'
-import { strings } from '@blitzstrahl/core/i18n'
+import { fill, strings } from '@blitzstrahl/core/i18n'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
 import type { Theme } from '@blitzstrahl/themes'
+import { VERSION } from './version.js'
 
-const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
 
 /**
  * Every page carries blitzstrahl's runtime, so it carries the runtime's
@@ -74,6 +73,7 @@ function refRewriter(deck: Deck, assetUrl: AssetUrl) {
 /** The `<section>`s, as HTML. Also what dev HMR swaps in. */
 export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
   const { byRef, css, rewrite } = refRewriter(deck, assetUrl)
+  const deckWords = strings(deck.meta.lang).deck
   // Each background image is named once, as a custom property, however many
   // slides use it: a standalone file carries it once, not once per slide.
   const backgrounds = new Map<string, string>()
@@ -122,8 +122,8 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
         className: ['blitz-slide', ...slide.attrs.class],
         dataBlitzSlide: slide.id,
         dataLayout: slide.layout,
-        ariaRoledescription: 'slide',
-        ariaLabel: slide.title ?? `Slide ${slide.index + 1}`,
+        ariaRoledescription: deckWords.slideRole,
+        ariaLabel: slide.title ?? fill(deckWords.slide, { n: slide.index + 1 }),
         ariaHidden: 'true',
         ...(style.length ? { style: style.join('; ') } : {}),
       },
@@ -198,7 +198,7 @@ ${o.css ?? ''}
 </head>
 <body>
 <div class="blitz-viewport">
-<main class="blitz-stage" aria-roledescription="slide deck" aria-label="${esc(o.deck.meta.title)}">
+<main class="blitz-stage" aria-roledescription="${esc(strings(o.deck.meta.lang).deck.deckRole)}" aria-label="${esc(o.deck.meta.title)}">
 ${renderStage(o.deck, o.assetUrl)}
 </main>
 <div class="blitz-sr" aria-live="polite"></div>

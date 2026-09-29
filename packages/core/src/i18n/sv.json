@@ -1,6 +1,8 @@
 {
   "deck": {
     "slide": "Bild {n}",
+    "slideRole": "bild",
+    "deckRole": "presentation",
     "announce": "{title} ({n} av {total})",
     "footnotes": "Fotnoter",
     "backToReference": "Tillbaka till hänvisning {ref}",

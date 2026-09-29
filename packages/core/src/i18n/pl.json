@@ -1,6 +1,8 @@
 {
   "deck": {
     "slide": "Slajd {n}",
+    "slideRole": "slajd",
+    "deckRole": "prezentacja",
     "announce": "{title} ({n} z {total})",
     "footnotes": "Przypisy",
     "backToReference": "Powrót do odwołania {ref}",

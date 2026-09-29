@@ -1,6 +1,8 @@
 {
   "deck": {
     "slide": "Slide {n}",
+    "slideRole": "slide",
+    "deckRole": "slide deck",
     "announce": "{title} ({n} of {total})",
     "footnotes": "Footnotes",
     "backToReference": "Back to reference {ref}",

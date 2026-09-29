@@ -49,7 +49,7 @@ body.blitz-presenter-mode { background: #0a0c13; overflow: hidden; }
 }
 .bp-connect[hidden] { display: none; }
 .bp-connect p { max-width: 460px; margin: 0; color: #c3cad9; }
-.bp-connect button { background: var(--bp-accent); color: #04120c; border: 0; font-weight: 600; padding: 10px 18px; }
+.bp-connect button { background: var(--bp-accent); color: var(--blitz-accent-fg, #04120c); border: 0; font-weight: 600; padding: 10px 18px; }
 
 .bp-side { grid-area: side; display: flex; flex-direction: column; gap: 14px; min-height: 0; }
 .bp-next { display: flex; flex-direction: column; gap: 8px; flex: none; }

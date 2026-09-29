@@ -29,7 +29,7 @@ The audience sees one bullet per press. Try `{.fade-up @+}` for a different entr
 
 # A chart from a CSV file
 
-```chart {@1}
+```chart {@1 alt="Actual against plan, quarter by quarter."}
 type: bar
 data: ./{{data}}
 x: quarter
@@ -38,6 +38,7 @@ y: [plan, actual]
 
 ::: notes
 Edit {{data}} and save: the chart updates. Chart keys are in docs/renderers/chart.md.
+`alt=` is what a screen reader says for the chart.
 :::
 
 ---

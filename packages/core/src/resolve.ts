@@ -239,6 +239,14 @@ export function resolveSlide(
           const size = cssSize(value)
           if (size) sizes.push(`${key}: ${size}`)
           else diags.error('attr/size', `\`${key}=${value}\` isn't a size: use a length or percentage (\`440px\`, \`40%\`)`, span)
+        } else if (key === 'alt' && (node.type === 'blitzBlock' || node.type === 'blitzMath')) {
+          // A chart, map, diagram or formula is one picture to a screen reader, named by `alt` (§8.2).
+          // An embed's frame is named instead (by its renderer): the page inside stays readable.
+          if (String(node.data?.hProperties?.dataBlitzBlock).startsWith('embed-')) props.dataBlitzAlt = value
+          else {
+            props.role = 'img'
+            props.ariaLabel = value
+          }
         } else if (PASSTHROUGH_KEYS.has(key) || key.startsWith('data-') || key.startsWith('aria-')) {
           props[key] = value
           if (key === 'style') addPageAssets(cssRefs(value), span)

@@ -18,6 +18,7 @@ import { GeoComponent, TooltipComponent, VisualMapComponent } from 'echarts/comp
 import * as echarts from 'echarts/core'
 import { SVGRenderer } from 'echarts/renderers'
 import type { RenderCtx, RenderInstance, Renderer } from '@blitzstrahl/runtime'
+import { ariaWords, asImage, mapLabel } from './aria.js'
 import type { Row } from './data.js'
 import {
   MAX_ZOOM,
@@ -231,6 +232,9 @@ const map: Renderer = {
       }
     }
 
+    // One picture to a screen reader: `alt=`, then its places (syntax.md §8.2).
+    const restore = asImage(el)
+    el.setAttribute('aria-label', mapLabel(ariaWords(ctx.lang), el.getAttribute('aria-label') ?? undefined, [...markers.map((m) => m.name), ...(regions?.features.map((f) => String(f.properties?.name ?? '')) ?? [])]))
     const chart = echarts.init(chartEl, undefined, { renderer: 'svg' })
     const imgs = new Map<string, HTMLImageElement>()
     let pending: Promise<void>[] = []
@@ -294,6 +298,7 @@ const map: Renderer = {
       destroy() {
         chart.dispose()
         el.replaceChildren()
+        restore()
       },
       /** Rendered, and the tiles it shows have loaded (or failed). */
       get ready() {

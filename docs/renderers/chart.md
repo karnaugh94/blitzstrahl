@@ -140,5 +140,10 @@ chart never changes the slide.
 (420px in aurora). Set `height=300` or `style="height: 300px"` on the fence to
 change it.
 
+**Screen readers** *(1.1)*. A chart is read as one image, described from
+its data in the deck's language: its type, title, series and first values.
+`alt=` on the fence says what it means instead, and the description
+follows it (syntax.md §8.2).
+
 **Errors.** Problems with the spec, such as an unknown key or a missing
 column, show up in place of the chart and in the browser console.

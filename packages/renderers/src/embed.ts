@@ -60,6 +60,8 @@ const embed: Renderer = {
     const spec = validate(raw)
     const doc = el.ownerDocument
     const host = new URL(spec.src).host
+    // `alt=` names the frame (syntax.md §8.2), over the spec's `title`.
+    const name = el.dataset.blitzAlt ?? spec.title
     // Notices are for the audience, so in the deck's (or the block's) language.
     const words = strings(el.closest('[lang]')?.getAttribute('lang') || ctx.lang).deck
     const box = doc.createElement('div')
@@ -74,7 +76,7 @@ const embed: Renderer = {
         const img = doc.createElement('img')
         img.className = 'blitz-embed-fallback'
         img.src = fallbackUrl(spec.fallback, ctx)
-        img.alt = spec.title ?? fill(words.offlineCopy, { host })
+        img.alt = name ?? fill(words.offlineCopy, { host })
         box.append(img)
         return done(img.decode().catch(() => {}))
       }
@@ -87,7 +89,7 @@ const embed: Renderer = {
 
     const frame = doc.createElement('iframe')
     frame.src = spec.src
-    frame.title = spec.title ?? host
+    frame.title = name ?? host
     frame.allow = ALLOW
     frame.referrerPolicy = 'strict-origin-when-cross-origin'
     const zoom = spec.zoom ?? 1

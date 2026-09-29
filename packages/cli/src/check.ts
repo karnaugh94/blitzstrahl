@@ -54,7 +54,7 @@ export async function check(deckPath: string, options: CheckOptions = {}): Promi
 
   found.push(...fontDiagnostics(deck, loaded.extras.fonts, theme.tokens, deck.meta.theme, (i) => firstLine(deck.slides[i]!.span, loaded.source)))
 
-  found.push(...mapNotes(deck))
+  found.push(...mapNotes(deck), ...altNotes(deck))
   if (!options.offline) found.push(...(await probeEmbeds(deck, options.timeout ?? 8000)), ...(await probeGeometry(deck, options.timeout ?? 8000)))
   else {
     if (deck.slides.some((s) => s.blocks.some((b) => b.renderer === 'embed'))) skipped.push('embedded sites (--offline)')
@@ -220,6 +220,30 @@ export function mapNotes(deck: Deck): Diagnostic[] {
       out.push({ severity: 'info', code: 'map/no-tiles', message: 'this map has no street map under it: set `tiles` to a provider (`tiles: osm`, or a URL template), or `tiles: none` to say that\'s intended', file: deck.source, span })
     } else if (typeof spec.tiles === 'string' && !tileSource(spec)?.attribution) {
       out.push({ severity: 'warning', code: 'map/no-attribution', message: 'tile providers require credit: add `attribution` (it shows in the corner of the map)', file: deck.source, span })
+    }
+  }
+  return out
+}
+
+/** Blocks a screen reader sees as one picture, which `alt=` should describe (syntax.md §8.2). */
+const DESCRIBED = new Set(['chart', 'map', 'mermaid'])
+
+/** A chart, map or diagram without `alt=`: a note, never a warning (a chart describes itself from its data). */
+export function altNotes(deck: Deck): Diagnostic[] {
+  const named = new Set<string>()
+  const walk = (nodes: HastNode[]) => {
+    for (const n of nodes) {
+      if (n.type !== 'element') continue
+      if (typeof n.properties.dataBlitzBlock === 'string' && n.properties.ariaLabel) named.add(n.properties.dataBlitzBlock)
+      walk(n.children as HastNode[])
+    }
+  }
+  const out: Diagnostic[] = []
+  for (const slide of deck.slides) {
+    walk(slide.content)
+    for (const b of slide.blocks) {
+      if (!DESCRIBED.has(b.renderer) || named.has(b.id)) continue
+      out.push({ severity: 'info', code: 'block/no-alt', message: `this ${b.renderer} has no \`alt=\`: say what it shows, for screen readers (syntax.md §8.2)`, file: deck.source, span: b.span })
     }
   }
   return out

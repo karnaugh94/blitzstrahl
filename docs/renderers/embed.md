@@ -23,7 +23,7 @@ https://example.com
 | `src` | URL | *required* | The page to show. Must start `http://` or `https://` |
 | `fallback` | path or URL | — | An image shown instead when the computer is offline, e.g. a screenshot of the page |
 | `zoom` | number | `1` | Scale the page. `0.8` shows it at 80%, so more of it fits |
-| `title` | string | the site's host | The frame's accessible name |
+| `title` | string | the site's host | The frame's accessible name. `alt=` on the fence does the same, and wins (syntax.md §8.2) |
 
 **Size.** Like a chart, an embed fills the slide's width and is
 `--blitz-block-height` tall. Set `height=` or `style=` on the fence to

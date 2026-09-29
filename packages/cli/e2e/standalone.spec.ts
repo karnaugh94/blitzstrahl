@@ -150,5 +150,11 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * the components' 8.7 kB of CSS ships only in decks that use `as=`.)
  * Then 190.05 kB: magic move within a slide (M10.4: stack swaps, their
  * morph and the stack's CSS), +1.35 kB.
+ * Raised 2026-09-29 (M11): 209.2 kB bare, +19.2 kB. Document mode (M11.4:
+ * the slides as one page, the two-to-a-sheet handout and its CSS) is
+ * +9.9 kB, measured by building without it; the user chose to always ship
+ * it rather than put it behind a flag. The rest is printing from the
+ * browser (Ctrl+P, the menu's synchronous layout, snapshots) and the new
+ * words, which a standalone file carries in all seven languages.
  */
-const BUDGET = { minimal: 191_500, withChart: 870_000 }
+const BUDGET = { minimal: 210_500, withChart: 870_000 }

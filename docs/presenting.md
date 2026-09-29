@@ -19,6 +19,8 @@ and what to expect on the day.
 | `D` | Draw on the slide (again to put the pen down) |
 | `C` | Clear the drawing on this slide |
 | `?` | Show the keys |
+| `R` | Read the deck as a document: every slide in one scrolling page (*Reading and printing*) *(1.1)* |
+| `Ctrl+P` (`⌘P`) | Print every slide, or save them as a PDF (*Reading and printing*) *(1.1)* |
 
 Clickers send `PageUp`/`PageDown` (and often `B` or `.` for their "blank"
 button), so they work out of the box. You can also click the left or right
@@ -103,3 +105,67 @@ deck starts with clean slides).
   presenter view** link, which works, and the presenter it opens drives the
   deck as usual. To make `P` work directly, allow pop-ups for the deck.
 - Notes are in the page source (syntax.md §7).
+
+## Reading and printing *(1.1)*
+
+A deck is also a document: something to send round afterwards, print, or
+read with a screen reader.
+
+### Document mode
+
+Add `?mode=doc` to the deck's address (`…/index.html?mode=doc`, or
+`talk.html?mode=doc` for a standalone file; it works from `file://`), or
+press `R` in the deck, or **Document** in the presenter view (which opens
+it in a new tab, so the talk carries on). Every slide is shown in one page
+that scrolls, one under another:
+
+- each slide at its **final step**, as a PDF page would be, scaled to the
+  window's width (never beyond the canvas size);
+- as the slide's own HTML, headings and all, so a screen reader, the
+  browser's find (`Ctrl+F`) and its reader mode all work on it;
+- charts, maps, diagrams and embedded pages are drawn as they scroll into
+  view, without their entrance animations, and stay live (hover a chart);
+- video and audio don't play by themselves: they have their controls;
+- `?mode=doc&notes` shows each slide's presenter notes under it.
+
+A bar at the top has **Present** (back to the deck, at the slide you were
+reading) and **Print**. A slide's address works here too:
+`?mode=doc#/results` opens the document at that slide. The deck's keys
+don't apply: it's an ordinary page.
+
+### Printing from the browser
+
+`Ctrl+P` (`⌘P`) in the deck, and **Print** in the presenter view, lay out
+every slide as a page at its final step, wait for charts, maps and
+diagrams to draw, then open the browser's print dialog; choose *Save as
+PDF* there for a file. Pages are the canvas's shape (16:9, unless the deck
+sets `canvas`); set the margins to *None* if the browser asks. Embedded
+pages print blank from a browser (it won't print another site inside a
+frame); `export` prints them as pictures.
+
+Printing from the browser's own menu (*File → Print*) can't wait for
+anything: the browser prints at once. The slides are all there, but a
+chart, map or diagram prints only if its slide has been shown since the
+deck was opened, and an empty frame with its alt text otherwise. Use
+`Ctrl+P` instead.
+
+In document mode, printing gives the **handout**: two slides to an A4
+sheet, side by side on landscape paper, each with its notes under it when
+they're shown (`&notes`). `&orientation=portrait` prints two rows to a
+portrait sheet instead, notes beside each slide. That's the handout
+`export --notes` writes.
+
+Notes that don't fit their half of the sheet aren't cut: that slide gets a
+sheet of its own, and its notes carry on over the next page if they must
+(`export --notes` names the slide). As a rule of thumb, about 1,300
+characters of notes fit under a slide (1,000 beside one, in portrait):
+the prompts a speaker glances at, not a script.
+
+Nothing on the audience's screen hints at any of this: the deck shows
+only its slides. The key help (`?`) lists `R` and `Ctrl+P`.
+
+Browsers differ in what they print: Chromium-based browsers (Chrome,
+Edge) give one page per slide at the canvas's shape. Firefox and Safari
+use the paper size you choose and fit a slide to it. For a PDF that's the
+same everywhere, with bookmarks and the deck's metadata, use `blitzstrahl export`
+(cli.md).

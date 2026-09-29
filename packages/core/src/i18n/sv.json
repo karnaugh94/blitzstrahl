@@ -5,6 +5,7 @@
     "deckRole": "presentation",
     "announce": "{title} ({n} av {total})",
     "footnotes": "Fotnoter",
+    "notes": "Anteckningar",
     "backToReference": "Tillbaka till hänvisning {ref}",
     "needsNetwork": "{host} behöver en nätverksanslutning",
     "offlineCopy": "{host} (offlinekopia)",
@@ -38,6 +39,8 @@
       "laser": "Laserpekare",
       "draw": "Rita på bilden",
       "clear": "Rensa ritningen på den här bilden",
+      "print": "Skriv ut alla bilder eller spara dem som PDF",
+      "document": "Läs som ett dokument: alla bilder på en sida",
       "help": "Den här hjälpen"
     },
     "presenter": {
@@ -59,6 +62,10 @@
       "penTitle": "Rita på den aktuella bilden (D)",
       "clear": "Rensa",
       "clearTitle": "Rensa ritningen på den här bilden (C)",
+      "print": "Skriv ut",
+      "printTitle": "Skriv ut alla bilder eller spara dem som PDF (Ctrl+P)",
+      "document": "Dokument",
+      "documentTitle": "Läs presentationen som en sida, i en ny flik (R)",
       "connected": "Ansluten",
       "waiting": "Väntar på publikfönstret…",
       "noAudience": "Inget publikfönster",
@@ -80,6 +87,13 @@
       "smaller": "Mindre anteckningar",
       "larger": "Större anteckningar",
       "noNotes": "Inga anteckningar för den här bilden."
+    },
+    "document": {
+      "label": "Dokument",
+      "present": "Presentera",
+      "presentTitle": "Tillbaka till bilderna, vid den här",
+      "print": "Skriv ut",
+      "printTitle": "Skriv ut dokumentet eller spara det som PDF (Ctrl+P)"
     },
     "dev": {
       "problems": "Problem i presentationen",

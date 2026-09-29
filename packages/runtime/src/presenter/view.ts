@@ -8,8 +8,11 @@
  */
 import type { DeckPayload } from '@blitzstrahl/core'
 import { InkBook, bindInk, type Tool } from '../ink.js'
+import { Blocks } from '../blocks.js'
 import { bindKeyboard, type NavTarget } from '../input.js'
-import { next, type Position } from '../steps.js'
+import { bindPrinting, buildPrint, buildStaticPrint } from '../print.js'
+import type { RendererLoader } from '../renderer.js'
+import { documentUrl, next, type Position } from '../steps.js'
 import { fill } from '@blitzstrahl/core/i18n'
 import { LayerHost, gotoPrompt, help, overview, slideLabel, uiWords } from '../ui.js'
 import { PROTOCOL, elapsed, formatElapsed, isEnvelope, type PresenterMsg } from './protocol.js'
@@ -52,11 +55,16 @@ export class PresenterView implements NavTarget {
   /** The tool in the presenter's hands: it draws and points on the current preview. */
   tool: Tool = 'none'
 
+  private readonly blocks: Blocks
+  private readonly printer: ReturnType<typeof bindPrinting>
+
   constructor(
     private readonly doc: Document,
     payload: DeckPayload,
+    renderers: Record<string, RendererLoader> = {},
   ) {
     this.payload = payload
+    this.blocks = new Blocks(doc, () => this.payload, renderers)
     this.win = doc.defaultView!
     this.layers = new LayerHost(doc)
     this.words = uiWords(doc)
@@ -76,6 +84,11 @@ export class PresenterView implements NavTarget {
     this.transport = new WindowTransport(this.win, this.win.opener as Window | null)
     this.transport.onMessage((m) => this.receive(m))
     this.win.addEventListener('message', (e) => this.fromMirror(e))
+    // Printing from here prints the deck's slides, never this view.
+    this.printer = bindPrinting(this.win, {
+      prepare: () => buildPrint({ doc, sections: this.sections(), slides: this.payload.slides, canvas: this.payload.canvas, mount: (el, b, step) => this.blocks.mountStill(el, b, step) }, { quiet: true }),
+      fallback: () => buildStaticPrint({ doc, sections: this.sections(), slides: this.payload.slides, canvas: this.payload.canvas, drawings: new Map() }),
+    })
     bindKeyboard(this.win, this, (e) => this.onKey(e))
     // Drawing and pointing on the current preview are intents, like any other.
     bindInk(
@@ -155,6 +168,22 @@ export class PresenterView implements NavTarget {
     const notes = this.doc.getElementById('blitz-notes')
     if (notes instanceof HTMLTemplateElement && notesHtml !== undefined) notes.innerHTML = notesHtml
     this.render()
+  }
+
+  /** Print every slide (the Print button; `Ctrl+P` does the same). */
+  print(): void {
+    this.printer.print()
+  }
+
+  /** Document mode in a new tab, at the current slide: the talk carries on here. */
+  openDocument(): void {
+    const id = this.state ? this.payload.slides[this.state.slide]?.id : undefined
+    const url = documentUrl(this.win.location.href, id ? `#/${encodeURIComponent(id)}` : '')
+    this.win.open(url, '_blank', 'noopener')
+  }
+
+  private sections(): HTMLElement[] {
+    return [...this.doc.querySelectorAll<HTMLElement>('.blitz-stage > .blitz-slide')]
   }
 
   /** Open the audience window from here (PLAN §4: either window may spawn the other). */
@@ -239,6 +268,10 @@ export class PresenterView implements NavTarget {
         return true
       case '?':
         this.layers.open(help(this.doc, this.layers))
+        return true
+      case 'r':
+      case 'R':
+        this.openDocument()
         return true
     }
     return false
@@ -368,6 +401,8 @@ export class PresenterView implements NavTarget {
       button(w.laser, w.laserTitle, () => this.setTool(this.tool === 'laser' ? 'none' : 'laser'), 'laser'),
       button(w.pen, w.penTitle, () => this.setTool(this.tool === 'pen' ? 'none' : 'pen'), 'pen'),
       button(w.clear, w.clearTitle, () => this.clearInk()),
+      button(w.print, w.printTitle, () => this.print()),
+      button(w.document, w.documentTitle, () => this.openDocument()),
       el('span', 'bp-status', 'status'),
     )
     const connect = el(

@@ -24,6 +24,7 @@ describe('the command line (M6.12)', () => {
       [['build', 'talk.md', '--steps'], '`--steps` is an option of `export`, not `build`'],
       [['dev', 'talk.md', '--port', 'abc'], '`--port` must be a number from 0 to 65535'],
       [['export', 'talk.md', '--out'], '`--out` needs a value'],
+      [['export', 'talk.md', '--steps', '--notes'], "--steps and --notes don't go together"],
       [['build'], 'which deck?'],
     ]
     for (const [args, message] of cases) {

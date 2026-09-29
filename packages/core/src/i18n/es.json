@@ -5,6 +5,7 @@
     "deckRole": "presentación",
     "announce": "{title} ({n} de {total})",
     "footnotes": "Notas al pie",
+    "notes": "Notas",
     "backToReference": "Volver a la referencia {ref}",
     "needsNetwork": "{host} necesita conexión a la red",
     "offlineCopy": "{host} (copia sin conexión)",
@@ -38,6 +39,8 @@
       "laser": "Puntero láser",
       "draw": "Dibujar en la diapositiva",
       "clear": "Borrar el dibujo de esta diapositiva",
+      "print": "Imprimir todas las diapositivas o guardarlas como PDF",
+      "document": "Leer como documento: todas las diapositivas en una página",
       "help": "Esta ayuda"
     },
     "presenter": {
@@ -59,6 +62,10 @@
       "penTitle": "Dibujar en la diapositiva actual (D)",
       "clear": "Borrar",
       "clearTitle": "Borrar el dibujo de esta diapositiva (C)",
+      "print": "Imprimir",
+      "printTitle": "Imprimir todas las diapositivas o guardarlas como PDF (Ctrl+P)",
+      "document": "Documento",
+      "documentTitle": "Leer la presentación en una sola página, en una pestaña nueva (R)",
       "connected": "Conectado",
       "waiting": "Esperando la ventana del público…",
       "noAudience": "Sin ventana del público",
@@ -80,6 +87,13 @@
       "smaller": "Notas más pequeñas",
       "larger": "Notas más grandes",
       "noNotes": "No hay notas para esta diapositiva."
+    },
+    "document": {
+      "label": "Documento",
+      "present": "Presentar",
+      "presentTitle": "Volver a las diapositivas, en esta",
+      "print": "Imprimir",
+      "printTitle": "Imprimir el documento o guardarlo como PDF (Ctrl+P)"
     },
     "dev": {
       "problems": "Problemas en la presentación",

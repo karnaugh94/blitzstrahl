@@ -5,6 +5,7 @@
     "deckRole": "Präsentation",
     "announce": "{title} ({n} von {total})",
     "footnotes": "Fußnoten",
+    "notes": "Notizen",
     "backToReference": "Zurück zu Verweis {ref}",
     "needsNetwork": "{host} braucht eine Netzwerkverbindung",
     "offlineCopy": "{host} (Offline-Kopie)",
@@ -38,6 +39,8 @@
       "laser": "Laserpointer",
       "draw": "Auf der Folie zeichnen",
       "clear": "Zeichnung auf dieser Folie löschen",
+      "print": "Alle Folien drucken oder als PDF speichern",
+      "document": "Als Dokument lesen: alle Folien auf einer Seite",
       "help": "Diese Hilfe"
     },
     "presenter": {
@@ -59,6 +62,10 @@
       "penTitle": "Auf der aktuellen Folie zeichnen (D)",
       "clear": "Löschen",
       "clearTitle": "Zeichnung auf dieser Folie löschen (C)",
+      "print": "Drucken",
+      "printTitle": "Alle Folien drucken oder als PDF speichern (Strg+P)",
+      "document": "Dokument",
+      "documentTitle": "Die Präsentation als eine Seite lesen, in einem neuen Tab (R)",
       "connected": "Verbunden",
       "waiting": "Warte auf das Publikumsfenster…",
       "noAudience": "Kein Publikumsfenster",
@@ -80,6 +87,13 @@
       "smaller": "Kleinere Notizen",
       "larger": "Größere Notizen",
       "noNotes": "Keine Notizen zu dieser Folie."
+    },
+    "document": {
+      "label": "Dokument",
+      "present": "Präsentieren",
+      "presentTitle": "Zurück zu den Folien, bei dieser",
+      "print": "Drucken",
+      "printTitle": "Das Dokument drucken oder als PDF speichern (Strg+P)"
     },
     "dev": {
       "problems": "Probleme in der Präsentation",

@@ -159,5 +159,8 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * Then 211.1 kB: what charts and maps say to screen readers (M11.5), eleven
  * words and templates in seven languages, +1.9 kB. They ship with the
  * page's other words even when the deck has no chart.
+ * Then 214.1 kB: the handout's "Notes, continued" (every sheet alike, the
+ * rest of long notes after the sheets, its page found by laying it out),
+ * +3.0 kB.
  */
-const BUDGET = { minimal: 212_000, withChart: 870_000 }
+const BUDGET = { minimal: 215_000, withChart: 870_000 }

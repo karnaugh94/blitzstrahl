@@ -6,6 +6,8 @@
     "announce": "{title} ({n} sur {total})",
     "footnotes": "Notes de bas de page",
     "notes": "Notes",
+    "notesContinued": "Notes (suite)",
+    "continuedOn": "Suite page {n}.",
     "aria": {
       "chart": "Graphique",
       "bar": "Diagramme en barres",

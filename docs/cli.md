@@ -167,9 +167,9 @@ there is replaced.
   on arrival, then after each press. Good for sharing a talk that builds
   up an argument.
 - `--notes` gives a **handout** instead: two slides to a landscape A4
-  sheet, each at its final step with its presenter notes under it. A slide
-  whose notes don't fit half a sheet gets a sheet to itself, and `export`
-  names it. It's document mode's printout with notes (presenting.md,
+  sheet, each at its final step with its presenter notes under it. Notes
+  too long for their half carry on after the sheets, under *Notes,
+  continued*, and `export` names the slide. It's document mode's printout with notes (presenting.md,
   *Reading and printing*). `--notes` and `--steps` don't go together.
   *(1.1)*
 - Without `--notes`, pages are the canvas size (1280×720 unless the deck sets `canvas`), text

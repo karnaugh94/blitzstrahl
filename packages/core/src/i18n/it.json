@@ -6,6 +6,8 @@
     "announce": "{title} ({n} di {total})",
     "footnotes": "Note a piè di pagina",
     "notes": "Note",
+    "notesContinued": "Note (continua)",
+    "continuedOn": "Continua a pagina {n}.",
     "aria": {
       "chart": "Grafico",
       "bar": "Grafico a barre",

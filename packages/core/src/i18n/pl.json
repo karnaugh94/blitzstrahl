@@ -6,6 +6,8 @@
     "announce": "{title} ({n} z {total})",
     "footnotes": "Przypisy",
     "notes": "Notatki",
+    "notesContinued": "Notatki (ciąg dalszy)",
+    "continuedOn": "Ciąg dalszy na stronie {n}.",
     "aria": {
       "chart": "Wykres",
       "bar": "Wykres słupkowy",

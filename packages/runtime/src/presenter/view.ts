@@ -224,6 +224,36 @@ export class PresenterView implements NavTarget {
     this.render()
   }
 
+  /** A button in the top bar, before the status (`present`'s Remote, M12.6). */
+  addButton(label: string, title: string, onClick: () => void): HTMLButtonElement {
+    const b = this.doc.createElement('button')
+    b.type = 'button'
+    b.textContent = label
+    b.title = title
+    b.setAttribute('aria-label', title)
+    b.addEventListener('click', onClick)
+    this.el.status!.before(b)
+    return b
+  }
+
+  /** Show `content` as a dialog over the view; Esc or its close button shut it. */
+  openDialog(content: HTMLElement, label: string): void {
+    const d = this.doc
+    const close = d.createElement('button')
+    close.type = 'button'
+    close.className = 'blitz-dialog-close'
+    close.textContent = '×'
+    close.setAttribute('aria-label', this.words.close)
+    close.addEventListener('click', () => this.layers.close())
+    const el = d.createElement('div')
+    el.className = 'blitz-layer blitz-dialog'
+    el.setAttribute('role', 'dialog')
+    el.setAttribute('aria-modal', 'true')
+    el.setAttribute('aria-label', label)
+    el.append(close, content)
+    this.layers.open({ el, focus: close })
+  }
+
   /** Print every slide (the Print button; `Ctrl+P` does the same). */
   print(): void {
     this.printer.print()

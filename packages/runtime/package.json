@@ -19,6 +19,18 @@
     "./overflow-report": {
       "types": "./dist/overflow-report.d.ts",
       "default": "./dist/overflow-report.js"
+    },
+    "./remote-link": {
+      "types": "./dist/remote-link.d.ts",
+      "default": "./dist/remote-link.js"
+    },
+    "./protocol": {
+      "types": "./dist/presenter/protocol.d.ts",
+      "default": "./dist/presenter/protocol.js"
+    },
+    "./remote": {
+      "types": "./dist/remote.d.ts",
+      "default": "./dist/remote.js"
     }
   },
   "files": [

@@ -1,0 +1,11 @@
+{
+  "button": "Télécommande",
+  "buttonTitle": "Associer un téléphone comme télécommande",
+  "pairHeading": "Associer un téléphone comme télécommande",
+  "qrLabel": "Code QR de la télécommande",
+  "orOpen": "Scannez le code avec l’appareil photo du téléphone, ou ouvrez {url}",
+  "once": "Le code ne sert qu’une fois. Le téléphone qui l’utilise remplace celui associé avant.",
+  "title": "Télécommande",
+  "refused": "Cette télécommande n’est pas associée. Scannez le code affiché par le mode présentateur ou le terminal : chaque code ne sert qu’une fois.",
+  "gone": "La présentation ne répond pas. blitzstrahl present tourne-t-il encore, et ce téléphone est-il sur le même réseau ?"
+}

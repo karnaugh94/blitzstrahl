@@ -175,5 +175,8 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * Then 232.5 kB: the overview's real thumbnails and the next preview's
  * embed card (M12.4–5), +4.2 kB: drawing blocks off screen, giving copies
  * ids of their own, the card and its one word in seven languages.
+ * Then 233.5 kB: the deck's bridge taking another transport (M12.6's
+ * phone remote), +1.0 kB. The remote's page, its link and its words stay
+ * out (only `present` serves them; i18n/remote/ is its own entry).
  */
-const BUDGET = { minimal: 233_000, withChart: 889_000 }
+const BUDGET = { minimal: 234_000, withChart: 890_000 }

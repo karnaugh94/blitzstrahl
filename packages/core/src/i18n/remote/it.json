@@ -1,0 +1,11 @@
+{
+  "button": "Telecomando",
+  "buttonTitle": "Abbina un telefono come telecomando",
+  "pairHeading": "Abbina un telefono come telecomando",
+  "qrLabel": "Codice QR del telecomando",
+  "orOpen": "Inquadra il codice con la fotocamera del telefono, oppure apri {url}",
+  "once": "Il codice vale una volta. Il telefono che lo usa sostituisce quello abbinato prima.",
+  "title": "Telecomando",
+  "refused": "Questo telecomando non è abbinato. Inquadra il codice mostrato dalla vista relatore o dal terminale: ogni codice vale una volta.",
+  "gone": "La presentazione non risponde. blitzstrahl present è ancora in esecuzione, e questo telefono è sulla stessa rete?"
+}

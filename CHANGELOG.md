@@ -217,6 +217,13 @@ relied on it will notice.
   are cards with their title, and so they are in the presenter's
   next-slide preview, which no longer loads a second copy of the page.
   1.0 showed a labelled placeholder for every chart, map and diagram.
+- **`blitzstrahl present`: a phone as the remote.** It builds and serves
+  the deck, opens it, and prints a QR code; the paired phone turns slides,
+  shows the notes and the timer (with your pace), and starts or pauses it.
+  Each code works once; only this machine can open the deck, and the
+  network gets the remote alone. No cookies. Not for `file://` decks.
+- The presenter view and its pop-up path are tested in Firefox and WebKit
+  as well as Chromium.
 
 ## [1.0.1] — 2026-09-27
 

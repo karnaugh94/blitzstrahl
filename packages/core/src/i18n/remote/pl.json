@@ -1,0 +1,11 @@
+{
+  "button": "Pilot",
+  "buttonTitle": "Sparuj telefon jako pilota",
+  "pairHeading": "Sparuj telefon jako pilota",
+  "qrLabel": "Kod QR pilota",
+  "orOpen": "Zeskanuj kod aparatem telefonu albo otwórz {url}",
+  "once": "Kod działa raz. Telefon, który go użyje, zastępuje wcześniej sparowany.",
+  "title": "Pilot",
+  "refused": "Ten pilot nie jest sparowany. Zeskanuj kod z widoku prezentera lub terminala: każdy kod działa tylko raz.",
+  "gone": "Prezentacja nie odpowiada. Czy blitzstrahl present nadal działa i czy telefon jest w tej samej sieci?"
+}

@@ -2,20 +2,26 @@
  * `blitzstrahl export`: the deck as a PDF (PLAN §6), one page per slide at
  * its final step, or with `steps`, one page per build step (handouts).
  *
- * The deck is built standalone into a temporary folder and printed by
- * headless Chromium: the runtime lays out the pages (`Deck.print`), waits
- * for charts, tiles and frames, and the browser prints at canvas size, so
- * text stays text.
+ * The deck is built statically into a temporary folder, served on the
+ * loopback interface and printed by headless Chromium: the runtime lays out
+ * the pages (`Deck.print`), waits for charts, tiles and frames, and the
+ * browser prints at canvas size, so text stays text. The PDF is tagged, its
+ * outline is the slides' headings, and pdf-lib then writes what Chromium
+ * doesn't: author, language and date (M11.1).
  */
-import { mkdtemp, rm } from 'node:fs/promises'
+import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { basename, extname, join, resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { basename, extname, join, relative, resolve } from 'node:path'
+import type { DeckMeta } from '@blitzstrahl/core'
 import type { PrintResult } from '@blitzstrahl/runtime'
+import { PDFDocument } from 'pdf-lib'
 import { NO_BROWSER, launchBrowser } from './browser.js'
 import { build } from './build.js'
+import { loadDeck } from './load.js'
 import { checkOutFile } from './output.js'
 import { printDiagnostics } from './report.js'
+import { serveFolder } from './serve.js'
+import { VERSION } from './version.js'
 
 export interface ExportOptions {
   /** The PDF to write. Default: the deck's name with `.pdf`, next to it. */
@@ -43,18 +49,19 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
   checkOutFile(file, deck, 'pdf')
   const tmp = await mkdtemp(join(tmpdir(), 'blitz-export-'))
   try {
-    const page = join(tmp, 'deck.html')
-    const built = await build(deck, { standalone: true, outFile: page, overflowCheck: false, quiet: true, report: false, force: options.force ?? false })
-    // The standalone file is only a means here: its notes about the network don't apply.
-    printDiagnostics(built.diagnostics.filter((d) => d.code !== 'standalone/network'))
+    const loaded = await loadDeck(deck, relative(process.cwd(), deck) || deckPath)
+    const outDir = join(tmp, 'deck')
+    const built = await build(deck, { outDir, loaded, overflowCheck: false, quiet: true, report: false, force: options.force ?? false })
+    printDiagnostics(built.diagnostics)
     if (!built.ok) return { ok: false, error: 'the deck has errors (use --force to export anyway)', warnings: [] }
 
     const browser = await launchBrowser()
     if (!browser) return { ok: false, error: `can't export: ${NO_BROWSER}`, warnings: [] }
+    const { server, url } = await serveFolder(outDir)
     try {
       // 2x, for sharp screenshots of embedded pages; text and charts stay vector.
       const tab = await browser.newPage({ reducedMotion: 'reduce', deviceScaleFactor: 2 })
-      await tab.goto(pathToFileURL(page).href)
+      await tab.goto(url)
       await tab.waitForFunction(() => (globalThis as { blitz?: unknown }).blitz, undefined, { timeout: 15_000 })
       const canvas = await tab.evaluate(() => (globalThis as unknown as { blitz: { canvas: { width: number; height: number } } }).blitz.canvas)
       await tab.setViewportSize(canvas)
@@ -63,14 +70,41 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
         options.steps ?? false,
       )
       const frames = await pictureFrames(tab)
-      await tab.pdf({ path: file, width: `${canvas.width}px`, height: `${canvas.height}px`, printBackground: true, preferCSSPageSize: true })
+      const pdf = await tab.pdf({ width: `${canvas.width}px`, height: `${canvas.height}px`, printBackground: true, preferCSSPageSize: true, tagged: true, outline: true })
+      await writeFile(file, await withMetadata(pdf, loaded.deck.meta))
       return { ok: true, file, pages: printed.pages, warnings: [...printed.warnings, ...frames] }
     } finally {
       await browser.close()
+      server.close()
     }
   } finally {
     await rm(tmp, { recursive: true, force: true })
   }
+}
+
+/**
+ * The deck's title, author and language in the PDF's properties, and its
+ * `date` as the creation date when it's a calendar date (it's free-form).
+ */
+export async function withMetadata(pdf: Uint8Array, meta: DeckMeta): Promise<Uint8Array> {
+  const doc = await PDFDocument.load(pdf, { updateMetadata: false })
+  doc.setTitle(meta.title, { showInWindowTitleBar: true })
+  if (meta.author) doc.setAuthor(meta.author)
+  doc.setLanguage(meta.lang)
+  doc.setCreator(`blitzstrahl ${VERSION}`)
+  doc.setProducer(`blitzstrahl ${VERSION}`)
+  const now = new Date()
+  doc.setCreationDate(calendarDate(meta.date) ?? now)
+  doc.setModificationDate(now)
+  return doc.save({ useObjectStreams: false })
+}
+
+/** `2026-10-14` → that day (UTC); anything else → undefined. */
+export function calendarDate(text: string | undefined): Date | undefined {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text?.trim() ?? '')
+  if (!m) return undefined
+  const d = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])))
+  return d.getUTCMonth() === Number(m[2]) - 1 && d.getUTCDate() === Number(m[3]) ? d : undefined
 }
 
 /** Time for an embedded page's own fade-ins after its network goes quiet. */

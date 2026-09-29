@@ -50,6 +50,11 @@ relied on it will notice.
   `1 234,5` in `fr`. In an English deck, `4,2` is text. Spaces group
   digits in every language.
 - Pie percentages are written in the deck's language (`43 %` in `de`).
+- `export` prints a static build served on the loopback interface for
+  the length of the export, instead of a standalone file: faster, and
+  the page is printed exactly as it's served.
+- A slide's accessible name and role description are in the deck's
+  language (`Folie 3` in `de`); 1.0 said `Slide 3` in every language.
 
 - **aurora and broadsheet ship their fonts**: Inter and JetBrains Mono
   (and broadsheet's Newsreader), in Latin, Latin Extended, Greek, Cyrillic
@@ -158,6 +163,11 @@ relied on it will notice.
 - Magic move within a slide: consecutive blocks with the same `key=`, each
   at a later step, take turns in one box, and each morphs into the next
   (code token by token).
+- **Accessible PDFs**: `export` writes a tagged PDF, so screen readers
+  read it in order with its headings, lists and tables; its bookmarks are
+  the slides' headings; and its properties carry the deck's `title`,
+  `author` and `lang`, and `date` when it's a calendar date. With
+  `--steps`, a heading is bookmarked once, on the first page that shows it.
 
 ## [1.0.1] — 2026-09-27
 

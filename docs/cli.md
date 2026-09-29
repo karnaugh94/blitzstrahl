@@ -164,20 +164,31 @@ there is replaced.
 - One page per slide, showing the slide at its **final step**, with
   everything revealed.
 - `--steps` gives a page for **every step** instead: the slide as it looks
-  on arrival, then after each press. Good for handouts, or for sharing a
-  talk that builds up an argument.
+  on arrival, then after each press. Good for sharing a talk that builds
+  up an argument.
 - Pages are the canvas size (1280×720 unless the deck sets `canvas`), text
   stays selectable text, and charts are vector graphics.
+- **The PDF is accessible** *(1.1)*: it's tagged, so screen readers read
+  it in order, with headings, lists and tables as such; its **bookmarks**
+  are the slides' headings, in order (with `--steps`, a slide's headings
+  are bookmarked on its first page only); and its properties carry the
+  deck's `title`, `author` and `lang`. If `date` is a calendar date
+  (`2026-10-14`), it's the PDF's creation date; otherwise the creation date
+  is when it was exported.
 - Charts, maps and embeds are drawn in full before the page is printed,
   without their entrance animations. A map's street tiles and embedded pages
   come from the network at export time. If one isn't ready within 15
   seconds, it's printed as it is and `export` says which.
 - Embedded pages appear as pictures of themselves: a browser won't print
   another site's page inside a frame.
+- Video and audio print their poster, or the video's frame at `start`
+  (syntax.md §13).
 - Presenter notes aren't included.
 - Like `build`, a deck with errors isn't exported unless you pass `--force`.
 
-`export` needs a Chromium-based browser, just like the overflow check.
+`export` builds the deck into a temporary folder, serves it on the loopback
+interface for as long as it prints, and deletes it afterwards. `export`
+needs a Chromium-based browser, just like the overflow check.
 
 ## `check`
 

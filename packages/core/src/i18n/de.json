@@ -1,6 +1,8 @@
 {
   "deck": {
     "slide": "Folie {n}",
+    "slideRole": "Folie",
+    "deckRole": "Präsentation",
     "announce": "{title} ({n} von {total})",
     "footnotes": "Fußnoten",
     "backToReference": "Zurück zu Verweis {ref}",

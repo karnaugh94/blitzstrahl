@@ -9,6 +9,7 @@ import { CliError } from './errors.js'
 import { exportPdf } from './export.js'
 import { importTheme } from './import.js'
 import { newDeck } from './new.js'
+import { VERSION } from './version.js'
 import { FORMATS, formatReport, hasErrors, printDiagnostics, summary, type Format } from './report.js'
 
 const HELP = `blitzstrahl — Markdown in. A deck worth watching out.
@@ -143,7 +144,6 @@ const OPTIONS = {
   version: { type: 'boolean', short: 'v' },
 } as const
 
-const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
 
 /** The closest name to `word`, if one is close enough to be a typo of it. */
 function closest(word: string, names: readonly string[]): string | undefined {

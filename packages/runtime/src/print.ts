@@ -55,8 +55,10 @@ export async function buildPrint(host: PrintHost, options: PrintOptions = {}): P
   const waits: Array<Promise<string | undefined>> = []
   host.slides.forEach((data, i) => {
     const states = options.steps ? Array.from({ length: data.steps + 1 }, (_, s) => s) : [data.steps]
+    const outlined = new Set<number>()
     for (const step of states) {
       const copy = pageOf(host.sections[i]!, data, step)
+      bookmarkOnce(copy, outlined)
       root.append(copy)
       for (const block of data.blocks) {
         const el = copy.querySelector<HTMLElement>(`[data-blitz-block="${CSS.escape(block.id)}"]`)
@@ -130,6 +132,18 @@ function pageOf(section: HTMLElement, data: PayloadSlide, step: number): HTMLEle
   for (const p of dimmed) p.dataset.blitzDim = ''
   for (const pre of copy.querySelectorAll<HTMLElement>('pre[data-blitz-lines]')) focusLines(pre, step)
   return copy
+}
+
+/**
+ * A PDF's outline is its headings (Chromium's `outline`), so a heading
+ * repeated on every step's page would be bookmarked once per page. It stays
+ * a heading only on the first page that shows it; on the others it's text.
+ */
+function bookmarkOnce(copy: HTMLElement, outlined: Set<number>) {
+  copy.querySelectorAll<HTMLElement>('h1, h2, h3, h4, h5, h6').forEach((h, k) => {
+    if (!outlined.has(k) && !h.closest('[data-blitz-hidden]')) outlined.add(k)
+    else h.setAttribute('role', 'none')
+  })
 }
 
 /** Resolves true if `p` didn't settle within `ms`. */

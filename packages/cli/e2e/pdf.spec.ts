@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { expect, test, type Page } from '@playwright/test'
+import { PDFDict, PDFDocument, PDFName, type PDFArray, type PDFRef } from 'pdf-lib'
 import { exportPdf } from '../dist/index.js'
 import { buildAndServe } from './serve.js'
 
@@ -82,7 +83,7 @@ test('export writes a PDF: a page per slide, at the canvas size', async () => {
   expect(count).toBe(r.pages)
   expect(r.pages).toBeGreaterThan(2)
   // 1280×720 CSS px = 960×540 pt.
-  expect(pdf).toMatch(/\/MediaBox\s*\[0 0 960 540\]/)
+  expect(pdf).toMatch(/\/MediaBox\s*\[\s*0 0 960 540\s*\]/)
 })
 
 test('embedded pages are in the PDF as pictures; one that fails prints its fallback', async () => {
@@ -115,3 +116,55 @@ test('embedded pages are in the PDF as pictures; one that fails prints its fallb
   expect((readFileSync(plain.file!, 'latin1').match(/\/Subtype\s*\/Image/g) ?? []).length).toBe(0)
 })
 
+
+/** Each bookmark's title, depth and page (from 1). */
+async function outline(file: string) {
+  const doc = await PDFDocument.load(readFileSync(file), { updateMetadata: false })
+  const pages = doc.getPages().map((p) => p.ref.toString())
+  const found: string[] = []
+  const walk = (item: PDFDict | undefined, depth: number) => {
+    for (; item; item = item.lookupMaybe(PDFName.of('Next'), PDFDict)) {
+      const title = (item.lookup(PDFName.of('Title')) as unknown as { decodeText(): string }).decodeText()
+      const dest = item.lookup(PDFName.of('Dest')) as PDFArray
+      found.push(`${'  '.repeat(depth)}${title} p${pages.indexOf((dest.get(0) as PDFRef).toString()) + 1}`)
+      walk(item.lookupMaybe(PDFName.of('First'), PDFDict), depth + 1)
+    }
+  }
+  walk(doc.catalog.lookupMaybe(PDFName.of('Outlines'), PDFDict)?.lookupMaybe(PDFName.of('First'), PDFDict), 0)
+  return { doc, found }
+}
+
+test('the PDF is tagged, bookmarked by heading, and carries the deck\'s metadata (M11.1)', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'blitz-pdf-a11y-'))
+  const deck = join(dir, 'deck.md')
+  writeFileSync(
+    deck,
+    '---\ntitle: Quarterly review\nauthor: Ada Lovelace\ndate: 2026-10-14\nlang: de\n---\n\n# Opening\n\n---\n\n# Results\n\n## East {@1}\n\nRose.\n\n## West {@2}\n\nFell.\n\n---\n\nNo heading on this slide.\n',
+  )
+  const r = await exportPdf(deck, { quiet: true })
+  expect(r.ok).toBe(true)
+  const { doc, found } = await outline(r.file!)
+  expect(found).toEqual(['Opening p1', 'Results p2', '  East p2', '  West p2'])
+  expect(doc.getTitle()).toBe('Quarterly review')
+  expect(doc.getAuthor()).toBe('Ada Lovelace')
+  expect(doc.catalog.lookup(PDFName.of('Lang'))?.toString()).toBe('(de)')
+  expect(doc.getCreationDate()?.toISOString()).toBe('2026-10-14T00:00:00.000Z')
+  expect(doc.catalog.lookupMaybe(PDFName.of('StructTreeRoot'), PDFDict)).toBeDefined()
+  expect(doc.catalog.lookup(PDFName.of('MarkInfo'), PDFDict).get(PDFName.of('Marked'))?.toString()).toBe('true')
+
+  // --steps: a heading is bookmarked on the first page that shows it, once.
+  const steps = await exportPdf(deck, { outFile: join(dir, 'steps.pdf'), steps: true, quiet: true })
+  expect(steps.pages).toBe(1 + 3 + 1)
+  expect((await outline(steps.file!)).found).toEqual(['Opening p1', 'Results p2', '  East p3', '  West p4'])
+})
+
+test('a free-form date leaves the creation date at export time', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'blitz-pdf-date-'))
+  const deck = join(dir, 'deck.md')
+  writeFileSync(deck, '---\ndate: Autumn 2026\n---\n\n# One\n')
+  const before = Date.now() - 2000
+  const r = await exportPdf(deck, { quiet: true })
+  const { doc } = await outline(r.file!)
+  expect(doc.getCreationDate()!.getTime()).toBeGreaterThan(before)
+  expect(doc.getAuthor()).toBeUndefined()
+})

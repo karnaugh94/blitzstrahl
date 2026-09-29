@@ -39,6 +39,7 @@
     "import-meta-resolve": "^4.2.0",
     "katex": "^0.18.9",
     "launch-editor": "^2.14.1",
+    "pdf-lib": "^1.17.1",
     "playwright-core": "1.63.0",
     "postcss": "^8.5.28",
     "shiki": "^4.4.3",

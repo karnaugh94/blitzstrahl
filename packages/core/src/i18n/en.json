@@ -30,6 +30,7 @@
     "slide": "Slide {n}",
     "slides": "Slides",
     "allSlides": "All slides",
+    "embeddedPage": "Embedded page",
     "gotoTitle": "Go to slide",
     "gotoLabel": "Slide number, id or title",
     "gotoPlaceholder": "1–{total}, id or title",

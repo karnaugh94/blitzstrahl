@@ -30,6 +30,7 @@
     "slide": "Diapositiva {n}",
     "slides": "Diapositive",
     "allSlides": "Tutte le diapositive",
+    "embeddedPage": "Pagina incorporata",
     "gotoTitle": "Vai alla diapositiva",
     "gotoLabel": "Numero, id o titolo della diapositiva",
     "gotoPlaceholder": "1–{total}, id o titolo",

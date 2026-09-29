@@ -211,6 +211,12 @@ relied on it will notice.
   last stroke, whichever window drew it). The presenter's next-slide
   preview shows what's drawn on that slide. A stroke is sent between the
   windows as it grows, not whole each time.
+- **The overview shows the real charts, maps and diagrams** (in the deck
+  and in the presenter view): as last drawn, or drawn once in the
+  background when a slide never shown scrolls into view. Embedded pages
+  are cards with their title, and so they are in the presenter's
+  next-slide preview, which no longer loads a second copy of the page.
+  1.0 showed a labelled placeholder for every chart, map and diagram.
 
 ## [1.0.1] — 2026-09-27
 

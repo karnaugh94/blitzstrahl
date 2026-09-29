@@ -8,6 +8,7 @@
  * rather than a deck.
  */
 import { fill, strings, uiLanguage, type Strings } from '@blitzstrahl/core/i18n'
+import type { BlockData } from './renderer.js'
 
 /** A modal layer. `onKey` returns true when it handled the key. */
 export interface Layer {
@@ -91,6 +92,15 @@ function h<K extends keyof HTMLElementTagNameMap>(
 export interface SlideInfo {
   id: string
   title?: string
+  /** Its render blocks: the overview draws them (M12.5). */
+  blocks?: ReadonlyArray<Pick<BlockData, 'id' | 'renderer' | 'spec'>>
+}
+
+/** What the overview asks for its thumbnails' render blocks (drawings.ts). */
+export interface ThumbDrawings {
+  get(id: string): HTMLElement | undefined
+  /** Draw slide `i`'s blocks that have no drawing yet; resolves when they're in. */
+  draw(i: number): Promise<void>
 }
 
 /** Label for a slide in lists: its title, or its number. */
@@ -112,6 +122,8 @@ export interface OverviewOptions {
   host?: LayerHost
   /** Short marks after a slide's label (the presenter's: has notes, rehearsed time). */
   extra?(index: number): string[]
+  /** Charts, maps and diagrams as drawn; without it, thumbnails show placeholders. */
+  drawings?: ThumbDrawings
 }
 
 /**
@@ -133,6 +145,7 @@ export function overview(doc: Document, o: OverviewOptions): Layer {
     canvas.style.height = `${o.canvas.height}px`
     const section = sections[i]
     if (section) canvas.append(thumbnail(section))
+    fillBlocks(doc, canvas, s, o.drawings)
     frame.append(canvas)
     const marks = o.extra?.(i) ?? []
     const label = h(doc, 'span', { class: 'blitz-thumb-label' }, h(doc, 'b', {}, String(i + 1)), ' ', slideLabel(s, i, words))
@@ -160,6 +173,17 @@ export function overview(doc: Document, o: OverviewOptions): Layer {
     else select(i)
   }
   thumbs[o.current]?.setAttribute('aria-current', 'true')
+
+  // Blocks never drawn are drawn as their thumbnail comes into view, and filled in when ready.
+  const seen = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting || !o.drawings) continue
+      const i = thumbs.indexOf(entry.target as HTMLButtonElement)
+      seen.unobserve(entry.target)
+      void o.drawings.draw(i).then(() => fillBlocks(doc, entry.target.querySelector<HTMLElement>('.blitz-thumb-canvas')!, o.slides[i]!, o.drawings))
+    }
+  })
+  if (o.drawings) thumbs.forEach((t, i) => o.slides[i]?.blocks?.some((b) => b.renderer !== 'embed' && !o.drawings!.get(b.id)) && seen.observe(t))
 
   const ro = new ResizeObserver(() => {
     const w = thumbs[0]?.querySelector<HTMLElement>('.blitz-thumb-frame')?.clientWidth ?? 0
@@ -201,12 +225,71 @@ export function overview(doc: Document, o: OverviewOptions): Layer {
       }
       return false
     },
-    onClose: () => ro.disconnect(),
+    onClose: () => {
+      ro.disconnect()
+      seen.disconnect()
+    },
   }
   const first = thumbs[o.current]
   if (first) layer.focus = first
   queueMicrotask(() => select(o.current))
   return layer
+}
+
+/**
+ * An embedded page as a card, without loading it: its name (`alt`, else
+ * `title`), a label and its host. For the next preview and the overview.
+ */
+export function embedCard(doc: Document, el: HTMLElement, spec: unknown): HTMLElement {
+  const s = (typeof spec === 'string' ? { src: spec } : (spec ?? {})) as { src?: unknown; title?: unknown }
+  let host = ''
+  try {
+    host = new URL(String(s.src)).host
+  } catch {
+    // not a URL: the card has no host
+  }
+  const name = el.dataset.blitzAlt ?? (typeof s.title === 'string' ? s.title : '') ?? ''
+  return h(doc, 'div', { class: 'blitz-embed-card' }, h(doc, 'span', {}, uiWords(doc).embeddedPage), ...(name ? [h(doc, 'b', {}, name)] : []), h(doc, 'span', {}, host))
+}
+
+/** Put each block's drawing into a thumbnail, or a card for an embedded page. */
+function fillBlocks(doc: Document, canvas: HTMLElement, slide: SlideInfo, drawings: ThumbDrawings | undefined) {
+  for (const block of slide.blocks ?? []) {
+    const el = canvas.querySelector<HTMLElement>(`[data-blitz-block="${CSS.escape(block.id)}"]`)
+    if (!el) continue
+    if (block.renderer === 'embed') {
+      el.replaceChildren(embedCard(doc, el, block.spec))
+      delete el.dataset.blitzPlaceholder
+      continue
+    }
+    const drawn = drawings?.get(block.id)
+    if (!drawn) continue
+    const copy = drawn.cloneNode(true) as HTMLElement
+    reid(copy, `${block.id}-thumb-`)
+    el.replaceChildren(...copy.childNodes)
+    delete el.dataset.blitzPlaceholder
+  }
+}
+
+/**
+ * Give a copied drawing ids of its own: a diagram's styles (`#mermaid-1 .node`)
+ * and a chart's clip paths (`url(#zr0-c0)`) name them, and the original may
+ * be in the page too.
+ */
+export function reid(root: HTMLElement, prefix: string): void {
+  const ids = new Map<string, string>()
+  for (const el of root.querySelectorAll('[id]')) {
+    ids.set(el.id, prefix + el.id)
+    el.id = prefix + el.id
+  }
+  if (!ids.size) return
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pattern = new RegExp(`#(${[...ids.keys()].map(esc).join('|')})(?![\\w-])`, 'g')
+  const swap = (text: string) => text.replace(pattern, (_, id: string) => `#${ids.get(id)}`)
+  for (const el of root.querySelectorAll('*')) {
+    if (el.localName === 'style') el.textContent = swap(el.textContent ?? '')
+    for (const a of [...el.attributes]) if (a.value.includes('#')) a.value = swap(a.value)
+  }
 }
 
 /** A static copy of a slide with every step shown and no live renderers. */

@@ -81,7 +81,8 @@ Press `P` in the deck. A second window opens with:
 - the **current** slide, live, exactly as the audience sees it (charts and
   animations included);
 - the **next** state: the next build step, or the next slide, fully built,
-  with whatever is already drawn on it *(1.1)*;
+  with whatever is already drawn on it. An embedded page shows there as a
+  card with its title rather than loading a second copy *(1.1)*;
 - your **notes** (`::: notes`, see [syntax.md §7](syntax.md#7-presenter-notes)),
   with `A−`/`A+` to resize them. `J` and `K` scroll them down and up, so
   long notes never need the mouse; the arrows, `Space` and the page keys
@@ -111,6 +112,11 @@ open turns that tab into the presenter view.
 Reloading either window reconnects it. The timer and the drawings live in
 the deck, so they survive the presenter window reloading (and a reloaded
 deck starts with clean slides).
+
+The overview (`Esc`, in either window) shows charts, maps and diagrams as
+they look on their slides *(1.1)*: as they were last drawn, or, for a
+slide not shown yet, drawn once in the background when its thumbnail
+scrolls into view. Embedded pages are cards with their title.
 
 ### Pacing *(1.1)*
 

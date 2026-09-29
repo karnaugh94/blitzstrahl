@@ -231,6 +231,12 @@ pre[data-blitz-lines-on] .line:not([data-blitz-focus]) { opacity: var(--blitz-di
 .blitz-thumb-canvas > .blitz-slide { position: absolute; inset: 0; }
 .blitz-thumb-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #97a2b9; }
 .blitz-thumb-label b { color: #e9edf5; font-variant-numeric: tabular-nums; margin-right: 4px; }
+.blitz-embed-card {
+  position: absolute; inset: 0; display: flex; flex-direction: column; gap: .3em; align-items: center; justify-content: center;
+  padding: 1em; text-align: center; font: 24px/1.3 system-ui, sans-serif; color: var(--blitz-fg-muted, #97a2b9);
+  background: var(--blitz-surface, rgba(127, 127, 127, .12)); border: 2px dashed currentColor; border-radius: 12px;
+}
+.blitz-embed-card b { font-size: 1.4em; color: var(--blitz-fg, inherit); }
 [data-blitz-placeholder]::before {
   content: attr(data-blitz-placeholder); position: absolute; inset: 0;
   display: grid; place-items: center; font: 600 28px/1 system-ui, sans-serif;

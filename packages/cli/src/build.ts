@@ -49,6 +49,8 @@ export interface BuildOptions {
   overflowCheck?: boolean
   /** The deck, already loaded from `deckPath` (`check` has it): saves loading it again. */
   loaded?: LoadedDeck
+  /** `present`'s build: the deck links to the server's relay for a phone remote (M12.6). Not with `standalone`. */
+  remote?: boolean
 }
 
 /** Env var that turns the build-time overflow check off. */
@@ -139,7 +141,7 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     cacheDir: cacheDir(loaded.dir),
     publicDir: false,
     logLevel: options.quiet ? 'silent' : 'warn',
-    plugins: [virtualEntry(STATIC_ENTRY, staticEntry(renderers))],
+    plugins: [virtualEntry(STATIC_ENTRY, staticEntry(renderers, options.remote))],
     build: {
       outDir,
       emptyOutDir: false,

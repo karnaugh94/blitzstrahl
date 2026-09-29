@@ -166,13 +166,68 @@ bar.
 
 - Both windows must be in the same browser, on the same computer: they talk
   through the window that opened the other. Nothing else can drive the deck,
-  not another tab and not a page embedded in a slide. Controlling a deck from a phone
-  or another machine isn't supported yet.
+  not another tab and not a page embedded in a slide. To drive the deck
+  from a phone, use `blitzstrahl present` (next section) *(1.1)*.
 - Some browsers block the window `P` opens (Firefox doesn't count a key
   press as permission for a pop-up). The deck then shows an **Open the
   presenter view** link, which works, and the presenter it opens drives the
   deck as usual. To make `P` work directly, allow pop-ups for the deck.
 - Notes are in the page source (syntax.md §7).
+
+## A phone as the remote *(1.1)*
+
+```
+blitzstrahl present talk.md
+```
+
+builds the deck, serves it from your laptop, opens it in your browser,
+and prints a QR code in the terminal. Scan it with your phone's camera:
+the phone opens the **remote**, a page with
+
+- big **Next** and **Previous** buttons (swiping left and right works
+  too);
+- where you are (`Slide 7 of 24`, the slide's title) and the timer, with
+  your pace when the deck has a `duration`, and a button to start or
+  pause it;
+- your notes for the current slide, to scroll with a thumb.
+
+The deck on the laptop stays in charge, as with the presenter view: the
+phone asks for *next* and *previous*, the deck moves, and the phone shows
+where it is. That's all a phone can do: turn slides and start or pause
+the timer. The presenter view (`P`) works as usual alongside.
+
+**Pairing.** The QR code holds a one-time address. The first phone to
+open it is paired and the code is used up; anyone else who opens it, or
+guesses at an address, is refused. For another phone (or the same one,
+after closing its tab), **Remote** in the presenter view shows a new
+code; the phone that uses it replaces the one paired before, which says
+so. Each new code replaces the last one not yet used. The phone
+keeps its pairing in the remote's own address, not in a cookie: reloading
+the remote keeps it, and closing the tab ends it. Nothing is
+served to the network without the code, not even the slides: only the
+laptop itself can open the deck.
+
+**On the day:**
+
+- The phone and the laptop must be on the same network and able to reach
+  each other. Venue and hotel Wi-Fi often keeps devices apart ("client
+  isolation"); your phone's own hotspot, with the laptop joined to it,
+  always works.
+- The connection is plain HTTP on your network, like `dev --host`:
+  someone on the same Wi-Fi who can read its traffic could see your notes
+  and send *next*. On a network you don't trust, use your hotspot.
+- A phone browser may let its screen sleep, and a sleeping remote
+  reconnects when you wake it. Set the phone's screen timeout for the talk.
+- The QR code in the terminal is drawn white on black. If your terminal
+  shows no colour, and its background is light, some cameras won't read
+  it: open the address printed under it, or use **Remote** in the
+  presenter view.
+- The remote needs `present`: a deck opened as a file (`talk.html`,
+  `file://`) or served by anything else has no remote, and `build` never
+  includes it.
+
+`blitzstrahl present` stops when you press `Ctrl+C`; the phone then says
+the deck has gone. See cli.md, *present*, for its options.
 
 ## Reading and printing *(1.1)*
 

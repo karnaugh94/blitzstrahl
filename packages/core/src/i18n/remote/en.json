@@ -1,0 +1,11 @@
+{
+  "button": "Remote",
+  "buttonTitle": "Pair a phone as the remote",
+  "pairHeading": "Pair a phone as the remote",
+  "qrLabel": "QR code for the remote",
+  "orOpen": "Scan the code with the phone’s camera, or open {url}",
+  "once": "The code works once. The phone that uses it replaces any phone paired before.",
+  "title": "Remote",
+  "refused": "This remote isn’t paired. Scan the code the presenter view or the terminal shows: each code works once.",
+  "gone": "The deck isn’t answering. Is blitzstrahl present still running, and is this phone on the same network?"
+}

@@ -1,0 +1,11 @@
+{
+  "button": "Fjärrkontroll",
+  "buttonTitle": "Para ihop en telefon som fjärrkontroll",
+  "pairHeading": "Para ihop en telefon som fjärrkontroll",
+  "qrLabel": "QR-kod för fjärrkontrollen",
+  "orOpen": "Skanna koden med telefonens kamera, eller öppna {url}",
+  "once": "Koden fungerar en gång. Telefonen som använder den ersätter en som parats ihop tidigare.",
+  "title": "Fjärrkontroll",
+  "refused": "Den här fjärrkontrollen är inte ihopparad. Skanna koden som presentatörsvyn eller terminalen visar: varje kod fungerar en gång.",
+  "gone": "Presentationen svarar inte. Körs blitzstrahl present fortfarande, och är telefonen på samma nätverk?"
+}

@@ -5,6 +5,7 @@ blitzstrahl new [talk.md] [--theme aurora]
 blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
 blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
 blitzstrahl export <deck.md> [--out deck.pdf] [--steps | --notes] [--force]
+blitzstrahl present <deck.md> [--port 5180] [--no-open] [--force]
 blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
 blitzstrahl theme import <template.potx> [--out folder]
 blitzstrahl --version
@@ -200,6 +201,36 @@ needs a Chromium-based browser, just like the overflow check.
 To print from the browser instead, or to save a PDF without the command
 line, see presenting.md, *Reading and printing*. `export`'s PDF is the one
 with bookmarks and the deck's metadata in every browser.
+
+## `present` *(1.1)*
+
+Gives the talk with a **phone as the remote** (presenting.md, *A phone as
+the remote*). It builds the deck into a temporary folder, serves it,
+opens the deck in your default browser, and prints a QR code for the
+phone, with the address under it in case the code won't scan:
+
+```
+Deck:    http://localhost:5180/  (opened in your browser)
+
+(the QR code)
+Remote:  scan the code with your phone, or open http://192.168.1.23:5180/r/7KqW…
+         The code works once. For another phone, use Remote in the presenter view (P).
+```
+
+- The deck opens at `localhost`, and only this machine can load it,
+  by that name (or `127.0.0.1`). The network sees one thing: the remote,
+  behind a one-time code.
+- `--port` chooses the port (default 5180, or the next free one).
+  `--no-open` prints the deck's address instead of opening it.
+- The build is `build`'s, without the overflow check: run `check` before
+  the talk, not during it. Like `build`, a deck with errors isn't served
+  unless you pass `--force`.
+- The markdown isn't watched: `present` serves the deck as it was when it
+  started. Restart it after an edit (and pair the phone again).
+- If the laptop has more than one network (Wi-Fi and a cable, a VPN),
+  the code uses the first private address (`192.168.…`, `10.…`,
+  `172.16–31.…`); the line under it lists the others to try.
+- `Ctrl+C` stops it and deletes the temporary folder.
 
 ## `check`
 

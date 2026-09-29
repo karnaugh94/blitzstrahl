@@ -7,6 +7,7 @@ import { dev } from './dev.js'
 import { check } from './check.js'
 import { CliError } from './errors.js'
 import { exportPdf } from './export.js'
+import { present } from './present.js'
 import { importTheme } from './import.js'
 import { newDeck } from './new.js'
 import { VERSION } from './version.js'
@@ -19,6 +20,7 @@ Usage:
   blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
   blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
   blitzstrahl export <deck.md> [--out deck.pdf] [--steps | --notes] [--force]
+  blitzstrahl present <deck.md> [--port 5180] [--no-open] [--force]
   blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
   blitzstrahl theme import <template.potx> [--out folder]
 
@@ -29,6 +31,8 @@ Commands:
           one .html file that opens straight from disk
   export  PDF: one page per slide at its final step (--steps: every step;
           --notes: a handout with the presenter notes)
+  present Give the talk with a phone as the remote: serves the deck, prints a
+          QR code for the phone
   check   Find problems before the talk: errors, missing files, broken
           charts and maps, step gaps, overflow, embeds that refuse framing
   theme   theme import: a CSS theme from a PowerPoint template (.potx, .pptx)
@@ -47,7 +51,8 @@ Options:
   --offline      check: don't contact embedded sites
   --format       check, build: text (default), json, or github (annotations)
   --theme        new: the deck's theme (default aurora)
-  --port, -p     dev: server port
+  --port, -p     dev, present: server port
+  --no-open      present: print the deck's address instead of opening it
   --host         dev: listen on all addresses (present from another device)
   --open         dev: open the browser
   --help, -h     Show this help, or a command's (blitzstrahl build --help)
@@ -107,6 +112,18 @@ updates the open deck.
   --notes        a handout: A4 pages, each slide with its presenter notes
   --force        export even if the deck has errors`,
   },
+  present: {
+    usage: 'blitzstrahl present <deck.md> [--port 5180] [--no-open] [--force]',
+    options: ['port', 'no-open', 'force'],
+    help: `Give the talk with a phone as the remote. Builds the deck, serves it,
+opens it in your browser, and prints a QR code: scan it with the phone. The
+code works once. Only this machine can open the deck; the network gets the
+remote alone. Ctrl+C stops it.
+
+  --port, -p     server port (default 5180, or the next free one)
+  --no-open      print the deck's address instead of opening it
+  --force        serve the deck even if it has errors`,
+  },
   check: {
     usage: 'blitzstrahl check <deck.md> [--offline] [--strict] [--format text]',
     options: ['offline', 'strict', 'format'],
@@ -144,6 +161,7 @@ const OPTIONS = {
   port: { type: 'string', short: 'p' },
   host: { type: 'boolean' },
   open: { type: 'boolean' },
+  'no-open': { type: 'boolean' },
   help: { type: 'boolean', short: 'h' },
   version: { type: 'boolean', short: 'v' },
 } as const
@@ -300,6 +318,35 @@ async function main(argv: string[]): Promise<number> {
       for (const s of r.skipped) process.stderr.write(`blitzstrahl: not checked: ${s}\n`)
       process.stdout.write(`${deck}: ${r.diagnostics.length ? summary(r.diagnostics) : 'no problems found'}\n`)
       return failed ? 1 : 0
+    }
+    case 'present': {
+      const opts: Parameters<typeof present>[1] = {}
+      if (values.port) opts.port = Number(values.port)
+      if (values['no-open']) opts.open = false
+      if (values.force) opts.force = true
+      const r = await present(deck, opts)
+      if (!r.ok) {
+        printDiagnostics(r.diagnostics)
+        process.stderr.write('blitzstrahl: the deck has errors, so it isn\'t served (use --force to serve it anyway)\n')
+        return 1
+      }
+      printDiagnostics(r.diagnostics)
+      const code = r.pair()
+      const lines = [
+        `Deck:    ${r.url}${values['no-open'] ? '' : '  (opened in your browser)'}`,
+        '',
+        code.text,
+        `Remote:  scan the code with your phone, or open ${code.url}`,
+        '         The code works once. For another phone, use Remote in the presenter view (P).',
+      ]
+      if (!r.addresses.length) lines.push('         This machine has no network address: the phone can\'t reach it. Join a network (your phone\'s hotspot works).')
+      else if (r.addresses.length > 1) lines.push(`         Not reachable? This machine is also at ${r.addresses.slice(1).join(', ')}.`)
+      lines.push('', 'Ctrl+C stops.')
+      process.stdout.write(`${lines.join('\n')}\n`)
+      const stop = () => void r.close().then(() => process.exit(0))
+      process.once('SIGINT', stop)
+      process.once('SIGTERM', stop)
+      return new Promise<number>(() => {}) // run until interrupted
     }
     case 'dev': {
       const opts: Parameters<typeof dev>[1] = {}

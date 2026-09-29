@@ -1,0 +1,11 @@
+{
+  "button": "Fernbedienung",
+  "buttonTitle": "Ein Handy als Fernbedienung koppeln",
+  "pairHeading": "Ein Handy als Fernbedienung koppeln",
+  "qrLabel": "QR-Code für die Fernbedienung",
+  "orOpen": "Den Code mit der Kamera des Handys scannen oder {url} öffnen",
+  "once": "Der Code gilt einmal. Das Handy, das ihn nutzt, ersetzt ein zuvor gekoppeltes.",
+  "title": "Fernbedienung",
+  "refused": "Diese Fernbedienung ist nicht gekoppelt. Den Code aus der Referentenansicht oder dem Terminal scannen: Jeder Code gilt nur einmal.",
+  "gone": "Die Präsentation antwortet nicht. Läuft blitzstrahl present noch, und ist das Handy im selben Netz?"
+}

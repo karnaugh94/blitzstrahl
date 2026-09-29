@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { fill, LANGUAGES, strings, uiLanguage } from '../src/i18n.js'
+import { remoteWords } from '../src/i18n-remote.js'
 import { parseDeck } from '../src/index.js'
 
 const dir = join(dirname(fileURLToPath(import.meta.url)), '../src/i18n')
@@ -24,6 +25,15 @@ describe('i18n', () => {
     const files = readdirSync(dir).filter((f) => f.endsWith('.json'))
     expect(files.map((f) => f.replace('.json', '')).sort()).toEqual([...LANGUAGES].sort())
     for (const f of files) expect([f, leaves(read(f))]).toEqual([f, en])
+  })
+
+  it('the remote\'s words (i18n/remote/) too: every language, the same keys and placeholders', () => {
+    const en = leaves(read('remote/en.json'))
+    const files = readdirSync(join(dir, 'remote')).filter((f) => f.endsWith('.json'))
+    expect(files.map((f) => f.replace('.json', '')).sort()).toEqual([...LANGUAGES].sort())
+    for (const f of files) expect([f, leaves(read(`remote/${f}`))]).toEqual([f, en])
+    expect(remoteWords(['de-AT']).button).toBe('Fernbedienung')
+    expect(remoteWords(['nl']).button).toBe('Remote')
   })
 
   it('looks a tag up by its language, and falls back to English', () => {

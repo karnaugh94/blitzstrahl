@@ -6,7 +6,16 @@
 import type { InkEvent, InkLayer } from '../ink.js'
 import type { Position } from '../steps.js'
 import { elapsed, type PresenterMsg, type TimerState } from './protocol.js'
-import { WindowTransport } from './transport.js'
+import { WindowTransport, type PresenterTransport } from './transport.js'
+
+/** Another way in: `present`'s phone remote (M12.6). */
+interface Attached {
+  transport: PresenterTransport
+  /** What this way in may ask for; the rest is ignored. */
+  allows(m: PresenterMsg): boolean
+  /** Someone is there (a phone that has said hello lately). */
+  connected(): boolean
+}
 
 /** What the bridge needs from the deck. */
 export interface BridgedDeck {
@@ -30,6 +39,7 @@ export class DeckBridge {
   private armed = true
   private lastPos: string | undefined
   private heardPresenter = false
+  private readonly attached: Attached[] = []
   private readonly cleanups: Array<() => void> = []
 
   constructor(
@@ -45,7 +55,7 @@ export class DeckBridge {
         const at = this.posKey()
         if (at !== this.lastPos) {
           this.lastPos = at
-          if (this.armed && this.transport.connected) this.startTimer()
+          if (this.armed && (this.transport.connected || this.attached.some((a) => a.connected()))) this.startTimer()
         }
         this.broadcast()
       }),
@@ -60,6 +70,22 @@ export class DeckBridge {
       this.broadcast()
       this.syncInk()
     }
+  }
+
+  /**
+   * Take intents from another transport too, as far as `allows` lets them,
+   * and send it the deck's state. The deck stays authoritative.
+   */
+  attach(transport: PresenterTransport, allows: (m: PresenterMsg) => boolean, connected: () => boolean): void {
+    const a: Attached = { transport, allows, connected }
+    this.attached.push(a)
+    this.cleanups.push(
+      transport.onMessage((m) => {
+        if (allows(m)) this.receive(m, a)
+      }),
+      () => transport.close(),
+    )
+    this.broadcast()
   }
 
   /** `P`: open the presenter window, or bring it forward if it's open. */
@@ -85,10 +111,13 @@ export class DeckBridge {
     return p && `${p.slide}/${p.step}`
   }
 
-  private broadcast() {
+  private broadcast(only?: Attached) {
     const pos = this.deck.pos
     if (!pos) return
-    this.transport.send({ type: 'state', slide: pos.slide, step: pos.step, blackout: this.deck.blackout, timer: this.timer })
+    const state: PresenterMsg = { type: 'state', slide: pos.slide, step: pos.step, blackout: this.deck.blackout, timer: this.timer }
+    if (only) return only.transport.send(state)
+    this.transport.send(state)
+    for (const a of this.attached) a.transport.send(state)
   }
 
   /** The drawing so far, for a presenter that has just (re)connected. */
@@ -101,9 +130,11 @@ export class DeckBridge {
     if (!this.timer.running) this.timer = { running: true, elapsed: this.timer.elapsed, since: Date.now() }
   }
 
-  private receive(m: PresenterMsg) {
+  private receive(m: PresenterMsg, from?: Attached) {
     switch (m.type) {
       case 'hello':
+        // An attached way in hears the state; the presenter window's hello is its own business.
+        if (from) return this.broadcast(from)
         this.broadcast()
         // A presenter that asks gets the drawing, and so does the first one this
         // page hears from: a reloaded deck has none, and the preview must forget it.

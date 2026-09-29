@@ -53,6 +53,9 @@
       "presenter": "Referentenansicht",
       "laser": "Laserpointer",
       "draw": "Auf der Folie zeichnen",
+      "highlighter": "Textmarker",
+      "colors": "Stiftfarbe: Tinte, dann zwei Diagrammfarben",
+      "undo": "Letzten Strich auf dieser Folie zurücknehmen",
       "clear": "Zeichnung auf dieser Folie löschen",
       "print": "Alle Folien drucken oder als PDF speichern",
       "document": "Als Dokument lesen: alle Folien auf einer Seite",
@@ -111,7 +114,13 @@
       "forgetTitle": "Die geprobten Zeiten vergessen",
       "paceOk": "Im Zeitplan",
       "paceBehind": "{time} im Verzug",
-      "paceOver": "{time} über der Zeit"
+      "paceOver": "{time} über der Zeit",
+      "highlighter": "Textmarker",
+      "highlighterTitle": "Auf der aktuellen Folie markieren (H)",
+      "undo": "Rückgängig",
+      "undoTitle": "Letzten Strich auf dieser Folie zurücknehmen (Z)",
+      "colors": "Stiftfarben",
+      "color": "Farbe {n} ({n})"
     },
     "document": {
       "label": "Dokument",

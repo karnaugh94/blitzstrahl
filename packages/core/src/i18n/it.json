@@ -53,6 +53,9 @@
       "presenter": "Vista relatore",
       "laser": "Puntatore laser",
       "draw": "Disegna sulla diapositiva",
+      "highlighter": "Evidenziatore",
+      "colors": "Colore della penna: l’inchiostro, poi due colori dei grafici",
+      "undo": "Annulla l’ultimo tratto su questa diapositiva",
       "clear": "Cancella il disegno su questa diapositiva",
       "print": "Stampa tutte le diapositive o salvale come PDF",
       "document": "Leggi come documento: tutte le diapositive in una pagina",
@@ -111,7 +114,13 @@
       "forgetTitle": "Dimentica i tempi della prova",
       "paceOk": "In tempo",
       "paceBehind": "In ritardo di {time}",
-      "paceOver": "Tempo superato di {time}"
+      "paceOver": "Tempo superato di {time}",
+      "highlighter": "Evidenziatore",
+      "highlighterTitle": "Evidenzia sulla diapositiva attuale (H)",
+      "undo": "Annulla",
+      "undoTitle": "Annulla l’ultimo tratto su questa diapositiva (Z)",
+      "colors": "Colori della penna",
+      "color": "Colore {n} ({n})"
     },
     "document": {
       "label": "Documento",

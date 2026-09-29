@@ -53,6 +53,9 @@
       "presenter": "Widok prezentera",
       "laser": "Wskaźnik laserowy",
       "draw": "Rysuj na slajdzie",
+      "highlighter": "Zakreślacz",
+      "colors": "Kolor pióra: atrament, potem dwa kolory wykresów",
+      "undo": "Cofnij ostatnią linię na tym slajdzie",
       "clear": "Wyczyść rysunek na tym slajdzie",
       "print": "Wydrukuj wszystkie slajdy lub zapisz je jako PDF",
       "document": "Czytaj jako dokument: wszystkie slajdy na jednej stronie",
@@ -111,7 +114,13 @@
       "forgetTitle": "Zapomnij czasy z próby",
       "paceOk": "W tempie",
       "paceBehind": "Opóźnienie {time}",
-      "paceOver": "Przekroczono czas o {time}"
+      "paceOver": "Przekroczono czas o {time}",
+      "highlighter": "Zakreślacz",
+      "highlighterTitle": "Zakreślaj na bieżącym slajdzie (H)",
+      "undo": "Cofnij",
+      "undoTitle": "Cofnij ostatnią linię na tym slajdzie (Z)",
+      "colors": "Kolory pióra",
+      "color": "Kolor {n} ({n})"
     },
     "document": {
       "label": "Dokument",

@@ -204,8 +204,13 @@ relied on it will notice.
   times each slide; the times are kept in the presenter's browser and
   weigh the pace, and they're shown beside each slide.
 - In the presenter view, `J` and `K` scroll the notes, and the overview
-  marks the slides that have notes. The drawing tools, **Slides**,
-  **Black out**, **Print** and **Document** moved under the current slide.
+  marks the slides that have notes. **Slides**, **Black out** and the
+  drawing tools moved under the current slide.
+- **The pen** has three colours (`1`, `2`, `3`: the theme's ink, then two
+  of its chart colours), a highlighter (`H`), and undo (`Z`, the slide's
+  last stroke, whichever window drew it). The presenter's next-slide
+  preview shows what's drawn on that slide. A stroke is sent between the
+  windows as it grows, not whole each time.
 
 ## [1.0.1] — 2026-09-27
 

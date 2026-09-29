@@ -55,8 +55,14 @@ body.blitz-presenter-mode { background: #0a0c13; overflow: hidden; }
 .bp-current { grid-area: current; display: flex; flex-direction: column; gap: 10px; min-height: 0; container-type: size; }
 /* The slide as large as the space allows, at the canvas's shape, with the tools under it. */
 .bp-stagebox { position: relative; flex: none; width: min(100cqw, (100cqh - 48px) * var(--bp-ratio, 1.7778)); }
-.bp-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
-.bp-gap { width: 10px; }
+.bp-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.bp-tools button { padding: 6px 9px; }
+.bp-gap { width: 6px; }
+.bp-swatches { display: flex; gap: 4px; }
+.bp .bp-swatch { width: 28px; height: 28px; padding: 0; border-radius: 50%; background: var(--bp-swatch); border: 2px solid #2b3450; }
+.bp .bp-swatch:hover { background: var(--bp-swatch); }
+.bp .bp-swatch[aria-pressed="true"] { background: var(--bp-swatch); border-color: #f3f3f3; box-shadow: 0 0 0 2px #0a0c13 inset; }
+.bp[data-tool="highlighter"] .bp-current .bp-frame { cursor: crosshair; touch-action: none; }
 .bp-frame { position: relative; width: 100%; border-radius: 8px; overflow: hidden; background: #000; }
 .bp-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; pointer-events: none; }
 /* Drawing and pointing on the current preview (ink.ts). */

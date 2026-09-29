@@ -53,6 +53,9 @@
       "presenter": "Vista del presentador",
       "laser": "Puntero láser",
       "draw": "Dibujar en la diapositiva",
+      "highlighter": "Resaltador",
+      "colors": "Color del lápiz: la tinta y dos colores de los gráficos",
+      "undo": "Deshacer el último trazo de esta diapositiva",
       "clear": "Borrar el dibujo de esta diapositiva",
       "print": "Imprimir todas las diapositivas o guardarlas como PDF",
       "document": "Leer como documento: todas las diapositivas en una página",
@@ -111,7 +114,13 @@
       "forgetTitle": "Olvidar los tiempos del ensayo",
       "paceOk": "A tiempo",
       "paceBehind": "Con {time} de retraso",
-      "paceOver": "Tiempo superado en {time}"
+      "paceOver": "Tiempo superado en {time}",
+      "highlighter": "Resaltador",
+      "highlighterTitle": "Resaltar en la diapositiva actual (H)",
+      "undo": "Deshacer",
+      "undoTitle": "Deshacer el último trazo de esta diapositiva (Z)",
+      "colors": "Colores del lápiz",
+      "color": "Color {n} ({n})"
     },
     "document": {
       "label": "Documento",

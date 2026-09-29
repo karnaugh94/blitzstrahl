@@ -17,6 +17,9 @@ and what to expect on the day.
 | `P` | Open the presenter view |
 | `L` | Laser pointer (again to put it away) |
 | `D` | Draw on the slide (again to put the pen down) |
+| `H` | The highlighter: a broad, see-through stroke (again to put it down) *(1.1)* |
+| `1` `2` `3` | The pen's colour: the theme's ink, and two of its chart colours *(1.1)* |
+| `Z` | Undo the last stroke on this slide *(1.1)* |
 | `C` | Clear the drawing on this slide |
 | `?` | Show the keys |
 | `R` | Read the deck as a document: every slide in one scrolling page (*Reading and printing*) *(1.1)* |
@@ -63,13 +66,22 @@ slide keeps its own drawing while the deck is open: go away and come back
 and it's still there. `C` clears the current slide. Drawings aren't saved,
 and they don't appear in PDFs.
 
+*(1.1)* `1`, `2` and `3` pick the pen's colour: the theme's ink (`1`, the
+default), then its second and third chart colours (`--blitz-chart-2`,
+`--blitz-chart-3`), so marks match the slide's charts. Picking a colour
+takes the pen out if it isn't. `H` is the highlighter: a broad stroke you
+can read through, in the same colours, for underlining a line or a bar.
+`Z` takes back the last stroke on the slide, whichever window drew it,
+as many times as there are strokes; `C` still clears them all.
+
 ## Presenter view
 
 Press `P` in the deck. A second window opens with:
 
 - the **current** slide, live, exactly as the audience sees it (charts and
   animations included);
-- the **next** state: the next build step, or the next slide, fully built;
+- the **next** state: the next build step, or the next slide, fully built,
+  with whatever is already drawn on it *(1.1)*;
 - your **notes** (`::: notes`, see [syntax.md §7](syntax.md#7-presenter-notes)),
   with `A−`/`A+` to resize them. `J` and `K` scroll them down and up, so
   long notes never need the mouse; the arrows, `Space` and the page keys
@@ -80,7 +92,8 @@ Press `P` in the deck. A second window opens with:
 - **Slides** (the overview, `Esc`), **Black out** (`B`) and go-to (`G`).
   In the presenter's overview, a mark on a slide says it has notes, and
   its rehearsed time is beside it *(1.1)*;
-- **Laser** (`L`), **Pen** (`D`) and **Clear** (`C`): point and draw on
+- **Laser** (`L`), **Pen** (`D`), **Highlighter** (`H`), the three
+  colours, **Undo** (`Z`) and **Clear** (`C`): point and draw on
   the current slide in the presenter window, and the audience sees it on
   the screen, where you pointed. What's drawn in either window shows in
   both.

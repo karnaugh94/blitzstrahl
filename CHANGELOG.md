@@ -76,6 +76,12 @@ relied on it will notice.
 
 ### Added
 
+- `blitzstrahl: 1.1` in the deck's frontmatter: the version a deck is
+  written for. It marks the file as a deck for editors, and `check` and
+  `build` warn when the blitzstrahl running is older. `blitzstrahl new`
+  writes it.
+- `check --stdin` reads the deck's markdown from standard input, as if
+  saved at the path given: how an editor checks text you haven't saved.
 - Backgrounds for every slide from the deck: `background:` in the deck's
   frontmatter, one value or one per layout (`title:`, `section:`,
   `default:` for the rest). A slide's own still wins, and

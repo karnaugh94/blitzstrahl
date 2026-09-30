@@ -24,6 +24,8 @@ export interface CheckOptions {
   overflow?: boolean
   /** Per-request timeout for embed probes, in ms. */
   timeout?: number
+  /** The deck's markdown, instead of reading the file (`--stdin`). */
+  source?: string
 }
 
 export interface CheckResult {
@@ -34,7 +36,7 @@ export interface CheckResult {
 
 export async function check(deckPath: string, options: CheckOptions = {}): Promise<CheckResult> {
   const abs = resolve(deckPath)
-  const loaded = await loadDeck(abs, relative(process.cwd(), abs) || abs)
+  const loaded = await loadDeck(abs, relative(process.cwd(), abs) || abs, options.source !== undefined ? { source: options.source } : {})
   const { deck } = loaded
   const { theme } = loaded.extras
   const found: Diagnostic[] = [...loaded.diagnostics]

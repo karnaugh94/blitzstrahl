@@ -21,7 +21,7 @@ Usage:
   blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
   blitzstrahl export <deck.md> [--out deck.pdf] [--steps | --notes] [--force]
   blitzstrahl present <deck.md> [--port 5180] [--no-open] [--force]
-  blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
+  blitzstrahl check <deck.md> [--offline] [--strict] [--format text] [--stdin]
   blitzstrahl theme import <template.potx> [--out folder]
 
 Commands:
@@ -49,6 +49,7 @@ Options:
   --strict       build: fail if any slide overflows the canvas (or it can't be
                  checked); check: fail on warnings, not just errors
   --offline      check: don't contact embedded sites
+  --stdin        check: the deck's markdown from standard input
   --format       check, build: text (default), json, or github (annotations)
   --theme        new: the deck's theme (default aurora)
   --port, -p     dev, present: server port
@@ -125,15 +126,17 @@ remote alone. Ctrl+C stops it.
   --force        serve the deck even if it has errors`,
   },
   check: {
-    usage: 'blitzstrahl check <deck.md> [--offline] [--strict] [--format text]',
-    options: ['offline', 'strict', 'format'],
+    usage: 'blitzstrahl check <deck.md> [--offline] [--strict] [--format text] [--stdin]',
+    options: ['offline', 'strict', 'format', 'stdin'],
     help: `Find problems before the talk: errors, missing files, broken charts and
 maps, step gaps, overflow, embeds that refuse to be framed.
 
   --offline      don't contact embedded sites or map data URLs
   --strict       exit 1 on warnings, not just errors
   --format       text (default), json (one document on stdout), github
-                 (GitHub Actions annotations)`,
+                 (GitHub Actions annotations)
+  --stdin        read the deck's markdown from standard input, as if saved
+                 at <deck.md> (an editor's unsaved text)`,
   },
   theme: {
     usage: 'blitzstrahl theme import <template.potx> [--out folder]',
@@ -156,6 +159,7 @@ const OPTIONS = {
   steps: { type: 'boolean' },
   notes: { type: 'boolean' },
   offline: { type: 'boolean' },
+  stdin: { type: 'boolean' },
   theme: { type: 'string' },
   format: { type: 'string' },
   port: { type: 'string', short: 'p' },
@@ -308,7 +312,10 @@ async function main(argv: string[]): Promise<number> {
       return 0
     }
     case 'check': {
-      const r = await check(deck, values.offline ? { offline: true } : {})
+      const opts: Parameters<typeof check>[1] = {}
+      if (values.offline) opts.offline = true
+      if (values.stdin) opts.source = await readStdin()
+      const r = await check(deck, opts)
       const failed = hasErrors(r.diagnostics) || (!!values.strict && r.diagnostics.some((d) => d.severity === 'warning'))
       if (machine) {
         process.stdout.write(formatReport(machine, { deck, diagnostics: r.diagnostics, skipped: r.skipped }))
@@ -399,3 +406,10 @@ main(process.argv.slice(2)).then(
   },
 )
 
+
+/** All of standard input, as UTF-8 (`check --stdin`). */
+async function readStdin(): Promise<string> {
+  const chunks: Buffer[] = []
+  for await (const chunk of process.stdin) chunks.push(chunk as Buffer)
+  return Buffer.concat(chunks).toString('utf8')
+}

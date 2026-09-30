@@ -4,6 +4,22 @@
   "description": "See https://github.com/karnaugh94/blitzstrahl/blob/main/docs/syntax.md#31-deck",
   "type": "object",
   "properties": {
+    "blitzstrahl": {
+      "description": "The blitzstrahl the deck is written for, as major.minor (1.1). Marks the file as a deck for editors",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+$"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "not": {
+            "type": "integer"
+          }
+        }
+      ]
+    },
     "title": {
       "description": "The document's title. Default: the first slide's title",
       "type": [

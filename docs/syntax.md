@@ -156,6 +156,7 @@ blitzstrahl 1.1 will use (listed there).
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
+| `blitzstrahl` | version | — | The blitzstrahl the deck is written for, as `major.minor`: `blitzstrahl: 1.1`. It marks the file as a deck for editors (the VS Code extension checks and previews only marked files), and `check` and `build` warn when the blitzstrahl running is older than it. Read as written, so `1.10` is 1.10, not 1.1. `blitzstrahl new` writes it. *(1.1)* |
 | `title` | string | first slide's title | Document title, `<title>` |
 | `author` | string | — | The page's `<meta name="author">`. Themes may show it on slides (§3.6) |
 | `date` | string | — | Free-form. Themes may show it on slides (§3.6) |

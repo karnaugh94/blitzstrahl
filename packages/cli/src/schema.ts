@@ -13,6 +13,7 @@ const DOCS = 'https://github.com/karnaugh94/blitzstrahl/blob/main/docs'
 /** What each key means, as the docs' tables say it (one line, for a hover). */
 const DESCRIPTIONS: Record<string, Record<string, string>> = {
   deck: {
+    blitzstrahl: 'The blitzstrahl the deck is written for, as major.minor (1.1). Marks the file as a deck for editors',
     title: "The document's title. Default: the first slide's title",
     author: "The page's author (<meta name=\"author\">)",
     date: 'Free-form',

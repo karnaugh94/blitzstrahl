@@ -65,6 +65,8 @@ export interface DeckMeta {
   duration?: number
   /** `pace-margin`, in ms: how far behind the clock the presenter may fall before the pace bar warns. Only with `duration` (1.1). */
   paceMargin?: number
+  /** `blitzstrahl`: the version the deck is written for, `major.minor` as written (syntax.md §3.1, 1.1). */
+  blitzstrahl?: string
   /** `css`: stylesheets after the theme's, `./paths` as written (docs/themes.md, 1.1). */
   css?: string[]
   /** Plugin module specifiers, as written (docs/plugins.md §1). */

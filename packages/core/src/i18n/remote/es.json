@@ -1,0 +1,11 @@
+{
+  "button": "Mando",
+  "buttonTitle": "Emparejar un móvil como mando",
+  "pairHeading": "Emparejar un móvil como mando",
+  "qrLabel": "Código QR del mando",
+  "orOpen": "Escanea el código con la cámara del móvil, o abre {url}",
+  "once": "El código sirve una vez. El móvil que lo use sustituye al emparejado antes.",
+  "title": "Mando",
+  "refused": "Este mando no está emparejado. Escanea el código que muestra la vista del presentador o la terminal: cada código sirve una vez.",
+  "gone": "La presentación no responde. ¿Sigue en marcha blitzstrahl present, y está este móvil en la misma red?"
+}

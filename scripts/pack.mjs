@@ -25,7 +25,7 @@ mkdirSync(stage, { recursive: true })
 
 /** Copy a package's shippable files, and its sources (EUPL: the source travels with the work). */
 function copyPackage(from, to, extra = []) {
-  for (const f of ['dist', 'src', 'client', 'fonts', ...extra]) {
+  for (const f of ['dist', 'src', 'client', 'fonts', 'starter', 'schema', ...extra]) {
     if (existsSync(join(from, f))) cpSync(join(from, f), join(to, f), { recursive: true, filter: (p) => !p.endsWith('.tsbuildinfo') })
   }
   cpSync(join(root, 'LICENSE'), join(to, 'LICENSE'))
@@ -59,6 +59,7 @@ for (const name of INTERNAL) {
 
 copyPackage(join(root, 'packages/cli'), stage)
 cpSync(join(root, 'README.md'), join(stage, 'README.md'))
+cpSync(join(root, 'CHANGELOG.md'), join(stage, 'CHANGELOG.md'))
 // The user docs the README links to. Never decisions.md or STATUS.md: those are local notes.
 for (const doc of ['syntax.md', 'cli.md', 'presenting.md', 'plugins.md', 'themes.md', 'renderers']) {
   cpSync(join(root, 'docs', doc), join(stage, 'docs', doc), { recursive: true })
@@ -72,6 +73,10 @@ const pkg = {
   description: 'Markdown in, a deck worth watching out: interactive HTML slide decks with real charts, maps, motion and a presenter view.',
   keywords: ['slides', 'presentation', 'markdown', 'deck', 'charts', 'echarts', 'presenter'],
   license: 'EUPL-1.2',
+  // EUPL: the package points to its source (decisions.md, licence).
+  repository: { type: 'git', url: 'git+https://github.com/karnaugh94/blitzstrahl.git' },
+  homepage: 'https://github.com/karnaugh94/blitzstrahl#readme',
+  bugs: { url: 'https://github.com/karnaugh94/blitzstrahl/issues' },
   type: 'module',
   engines: { node: '>=22' },
   bin: { blitzstrahl: './dist/bin.js' },
@@ -80,9 +85,11 @@ const pkg = {
     './plugin': pub('plugin'),
     './theme': pub('theme'),
     './renderer': pub('renderer'),
+    // JSON Schemas for editors (syntax.md §3.5).
+    './schema/*': './schema/*',
     './package.json': './package.json',
   },
-  files: ['dist', 'src', 'client', 'docs', 'README.md', 'LICENSE', 'node_modules/@blitzstrahl'],
+  files: ['dist', 'src', 'client', 'starter', 'schema', 'docs', 'README.md', 'CHANGELOG.md', 'LICENSE', 'node_modules/@blitzstrahl'],
   dependencies: { ...Object.fromEntries(Object.entries(deps).sort()), ...Object.fromEntries(bundled.map((n) => [n, version])) },
   bundleDependencies: bundled,
 }

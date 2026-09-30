@@ -42,7 +42,8 @@ test('the file holds everything: no scripts, styles or images to fetch', async (
   expect(html).not.toMatch(/<script[^>]+src=/)
   expect(html).not.toMatch(/<link[^>]+stylesheet/)
   expect(html).not.toContain('assets/')
-  expect(html).not.toContain('can’t run from a file')
+  // The page that says it needs a server (its words are data in every page now).
+  expect(html).not.toContain("location.protocol === 'file:'")
 
   const requests = await open(page)
   await expect.poll(() => page.locator('#logo').evaluate((i: HTMLImageElement) => i.naturalWidth)).toBe(640)
@@ -115,6 +116,8 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
   const map = 'say where: give `center`'
   const embed = '`src` must be an http'
   expect(text(minimal)).not.toContain('echarts')
+  // The dev panel is the dev server's alone (dev-panel.ts).
+  expect(text(minimal)).not.toContain('blitz-dev-panel')
   expect(text(minimal)).not.toContain(table)
   expect(text(file)).toContain(table)
   expect(text(file)).not.toContain(map)
@@ -126,5 +129,54 @@ test('only the renderers the deck uses are bundled, within the size budget', asy
  * Raised 2026-09-25 (M4): 91.5 kB bare, now carrying auto-animate, magic move,
  * `lines=` and the laser/pen in every deck's runtime (of which 26 kB is CSS,
  * unminified; minifying it would save ~5 kB).
+ * Raised 2026-09-27 (M7.4): 116.8 kB bare. The overlays and the presenter
+ * view speak the browser's language even offline, so every page carries
+ * all seven languages' strings (21 kB of JSON).
+ * Raised 2026-09-27 (M7.1): 181.4 kB bare. aurora ships Inter, and an
+ * English deck carries its Latin face, inlined (48 kB, 64 kB as base64).
+ * Nothing else of the shipped fonts: no italics, code font or other scripts.
+ * With a chart and inline code: 803 kB, JetBrains Mono's Latin face included.
+ * Not raised 2026-09-28 (M8.1): 183.3 kB bare. The dev panel's words, in all
+ * seven languages, ride with the UI strings (1.9 kB); the panel itself is a
+ * dev-only module and never in a build (asserted above).
+ * Raised 2026-09-28 (M9): 185.1 kB bare, +1.8 kB over 1383fcc. The chrome's
+ * base CSS (footer, number and logo placement, shared by every theme), a
+ * `.blitz-chrome` holding the (hidden) title on every slide, and the base
+ * rule that puts links in the `link` token.
+ * Raised 2026-09-28 (M10): 188.7 kB bare, +2.3 kB over ae86aab. Video and
+ * audio (media.ts: play on entry or step, rewind on leave, `end`, `loop`,
+ * the print frame) are in every runtime, since a standalone file is one
+ * bundle. (M10.1's utility classes, 1.2 kB, fitted under the old budget;
+ * the components' 8.7 kB of CSS ships only in decks that use `as=`.)
+ * Then 190.05 kB: magic move within a slide (M10.4: stack swaps, their
+ * morph and the stack's CSS), +1.35 kB.
+ * Raised 2026-09-29 (M11): 209.2 kB bare, +19.2 kB. Document mode (M11.4:
+ * the slides as one page, the two-to-a-sheet handout and its CSS) is
+ * +9.9 kB, measured by building without it; the user chose to always ship
+ * it rather than put it behind a flag. The rest is printing from the
+ * browser (Ctrl+P, the menu's synchronous layout, snapshots) and the new
+ * words, which a standalone file carries in all seven languages.
+ * Then 211.1 kB: what charts and maps say to screen readers (M11.5), eleven
+ * words and templates in seven languages, +1.9 kB. They ship with the
+ * page's other words even when the deck has no chart.
+ * Then 214.1 kB: the handout's "Notes, continued" (every sheet alike, the
+ * rest of long notes after the sheets, its page found by laying it out),
+ * +3.0 kB.
+ * Then 222.4 kB: pacing and rehearsal in the presenter view (M12.1–2),
+ * +8.3 kB against develop: ten words in seven languages (2.7 kB), the
+ * pace bar's and timer's CSS (1.5 kB, the presenter's stylesheet is an
+ * unminified string), the rest code. A `file://` deck needs its presenter
+ * view, so none of it can stay out. The chart deck carries the same
+ * (870.5 kB).
+ * Then 228.4 kB: the pen's colours, highlighter and undo, strokes sent as
+ * additions, the next preview's ink (M12.3, M12.7), +6.0 kB: nine words
+ * in seven languages (2.6 kB, three of them in the key help, which the
+ * audience window has too), the rest code and the swatches' CSS.
+ * Then 232.5 kB: the overview's real thumbnails and the next preview's
+ * embed card (M12.4–5), +4.2 kB: drawing blocks off screen, giving copies
+ * ids of their own, the card and its one word in seven languages.
+ * Then 233.5 kB: the deck's bridge taking another transport (M12.6's
+ * phone remote), +1.0 kB. The remote's page, its link and its words stay
+ * out (only `present` serves them; i18n/remote/ is its own entry).
  */
-const BUDGET = { minimal: 110_000, withChart: 800_000 }
+const BUDGET = { minimal: 234_000, withChart: 890_000 }

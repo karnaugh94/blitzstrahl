@@ -5,14 +5,28 @@ import { basename, dirname, extname, join, relative, resolve } from 'node:path'
 import { build as viteBuild, type Rolldown } from 'vite'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
 import { isUrl, tileSource, type MapSpec } from '@blitzstrahl/renderers/specs'
-import { fontCss } from './extend.js'
+import { componentCss } from '@blitzstrahl/themes'
+import { allCss, fontCss, themeStylesheet } from './extend.js'
+import { deckText, standaloneFonts } from './fonts.js'
 import { renderPage } from './html.js'
-import { loadDeck, type LoadedDeck } from './load.js'
+import { deckStyles, loadDeck, type LoadedDeck } from './load.js'
 import { hasMath, mathCss, mathFont } from './math.js'
 import { checkBuiltOverflow } from './overflow.js'
+import { checkOutDir, checkOutFile, cleanOutDir, writeManifest } from './output.js'
 import { hasErrors, printDiagnostics } from './report.js'
 import { bundleStandalone, dataUri, inlineSafe, staticEntry, usedRenderers, virtualEntry } from './standalone.js'
 import { cacheDir } from './vite.js'
+import { CliError } from './errors.js'
+import { inPublic, publicFiles, within } from './public.js'
+
+/**
+ * The components' CSS (syntax.md §5.1) only in a deck that uses them: `as=`,
+ * or `data-as` in its own HTML. It's 9 kB every other page would carry
+ * (the standalone budget). dev always has it, since `as=` can arrive on save.
+ */
+function components(deck: Deck, stylesheet: string): string {
+  return deck.slides.some((s) => /"dataAs"|data-as/.test(JSON.stringify(s.content))) ? stylesheet : stylesheet.replace(componentCss, '')
+}
 
 export interface BuildOptions {
   /** Static build: the folder to write. Default `dist/` next to the deck. */
@@ -24,7 +38,7 @@ export interface BuildOptions {
   /** Build even when the deck has errors. */
   force?: boolean
   quiet?: boolean
-  /** Print the deck's diagnostics (default true). `check` reports them itself. */
+  /** Print the deck's diagnostics and overflow (default true). `check` and `--format` report them themselves. */
   report?: boolean
   /** Fail when a slide overflows, or when overflow can't be checked. */
   strict?: boolean
@@ -33,6 +47,10 @@ export interface BuildOptions {
    * on, unless `BLITZSTRAHL_SKIP_OVERFLOW_CHECK` is set. `strict` always checks.
    */
   overflowCheck?: boolean
+  /** The deck, already loaded from `deckPath` (`check` has it): saves loading it again. */
+  loaded?: LoadedDeck
+  /** `present`'s build: the deck links to the server's relay for a phone remote (M12.6). Not with `standalone`. */
+  remote?: boolean
 }
 
 /** Env var that turns the build-time overflow check off. */
@@ -56,13 +74,31 @@ export interface BuildResult {
 }
 
 export async function build(deckPath: string, options: BuildOptions = {}): Promise<BuildResult> {
-  const loaded = await loadDeck(deckPath, relative(process.cwd(), resolve(deckPath)) || deckPath)
+  const loaded = options.loaded ?? (await loadDeck(deckPath, relative(process.cwd(), resolve(deckPath)) || deckPath))
   const { theme } = loaded.extras
   const renderers = usedRenderers(loaded.deck, loaded.extras.renderers)
   if (options.standalone) loaded.diagnostics.push(...networkNotes(loaded.deck))
+  if (options.standalone && loaded.deck.meta.public !== undefined) {
+    loaded.diagnostics.push({
+      severity: 'warning',
+      code: 'public/standalone',
+      message: "a standalone file can't carry the `public` folder: only the files the deck refers to are inside it, so a page there that needs its neighbours won't work",
+      file: loaded.deck.source,
+      span: loaded.keySpans.public!,
+    })
+  }
   if (options.report !== false) printDiagnostics(loaded.diagnostics)
   const outFile = options.standalone ? resolve(options.outFile ?? join(loaded.dir, `${basename(loaded.path, extname(loaded.path))}.html`)) : undefined
   const outDir = outFile ? dirname(outFile) : resolve(options.outDir ?? join(loaded.dir, 'dist'))
+  // Before anything is written: never over the deck, never into a folder blitzstrahl didn't make.
+  if (outFile) checkOutFile(outFile, loaded.path, 'html')
+  else {
+    checkOutDir(outDir, loaded.path)
+    const pub = loaded.publicDir
+    if (pub && (within(pub, outDir) || within(outDir, pub))) {
+      throw new CliError(`the output folder ${show(outDir)} and the \`public\` folder ${show(pub)} overlap: build somewhere else (--out)`)
+    }
+  }
   if (hasErrors(loaded.diagnostics) && !options.force) {
     return { ok: false, outDir, overflow: [], diagnostics: loaded.diagnostics }
   }
@@ -76,32 +112,39 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
       const uri = await dataUri(file)
       if (uri) uris.set(asset.path, uri)
     }
+    // The files that weigh most, for the size warning.
+    const heaviest = [...uris].sort((a, b) => b[1].length - a[1].length).slice(0, 3)
     const css = [
-      await fontCss(loaded.extras.fonts, async (file) => (await dataUri(file))!),
+      // Only the faces this deck's text uses: scripts, italics, code (fonts.ts).
+      await fontCss(standaloneFonts(loaded.extras.fonts, deckText(loaded.deck), theme.tokens, `${allCss(loaded.extras)}\n${deckStyles(loaded.source)}`), async (file) => (await dataUri(file))!),
       loaded.css,
       hasMath(loaded.deck) ? await mathCss(async (file) => (await dataUri(mathFont(file)))!, loaded.deck) : '',
     ].join('\n')
-    const html = renderPage({ deck: loaded.deck, inline: loaded.inline, theme, entry: { code: inlineSafe(code) }, assetUrl: (p) => uris.get(p) ?? p, css, plugins: loaded.plugins })
+    const inlined = { ...theme, stylesheet: components(loaded.deck, await themeStylesheet(loaded.extras, async (file) => (await dataUri(file))!)) }
+    const html = renderPage({ deck: loaded.deck, inline: loaded.inline, theme: inlined, entry: { code: inlineSafe(code) }, assetUrl: (p) => uris.get(p) ?? p, css, plugins: loaded.plugins })
     await mkdir(outDir, { recursive: true })
     await writeFile(outFile, html)
     const size = Buffer.byteLength(html)
     if (!options.quiet) process.stdout.write(`${relative(process.cwd(), outFile) || outFile}: ${formatSize(size)}\n`)
     if (size > STANDALONE_WARN_BYTES) {
-      process.stderr.write(`blitzstrahl: ${basename(outFile)} is ${formatSize(size)}; large images are the usual cause (they're inlined as data)\n`)
+      const biggest = heaviest.map(([path, uri]) => `${path} (${formatSize((uri.length * 3) / 4)})`).join(', ')
+      process.stderr.write(`blitzstrahl: ${basename(outFile)} is ${formatSize(size)}; every file the deck uses is inside it${biggest ? `, the largest being ${biggest}` : ''}\n`)
     }
     return checkOverflow({ outDir, index: outFile, page: basename(outFile) }, loaded, options)
   }
 
+  // Only what the last build listed goes; Vite itself never empties the folder.
+  await cleanOutDir(outDir)
   const result = await viteBuild({
     configFile: false,
     root: loaded.dir,
     cacheDir: cacheDir(loaded.dir),
     publicDir: false,
     logLevel: options.quiet ? 'silent' : 'warn',
-    plugins: [virtualEntry(STATIC_ENTRY, staticEntry(renderers))],
+    plugins: [virtualEntry(STATIC_ENTRY, staticEntry(renderers, options.remote))],
     build: {
       outDir,
-      emptyOutDir: true,
+      emptyOutDir: false,
       assetsDir: 'assets',
       target: 'es2022',
       // ECharts is one lazy chunk by design; don't warn about it.
@@ -113,12 +156,21 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   const outputs = (Array.isArray(result) ? result : [result]) as Rolldown.RolldownOutput[]
   const entry = outputs.flatMap((o) => o.output).find((c) => c.type === 'chunk' && c.isEntry)
   if (!entry) throw new Error('vite produced no entry chunk')
+  // Everything this build writes, for the manifest the next build cleans by.
+  const written = outputs.flatMap((o) => o.output).map((o) => o.fileName)
+  const copied = async (name: Promise<string>) => {
+    const n = await name
+    written.push(n)
+    return n
+  }
 
   // Copy local images next to the chunks, content-hashed like them.
   const urls = new Map<string, string>()
   await mkdir(join(outDir, 'assets'), { recursive: true })
+  const pub = loaded.publicDir ? loaded.deck.meta.public : undefined
   for (const asset of loaded.deck.assets) {
-    if (asset.kind === 'data' || urls.has(asset.path)) continue
+    // Files in the public folder are copied with it, and keep their path.
+    if (asset.kind === 'data' || urls.has(asset.path) || inPublic(pub, asset.path)) continue
     const src = loaded.files.get(asset.path)
     if (!src) continue
     let bytes: Buffer
@@ -127,15 +179,17 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
     } catch {
       continue // reported as asset/missing
     }
-    urls.set(asset.path, await copyHashed(src, outDir, 'assets', bytes))
+    // Images keep 1.0's names; other files keep their own name, which is what a download is saved as.
+    urls.set(asset.path, await copied(copyHashed(src, outDir, 'assets', bytes, asset.kind !== 'image')))
   }
 
-  const css = [await fontCss(loaded.extras.fonts, (file) => copyHashed(file, outDir, 'assets/fonts')), loaded.css]
+  const css = [await fontCss(loaded.extras.fonts, (file) => copied(copyHashed(file, outDir, 'assets/fonts'))), loaded.css]
   if (hasMath(loaded.deck)) {
     await mkdir(join(outDir, 'assets', 'katex'), { recursive: true })
     css.push(
       await mathCss(async (file) => {
         await copyFile(mathFont(file), join(outDir, 'assets', 'katex', file))
+        written.push(`assets/katex/${file}`)
         return `assets/katex/${file}`
       }),
     )
@@ -143,32 +197,49 @@ export async function build(deckPath: string, options: BuildOptions = {}): Promi
   const html = renderPage({
     deck: loaded.deck,
     inline: loaded.inline,
-    theme,
+    theme: { ...theme, stylesheet: components(loaded.deck, await themeStylesheet(loaded.extras, (file) => copied(copyHashed(file, outDir, 'assets')))) },
     entry: { src: `./${entry.fileName}` },
     assetUrl: (p) => urls.get(p) ?? p,
     css: css.join('\n'),
     plugins: loaded.plugins,
   })
+  if (pub) {
+    const taken = new Set([...written, 'index.html'])
+    for (const rel of await publicFiles(loaded.publicDir!)) {
+      const name = `${pub}/${rel}`
+      if (taken.has(name)) throw new CliError(`\`public\`: ${name} is a file the build writes itself; rename the folder`)
+      await mkdir(dirname(join(outDir, name)), { recursive: true })
+      await copyFile(join(loaded.publicDir!, ...rel.split('/')), join(outDir, name))
+      written.push(name)
+    }
+  }
   const index = join(outDir, 'index.html')
   await writeFile(index, html)
+  await writeManifest(outDir, [...written, 'index.html'])
   return checkOverflow({ outDir, index, page: '' }, loaded, options)
 }
 
 const STATIC_ENTRY = 'virtual:blitzstrahl-deck'
 
-/** Copy `src` into `outDir/folder`, content-hashed like the chunks; returns its page-relative URL. */
-async function copyHashed(src: string, outDir: string, folder: string, bytes?: Buffer): Promise<string> {
+/**
+ * Copy `src` into `outDir/folder`, content-hashed like the chunks: as
+ * `name-hash.ext`, or with `keepName` as `hash/name.ext`. Returns its
+ * page-relative URL.
+ */
+async function copyHashed(src: string, outDir: string, folder: string, bytes?: Buffer, keepName = false): Promise<string> {
   bytes ??= await readFile(src)
   const hash = createHash('sha256').update(bytes).digest('hex').slice(0, 8)
   const ext = extname(src)
-  const name = `${folder}/${basename(src, ext)}-${hash}${ext}`
-  await mkdir(join(outDir, folder), { recursive: true })
+  const name = keepName ? `${folder}/${hash}/${basename(src)}` : `${folder}/${basename(src, ext)}-${hash}${ext}`
+  await mkdir(dirname(join(outDir, name)), { recursive: true })
   await writeFile(join(outDir, name), bytes)
   return name
 }
 
 /** A standalone file that's bigger than this gets a warning. */
 export const STANDALONE_WARN_BYTES = 8 * 1024 * 1024
+
+const show = (path: string) => relative(process.cwd(), path) || '.'
 
 function formatSize(bytes: number): string {
   return bytes < 1024 * 1024 ? `${Math.round(bytes / 1024)} kB` : `${(bytes / 1024 / 1024).toFixed(1)} MB`
@@ -204,8 +275,10 @@ async function checkOverflow(
     process.stderr.write(`blitzstrahl: --strict checks overflow even though ${SKIP_OVERFLOW_ENV} is set\n`)
   }
   const check = await checkBuiltOverflow(outDir, loaded.deck, loaded.source, built.page)
-  printDiagnostics(check.diagnostics)
-  if (check.skipped) process.stderr.write(`blitzstrahl: overflow not checked: ${check.skipped}\n`)
+  if (options.report !== false) {
+    printDiagnostics(check.diagnostics)
+    if (check.skipped) process.stderr.write(`blitzstrahl: overflow not checked: ${check.skipped}\n`)
+  }
   const failed = !!options.strict && (check.diagnostics.length > 0 || check.skipped !== undefined)
   const out: BuildResult = { ok: !failed, outDir, index, overflow: check.diagnostics, diagnostics: loaded.diagnostics }
   if (check.skipped) out.overflowSkipped = check.skipped

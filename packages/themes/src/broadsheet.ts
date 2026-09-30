@@ -1,9 +1,10 @@
+import { INTER, JETBRAINS_MONO, NEWSREADER } from './fonts.js'
 import { defineTheme } from './theme.js'
 
 /**
  * broadsheet — light, editorial (PLAN §5). Newsprint: a serif for reading
- * and headlines (Newsreader, OFL, shipped in `fonts/`), sans for tables and
- * kickers, a masthead rule, newspaper red.
+ * and headlines (Newsreader), Inter for tables and kickers, a masthead
+ * rule, newspaper red. Every font it names ships (fonts.ts).
  *
  * Built on the public contract only (tokens, CSS, fonts), so it doubles as
  * the reference for writing a theme. Every rule is scoped to `.blitz-slide`
@@ -27,7 +28,8 @@ export const broadsheet = defineTheme({
     'link': '#2f6db5',
     'highlight': 'rgba(242, 196, 64, .5)',
     'letterbox': '#1b1a17',
-    'font-serif': '"Newsreader", Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif',
+    // Newsreader has no Greek or Cyrillic: those letters come from Inter, which is shipped too.
+    'font-serif': '"Newsreader", "Inter", Charter, "Iowan Old Style", "Palatino Linotype", Georgia, serif',
     'font-sans': '"Inter", "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif',
     'font-mono': '"JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace',
     'text': '30px',
@@ -62,10 +64,8 @@ export const broadsheet = defineTheme({
     'code-token-link': '#2f6db5',
     'map-tiles': 'sepia(.25) saturate(.75) contrast(.95)',
   },
-  fonts: [
-    { family: 'Newsreader', src: '../fonts/newsreader-latin-wght-normal.woff2', weight: '200 800' },
-    { family: 'Newsreader', src: '../fonts/newsreader-latin-wght-italic.woff2', weight: '200 800', style: 'italic' },
-  ],
+  // Its own serif, Inter for the sans, JetBrains Mono for code: every font it names ships.
+  fonts: [...NEWSREADER, ...INTER, ...JETBRAINS_MONO],
   css: /* css */ `
 .blitz-slide {
   font-family: var(--blitz-font-serif);
@@ -79,6 +79,11 @@ export const broadsheet = defineTheme({
   background-repeat: no-repeat;
   background-size: calc(100% - 2 * var(--blitz-pad-x)) 3px, calc(100% - 2 * var(--blitz-pad-x)) 1px;
   background-position: var(--blitz-pad-x) calc(var(--blitz-pad-y) / 2 - 3px), var(--blitz-pad-x) calc(var(--blitz-pad-y) / 2 + 3px);
+}
+/* The deck's logo sits on the masthead, like a nameplate. */
+.blitz-chrome [data-chrome="logo"] {
+  top: calc(var(--blitz-pad-y) / 2 - 9px); transform: translateY(-100%);
+  height: calc(var(--blitz-pad-y) * .36);
 }
 
 .blitz-slide h1, .blitz-slide h2, .blitz-slide h3, .blitz-slide h4 { margin: 0; line-height: 1.06; font-weight: 650; letter-spacing: -0.012em; }
@@ -187,9 +192,9 @@ export const broadsheet = defineTheme({
 }
 [data-layout="quote"] blockquote + p::before { content: "\\2014\\2002"; color: var(--blitz-accent); }
 
-[data-layout="stat-grid"] > [data-slot="main"] > div { padding-top: 18px; border-top: 3px solid var(--blitz-fg); }
-[data-layout="stat-grid"] > [data-slot="main"] > div > :first-child { font-variant-numeric: lining-nums tabular-nums; font-weight: 700; }
-[data-layout="stat-grid"] > [data-slot="main"] > div > :not(:first-child) {
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div { padding: 18px 0 0; border-top: 3px solid var(--blitz-fg); background: none; box-shadow: none; border-radius: 0; }
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div > :first-child { font-variant-numeric: lining-nums tabular-nums; font-weight: 700; }
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div > :not(:first-child) {
   font: 400 var(--blitz-text-small)/1.35 var(--blitz-font-sans); color: var(--blitz-fg-muted);
 }
 

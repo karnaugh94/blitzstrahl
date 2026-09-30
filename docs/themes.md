@@ -1,19 +1,231 @@
 # Themes
 
-A deck picks its theme in frontmatter (`theme: aurora`). Writing a theme is
-covered in `docs/plugins.md` §3. This page is the **token contract**: the
-names a theme sets, which become CSS custom properties `--blitz-<name>`
-and which everything else reads. Token names are stable from 1.0. New ones
-may be added in minor versions, always with a default.
+A deck picks its theme in frontmatter: a built-in one (`theme: aurora`),
+or your own, written as a CSS file (`theme: ./brand.css`). This page says
+how to write one, and lists the **tokens**: the names a theme sets, which
+become CSS custom properties `--blitz-<name>` and which everything else
+reads (charts, maps, diagrams, the layouts). Token names are stable from
+1.0. New ones may be added in minor versions, always with a default. A
+theme can also be a JS module (docs/plugins.md §3).
+
+To start from an organisation's PowerPoint template, `blitzstrahl theme
+import` writes the CSS file for you (docs/cli.md).
 
 Built-in themes:
 
-- **aurora**: dark, technical. Inter-style sans, mint and periwinkle
-  accents. The default.
-- **broadsheet**: light, editorial. Newsprint paper, Newsreader serif
-  (shipped with the theme, OFL), sans for tables, a masthead rule, newspaper
-  red. Its source (`packages/themes/src/broadsheet.ts`) uses only the public
-  contract, so it's a good model for writing your own.
+- **aurora**: dark, technical. Inter for text, JetBrains Mono for code,
+  mint and periwinkle accents. The default.
+- **broadsheet**: light, editorial. Newsprint paper, Newsreader serif, Inter
+  for tables and captions, JetBrains Mono for code, a masthead rule, newspaper red. Its source
+  (`packages/themes/src/broadsheet.ts`) uses only the public contract, so
+  it's a good model for writing your own.
+
+## A theme in CSS *(1.1)*
+
+A theme is a stylesheet. Tokens go in `:root`, and everything else is
+ordinary CSS for the slides:
+
+```css
+/* brand.css */
+@font-face {
+  font-family: "Acme Sans";
+  src: url("./fonts/acme-sans.woff2") format("woff2");
+  font-weight: 300 800;
+}
+
+:root {
+  --blitz-bg: #ffffff;
+  --blitz-fg: #22282a;
+  --blitz-fg-muted: #5b6468;
+  --blitz-accent: #3c7d22;
+  --blitz-chart-1: #5ab7b5;
+  /* … chart-2 to chart-8, and any optional tokens */
+  --blitz-font-sans: "Acme Sans", Verdana, sans-serif;
+}
+
+.blitz-slide h1 { font-weight: 800; }
+[data-layout="section"] { background-image: url("./img/bg-section.png"); background-size: cover; }
+[data-layout="title"] h1 { color: #fff; }
+```
+
+```yaml
+theme: ./brand.css
+```
+
+- The required tokens (below) must be set in `:root`, as they are for a JS
+  theme: a missing one is an error, and an unknown `--blitz-` name a
+  warning, at `brand.css:line:col`. A theme with errors isn't used: the
+  deck falls back to aurora, and `build` stops.
+- Relative `url()`s are relative to the CSS file, like any stylesheet's.
+  The files they name (fonts, images) are copied into static builds and
+  inlined in standalone files, as the deck's own images are. A missing
+  one is an error.
+- `@font-face` rules are the theme's fonts: `unicode-range` splits a family
+  into subsets as for a JS theme (docs/plugins.md §3.2), and `check` knows
+  which fonts the theme ships.
+- `@import` of another local file works, relative to the importing file,
+  with a media query if you like (`@import "./print.css" print`).
+  Stylesheets and fonts from other sites (`@import url(https://…)`, Google
+  Fonts) are refused: the deck would change, or break, when they do.
+- Scope rules to `.blitz-slide` or `[data-layout]` (or `.blitz-chrome`),
+  as for any theme: a bare `h1` or `table` would also style the overview
+  and the presenter view, and gets a warning.
+- In `dev`, saving the file (or a file it imports) restyles the open deck
+  without reloading it. Adding or removing a font reloads the page.
+- A theme can also be a package: `theme: acme` finds
+  `blitzstrahl-theme-acme`, and its `package.json` names the CSS file
+  (`"main": "brand.css"`, or `exports`).
+
+A theme can't build on another theme. To change a few things in a built-in
+theme, keep it and add a stylesheet (next section).
+
+## Adding to a theme: `css` *(1.1)*
+
+```yaml
+theme: broadsheet
+css: ./talk.css          # or a list: [./brand-extras.css, ./talk.css]
+```
+
+`css` files come after the theme's, in the order listed, so their rules
+win at equal specificity. Everything above about `url()`, `@font-face`,
+`@import` and `dev` applies to them too, and they can set tokens in `:root`
+to change a theme's colours or sizes. A `<style>` in the markdown still
+works; a file can be shared by several decks.
+
+## Backgrounds by layout *(1.1)*
+
+A theme sets backgrounds per layout with `[data-layout="…"]`, as above. A
+JS theme's `css` can too: its relative `url()`s are relative to the
+theme's module file. A slide's background, first match wins:
+
+1. the slide's own `background` key;
+2. the deck's `background` key, for that layout or for every slide
+   (docs/syntax.md §3.6);
+3. the theme's CSS for the slide's layout;
+4. the `bg` token.
+
+## Chrome: footer, number, logo *(1.1)*
+
+The deck's footer, slide number and logo (docs/syntax.md §3.6) are in each
+slide as
+
+```html
+<div class="blitz-chrome">
+  <div data-chrome="footer">Report Generator</div>
+  <div data-chrome="number">3 / 12</div>
+  <img data-chrome="logo" src="…" alt="">
+  <div data-chrome="title">…</div> <div data-chrome="author">…</div> <div data-chrome="date">…</div>
+</div>
+```
+
+with an element only for what the deck sets (the title is always there).
+The base styles place the footer bottom left, the number bottom right and
+the logo top right, within the slide's padding, in `text-small` and
+`fg-muted`, and hide the title, author and date. They hide the number on
+the `title`, `section` and `end` layouts. Their rules are written
+`.blitz-chrome [data-chrome="…"]`, so a theme's rule of the same form wins,
+and a theme's `.blitz-slide img` doesn't reach the logo. A theme restyles
+any of it:
+
+```css
+.blitz-chrome [data-chrome="logo"] { top: auto; bottom: 24px; height: 40px; }
+[data-layout="title"] .blitz-chrome [data-chrome="date"] { display: block; left: 82px; bottom: 60px; }
+[data-layout="section"] .blitz-chrome { display: none; }
+/* Text on every slide, whatever the deck: a classification label */
+.blitz-chrome::after { content: "Classified as ACME NORMAL"; position: absolute; left: 50%; bottom: 8px; }
+```
+
+Chrome is laid over the slide's content (`position: absolute` in the
+slide), and the content doesn't make room for it: a theme that puts the
+footer inside the padding keeps them apart.
+
+## Utility classes *(1.1)*
+
+Decks can count on these classes in every theme (docs/syntax.md §5.2):
+`.columns` and `.column`, `.callout`, `.muted`, `.accent`, `.small`,
+`.big`, `.center` and `.zebra`. The base styles give each one a plain look
+from the tokens, so a theme that only sets tokens has them all. A theme
+restyles them as it likes.
+
+The base rules have **zero specificity** (`:where(…)`), so any rule of the
+theme's wins, including one that isn't about the class at all: a theme's
+`.blitz-slide h3 { color: … }` beats the base `.muted` on an `h3`. Write
+`.blitz-slide .muted` (as the built-in themes do) to have the class win
+over your element rules.
+
+A theme written for 1.0 that styles `.callout` itself keeps its look for
+every property it sets; for a property it leaves alone (a `background`,
+say), it now gets the base one.
+
+## Components *(1.1)*
+
+`as=` (docs/syntax.md §5.1) marks a list, table or container with
+`data-as="steps|timeline|chevrons|flow|cards|compare|stats"`. The base
+styles draw each from the tokens below, so a tokens-only theme gets them
+all; a theme restyles them with CSS.
+
+```css
+.blitz-slide [data-as="chevrons"] > li { background: var(--blitz-surface-2); }
+.blitz-slide [data-as="steps"] > li::before { border-radius: 0; }
+```
+
+| Selector | What it is |
+|---|---|
+| `[data-as] > *` | Each item: an `li`, a table row, or a container's child |
+| `[data-as] > * > :first-child` | The item's title (its first paragraph or heading) |
+| `[data-as] > .accent` | An item marked `{.accent}` |
+| `[data-as="steps"] > li::before`, `[data-as="timeline"] > li::before` | The marker, numbered by the counter `blitz-item` (blank in a `ul`) |
+| `[data-as="steps"] > li + li::after` | The arrow into an item from the one before |
+| `[data-as="timeline"]::before`, `::after` | The line, and its arrowhead |
+| `[data-as="flow"] > * + *::before` | The arrow into a box from the one before |
+| `table[data-as="compare"] td:last-child::before`, `div[data-as="compare"] > :last-child::before` | The arrow into the "after" side |
+
+Whatever joins two items belongs to the later one, so under `reveal=items`
+an arrow arrives with the item it points to.
+
+The base rules are written `.blitz-slide [data-as="…"] …`, one step more
+specific than a theme's `.blitz-slide ul`, so a theme's list and table rules
+(bullets, padding, rules) don't reach inside a component. A theme's rule of
+the same form, later in the page, wins. The `stat-grid` layout's stats and
+`as=stats` share their base rules; a theme that styles one should style both
+(`:is([data-layout="stat-grid"] > [data-slot="main"], [data-as="stats"]) > div`).
+
+Cards, `flow` boxes and stats are `surface` with `radius` corners and a
+hairline edge in `fg`, so they show even where `surface` is `bg`.
+Chevrons are `surface-2` tinted with `accent`. An `{.accent}` chevron, card
+or box is filled with `accent`, its text in `accent-fg`; an `{.accent}`
+step or stop has an `accent` marker and title.
+
+A static or standalone build carries these rules only when the deck uses
+`as=` (or writes `data-as` in its own HTML).
+
+Every component is drawn in CSS only: no images, no script, so it prints and
+exports like any text.
+
+## Fonts
+
+The built-in themes ship every font they name, so a deck breaks its lines
+the same way on every computer. The fonts are under the SIL Open Font
+Licence, and their licences ship with them.
+
+| Family | Themes | Scripts |
+|---|---|---|
+| Inter | aurora, broadsheet | Latin, Latin Extended, Greek, Cyrillic, Vietnamese, and symbols (arrows, ≠ ≤ ≥, ✓ ✗, ½); upright and italic |
+| JetBrains Mono | aurora, broadsheet | Latin, Latin Extended, Greek, Cyrillic, Vietnamese; upright and italic |
+| Newsreader | broadsheet | Latin, Latin Extended, Vietnamese; upright and italic |
+
+Newsreader has no Greek or Cyrillic letters, so broadsheet sets those in
+Inter, also where the rest of the heading is serif, and so are symbols.
+JetBrains Mono has no symbols part: an arrow in code comes from the
+presenting machine. Other scripts (Arabic,
+Hebrew, Chinese, …) and emoji come from the presenting machine; `check`
+warns about text no shipped font covers.
+
+Each font is split by script. A browser downloads only the parts a slide
+uses, and a standalone file carries only the parts its text uses: a deck in
+English carries Inter's Latin part (48 kB) and nothing else of Inter.
+Italics come along when something on the slides is italic, and the code
+font when there's code.
 
 ## Required
 
@@ -47,9 +259,9 @@ are plain `var()`s, which computed styles resolve to real colours.
 | `letterbox` | `#000` | Around the canvas when the window's shape differs |
 | `ink` ● | `var(--blitz-accent)` | The pen (`D`) |
 | `laser` | `#ff3344` | The laser pointer (`L`) |
-| `font-sans` ● | system UI stack | Body text, charts |
+| `font-sans` ● | system UI stack (aurora and broadsheet: Inter) | Body text, charts |
 | `font-serif` | Charter, Georgia, … | Display type in themes that use it |
-| `font-mono` | `ui-monospace`, … | Code |
+| `font-mono` | `ui-monospace`, … (aurora and broadsheet: JetBrains Mono) | Code |
 | `text` | `30px` | Body size |
 | `text-small` ● | `22px` | Captions, tables, chart labels |
 | `h1`, `h2`, `h3` | `60px`, `46px`, `34px` | Headings |
@@ -61,6 +273,10 @@ are plain `var()`s, which computed styles resolve to real colours.
 | `transition-dur` | `550ms` | Slide transition duration, unless the deck sets one |
 | `map-tiles` | `none` | CSS `filter` for map tiles, e.g. to darken them for a dark theme |
 | `code-foreground` | `var(--blitz-fg)` | Code text |
+| `marker` *(1.1)* | `var(--blitz-accent-2)` | Markers in `steps` and `timeline` (components); an `{.accent}` item's is `accent` |
+| `marker-fg` *(1.1)* | `var(--blitz-bg)` | The number on a marker |
+| `connector` *(1.1)* | `var(--blitz-rule)` | Lines and arrows between items: the timeline, `steps`, `flow` and `compare` arrows |
+| `accent-fg` *(1.1)* | `var(--blitz-bg)` | Text on an accent fill: an `{.accent}` card, box or chevron |
 
 ## Syntax highlighting
 

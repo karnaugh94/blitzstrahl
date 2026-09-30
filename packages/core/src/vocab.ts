@@ -27,9 +27,37 @@ export const EFFECTS: Readonly<Record<string, EffectKind>> = {
   'dim-others': 'emphasis',
 }
 
+/** syntax.md §3.2: what slide frontmatter can set. A block needs one of these to be frontmatter (§2.3). */
+export const SLIDE_KEY_NAMES = ['id', 'layout', 'transition', 'transition-dur', 'background', 'class', 'style', 'chrome'] as const
+export type SlideKey = (typeof SLIDE_KEY_NAMES)[number]
+export const SLIDE_KEYS: ReadonlySet<string> = new Set(SLIDE_KEY_NAMES)
+
+/**
+ * Deck keys blitzstrahl 1.1 will give meaning to (PLAN §16). Reserved from
+ * 1.0.1, so no plugin registers one first and breaks when it arrives. Each
+ * leaves this list for `DECK_KEYS` when it's built.
+ */
+export const RESERVED_DECK_KEYS: ReadonlySet<string> = new Set()
+
+/** What `as=` can go on (syntax.md §5.1). */
+export type ComponentTarget = 'list' | 'table' | 'container'
+
+/** syntax.md §5.1: built-in components, and the blocks each can be made from. */
+export const COMPONENTS: Readonly<Record<string, readonly ComponentTarget[]>> = {
+  steps: ['list'],
+  timeline: ['list'],
+  chevrons: ['list'],
+  flow: ['list', 'container'],
+  cards: ['list', 'container'],
+  compare: ['table', 'container'],
+  stats: ['container'],
+}
+
 /** syntax.md §4.3 */
 export const ANIM_KEYS = new Set(['dur', 'delay', 'ease', 'reverse', 'from', 'cps'])
 export const SLIDE_SHORTHAND_KEYS = new Set(['transition', 'transition-dur', 'layout', 'background'])
+/** syntax.md §13: only on video and audio. */
+export const MEDIA_KEYS = new Set(['autoplay', 'loop', 'muted', 'controls', 'poster', 'start', 'end'])
 export const PASSTHROUGH_KEYS = new Set(['style', 'title', 'lang', 'dir', 'width', 'height', 'alt'])
 /** Reserved for a later milestone: accepted with a "not yet supported" warning. */
 export const RESERVED_KEYS: Readonly<Record<string, string>> = {}

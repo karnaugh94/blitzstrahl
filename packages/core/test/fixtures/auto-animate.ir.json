@@ -287,7 +287,7 @@
     {
       "severity": "warning",
       "code": "key/duplicate",
-      "message": "key `figure` is already used on this slide; auto-animate pairs only the first",
+      "message": "key `figure` is already used on this slide; auto-animate pairs only the first (to replace the block before it, give this one a later step)",
       "file": "auto-animate.md",
       "span": {
         "start": {

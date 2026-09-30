@@ -20,8 +20,10 @@ attribute block on the line after a blank line (syntax.md §4.2):
 | `@n`, effects | The whole table enters at a step, like any block |
 
 **Sorting.** Cells that read as numbers sort by value, and before text:
-`1,200`, `-3.5%`, `$4.1M` and `900k` all count as numbers (`k`, `M` and `B`
-scale). Text sorts naturally, so `item 2` comes before `item 10`. Empty cells
+`1,200`, `-3.5%`, `$4.1M`, `11 393` and `900k` all count as numbers (`k`, `M` and
+`B` scale). A table is text for the audience, so its numbers are read the
+way the deck's `lang` writes them: `1,200.5` in `en`, `1.200,5` in `de`,
+`1 200,5` in `fr`. A table can have its own: `{.sortable lang=de}`. Text sorts naturally, so `item 2` comes before `item 10`. Empty cells
 go last whichever way you sort. Rows glide to their new places, or jump
 there under reduced motion.
 

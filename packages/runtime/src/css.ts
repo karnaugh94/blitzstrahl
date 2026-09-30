@@ -5,6 +5,17 @@
  * Kept free of DOM access so the CLI can import it in Node
  * (`@blitzstrahl/runtime/css`).
  */
+/** The print layout's rules, under `root` (a state of `<html>`). */
+const printing = (root: string) => /* css */ `
+${root}, ${root} body { height: auto; overflow: visible; background: none; }
+${root} body > :is(.blitz-viewport, .blitz-blackout, .blitz-layer, .blitz-overflow-badge, .bp) { display: none !important; }
+/* Anything else in <body> is a library measuring text (mermaid, d3): it has
+   to stay laid out to be measured, so it moves off the pages instead. */
+${root} body > :not(.blitz-print, .blitz-viewport, .blitz-blackout, .blitz-layer, .blitz-overflow-badge, .bp) {
+  position: absolute !important; left: -100000px !important; top: 0 !important;
+}
+`
+
 export const runtimeCss = /* css */ `
 html, body { margin: 0; height: 100%; }
 body { background: var(--blitz-letterbox, #000); overflow: hidden; }
@@ -29,13 +40,13 @@ body { background: var(--blitz-letterbox, #000); overflow: hidden; }
 }
 .blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-slide[data-blitz-measure], .blitz-thumb-canvas > .blitz-slide { display: block; }
 
-/* Print layout (print.ts): while it exists, it's the whole page. */
-html[data-blitz-printing], html[data-blitz-printing] body { height: auto; overflow: visible; background: none; }
-html[data-blitz-printing] body > :is(.blitz-viewport, .blitz-blackout, .blitz-layer, .blitz-overflow-badge) { display: none !important; }
-/* Anything else in <body> is a library measuring text (mermaid, d3): it has
-   to stay laid out to be measured, so it moves off the pages instead. */
-html[data-blitz-printing] body > :not(.blitz-print, .blitz-viewport, .blitz-blackout, .blitz-layer, .blitz-overflow-badge) {
-  position: absolute !important; left: -100000px !important; top: 0 !important;
+/* Print layout (print.ts): while it exists, it's the whole page. Printing
+   from the browser (Ctrl+P) lays it out \`quiet\`: out of sight on screen,
+   so the deck stays as it was, and the whole page only in the printout. */
+${printing('html[data-blitz-printing=""]')}
+@media print { ${printing('html[data-blitz-printing="quiet"]')} }
+@media screen {
+  html[data-blitz-printing="quiet"] .blitz-print { position: fixed; left: 0; top: 0; visibility: hidden; pointer-events: none; z-index: -1; }
 }
 /* Where a renderer lays something out to measure it: off screen and unscaled. */
 .blitz-scratch { position: absolute; left: -100000px; top: 0; width: 1280px; pointer-events: none; }
@@ -44,6 +55,12 @@ html[data-blitz-printing] body > :not(.blitz-print, .blitz-viewport, .blitz-blac
   width: var(--blitz-canvas-w); height: var(--blitz-canvas-h);
   break-after: page; break-inside: avoid;
   -webkit-print-color-adjust: exact; print-color-adjust: exact;
+}
+
+/* A block printed from the browser's menu before its slide was shown. */
+.blitz-print-missing {
+  box-sizing: border-box; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+  padding: 1em; border: 2px dashed currentColor; opacity: .45; text-align: center;
 }
 
 /* Overflow detector (overflow.ts): slides are measured as hidden clones. */
@@ -61,6 +78,7 @@ html[data-blitz-printing] body > :not(.blitz-print, .blitz-viewport, .blitz-blac
 /* Ink (ink.ts): drawing and the laser pointer, over the slides, in canvas pixels. */
 .blitz-ink { position: absolute; inset: 0; width: 100%; height: 100%; z-index: 5; pointer-events: none; overflow: visible; }
 .blitz-stroke { fill: none; stroke-linecap: round; stroke-linejoin: round; }
+.blitz-stroke[data-kind="highlight"] { stroke-opacity: .5; }
 .blitz-laser {
   fill: var(--blitz-laser, #ff3344);
   filter: drop-shadow(0 0 5px var(--blitz-laser, #ff3344)) drop-shadow(0 0 14px var(--blitz-laser, #ff3344));
@@ -70,7 +88,7 @@ html[data-blitz-printing] body > :not(.blitz-print, .blitz-viewport, .blitz-blac
   stroke-linecap: round; stroke-linejoin: round;
 }
 .blitz-viewport[data-blitz-tool="laser"] { cursor: none; }
-.blitz-viewport[data-blitz-tool="pen"] { cursor: crosshair; touch-action: none; }
+.blitz-viewport:is([data-blitz-tool="pen"], [data-blitz-tool="highlighter"]) { cursor: crosshair; touch-action: none; }
 
 /* Slide transitions (transitions.ts). The stage is snapshotted on its own,
    and its pseudo-elements are animated from script. */
@@ -98,7 +116,12 @@ html[data-blitz-printing] body > :not(.blitz-print, .blitz-viewport, .blitz-blac
 }
 
 [data-blitz-hidden] { visibility: hidden !important; }
+/* A collapsed table paints a hidden cell's borders anyway: a row still to come must leave no rule. */
+tr[data-blitz-hidden] > *, [data-blitz-hidden] :is(tr, td, th) { border-color: transparent !important; }
 [data-blitz-box] { display: inline-block; }
+/* Magic move within a slide (syntax.md §9.1): the versions share one box, the largest. */
+[data-blitz-stack] { display: grid; }
+[data-blitz-stack] > * { grid-area: 1 / 1; min-width: 0; }
 [data-blitz-block] { position: relative; }
 
 /* Embeds (renderers/embed.ts). */
@@ -208,6 +231,12 @@ pre[data-blitz-lines-on] .line:not([data-blitz-focus]) { opacity: var(--blitz-di
 .blitz-thumb-canvas > .blitz-slide { position: absolute; inset: 0; }
 .blitz-thumb-label { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #97a2b9; }
 .blitz-thumb-label b { color: #e9edf5; font-variant-numeric: tabular-nums; margin-right: 4px; }
+.blitz-embed-card {
+  position: absolute; inset: 0; display: flex; flex-direction: column; gap: .3em; align-items: center; justify-content: center;
+  padding: 1em; text-align: center; font: 24px/1.3 system-ui, sans-serif; color: var(--blitz-fg-muted, #97a2b9);
+  background: var(--blitz-surface, rgba(127, 127, 127, .12)); border: 2px dashed currentColor; border-radius: 12px;
+}
+.blitz-embed-card b { font-size: 1.4em; color: var(--blitz-fg, inherit); }
 [data-blitz-placeholder]::before {
   content: attr(data-blitz-placeholder); position: absolute; inset: 0;
   display: grid; place-items: center; font: 600 28px/1 system-ui, sans-serif;

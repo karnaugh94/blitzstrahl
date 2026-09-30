@@ -3,8 +3,9 @@
  * (PLAN §7): the same validation and data shaping the renderers do, minus
  * the drawing. No ECharts, no DOM.
  */
-import { chartOption, validate as validateChart } from './chart-option.js'
-import { parseData } from './data.js'
+import { chartNotes, chartOption, validate as validateChart } from './chart-option.js'
+import { dataNumerals, readNumber, type Thousands } from '@blitzstrahl/core/numbers'
+import { parseData, type DataOptions } from './data.js'
 import { validate as validateEmbed } from './embed.js'
 import { asFeatureCollection, markersFromRows, markersFromText, validate as validateMap } from './map-geo.js'
 import { validate as validateMermaid } from './mermaid.js'
@@ -12,12 +13,23 @@ import { validate as validateMermaid } from './mermaid.js'
 /** Text of a deck-relative data file, if it was found. */
 export type ReadData = (path: string) => string | undefined
 
+/** What a block's spec inherits from the deck. */
+export interface DeckDefaults {
+  thousands?: Thousands | undefined
+}
+
+/** How a block with `thousands` and `delimiter` reads its data file, as `RenderCtx.number` would. */
+export function dataOptions(spec: { thousands?: Thousands; delimiter?: string }, deck: DeckDefaults = {}): DataOptions {
+  const numerals = dataNumerals(spec.thousands ?? deck.thousands)
+  return { read: (t) => readNumber(t, numerals), delimiter: spec.delimiter }
+}
+
 /**
  * What would go wrong rendering this block, as the renderer would say it;
  * undefined if nothing. Files that are missing are skipped here: they're
  * reported on their own.
  */
-export function specProblem(renderer: string, spec: unknown, read: ReadData): string | undefined {
+export function specProblem(renderer: string, spec: unknown, read: ReadData, deck: DeckDefaults = {}): string | undefined {
   try {
     switch (renderer) {
       case 'chart': {
@@ -25,7 +37,7 @@ export function specProblem(renderer: string, spec: unknown, read: ReadData): st
         if (typeof s.data === 'string') {
           const text = read(s.data)
           if (text === undefined) return undefined
-          chartOption(s, parseData(s.data, text), { dur: 0, reducedMotion: true })
+          chartOption(s, parseData(s.data, text, dataOptions(s, deck)), { dur: 0, reducedMotion: true })
         } else chartOption(s, s.data, { dur: 0, reducedMotion: true })
         return undefined
       }
@@ -34,7 +46,7 @@ export function specProblem(renderer: string, spec: unknown, read: ReadData): st
         if (Array.isArray(s.markers)) markersFromRows(s.markers, s.label, s.size)
         else if (typeof s.markers === 'string') {
           const text = read(s.markers)
-          if (text !== undefined) markersFromText(s.markers, text, s.label, s.size)
+          if (text !== undefined) markersFromText(s.markers, text, s.label, s.size, dataOptions(s, deck))
         }
         if (s.regions !== undefined) {
           const text = read(s.regions)
@@ -50,6 +62,23 @@ export function specProblem(renderer: string, spec: unknown, read: ReadData): st
     }
   } catch (err) {
     return err instanceof Error ? err.message : String(err)
+  }
+}
+
+/**
+ * What's worth knowing about a block that isn't a problem, as the renderer
+ * would say it (info). Empty for a block with problems: those are reported
+ * by `specProblem`.
+ */
+export function specNotes(renderer: string, spec: unknown, read: ReadData, deck: DeckDefaults = {}): string[] {
+  if (renderer !== 'chart') return []
+  try {
+    const s = validateChart(spec)
+    if (typeof s.data !== 'string') return chartNotes(s, s.data)
+    const text = read(s.data)
+    return text === undefined ? [] : chartNotes(s, parseData(s.data, text, dataOptions(s, deck)))
+  } catch {
+    return []
   }
 }
 
@@ -82,3 +111,6 @@ export async function mermaidProblem(spec: unknown): Promise<string | undefined>
 }
 
 export { asFeatureCollection, isUrl, markersFromText, tileSource, type MapSpec } from './map-geo.js'
+export { CHART_RULES, CHART_SCHEMA, validate as validateChart } from './chart-option.js'
+export { EMBED_RULES, EMBED_SCHEMA, EMBED_SHORT, validate as validateEmbed } from './embed.js'
+export { MAP_RULES, MAP_SCHEMA, validate as validateMap } from './map-geo.js'

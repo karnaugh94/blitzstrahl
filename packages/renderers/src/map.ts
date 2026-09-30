@@ -18,6 +18,7 @@ import { GeoComponent, TooltipComponent, VisualMapComponent } from 'echarts/comp
 import * as echarts from 'echarts/core'
 import { SVGRenderer } from 'echarts/renderers'
 import type { RenderCtx, RenderInstance, Renderer } from '@blitzstrahl/runtime'
+import { ariaWords, asImage, mapLabel } from './aria.js'
 import type { Row } from './data.js'
 import {
   MAX_ZOOM,
@@ -34,6 +35,7 @@ import {
   validate,
   viewBounds,
   type FeatureCollection,
+  type MapSpec,
   type Marker,
   type Placement,
 } from './map-geo.js'
@@ -79,9 +81,9 @@ async function loadJson(path: string, ctx: RenderCtx): Promise<unknown> {
   }
 }
 
-async function loadMarkers(src: string | Row[], ctx: RenderCtx, label?: string, size?: string): Promise<Marker[]> {
-  if (typeof src !== 'string') return markersFromRows(src, label, size)
-  return markersFromText(src, await ctx.loadAsset(src), label, size)
+async function loadMarkers(spec: MapSpec, src: string | Row[], ctx: RenderCtx): Promise<Marker[]> {
+  if (typeof src !== 'string') return markersFromRows(src, spec.label, spec.size)
+  return markersFromText(src, await ctx.loadAsset(src), spec.label, spec.size, { read: (t) => ctx.number(t, spec.thousands), delimiter: spec.delimiter })
 }
 
 /** Name every region by `label`, so ECharts (which reads `name`) shows it. */
@@ -90,6 +92,14 @@ function named(fc: FeatureCollection, label: string): FeatureCollection {
   return {
     ...fc,
     features: fc.features.map((f) => ({ ...f, properties: { ...f.properties, name: f.properties?.[label] ?? '' } })),
+  }
+}
+
+function numberFormat(locale: string): Intl.NumberFormat {
+  try {
+    return new Intl.NumberFormat(locale, { maximumFractionDigits: 10 })
+  } catch {
+    return new Intl.NumberFormat(undefined, { maximumFractionDigits: 10 })
   }
 }
 
@@ -114,8 +124,9 @@ const map: Renderer = {
     const spec = validate(raw)
     const doc = el.ownerDocument
     const t = (n: string, fallback: string) => ctx.token(`--blitz-${n}`) || fallback
+    const legend = numberFormat(el.closest('[lang]')?.getAttribute('lang') || ctx.lang)
 
-    const markers = spec.markers === undefined ? [] : await loadMarkers(spec.markers, ctx, spec.label, spec.size)
+    const markers = spec.markers === undefined ? [] : await loadMarkers(spec, spec.markers, ctx)
     const regions = spec.regions === undefined ? undefined : named(asFeatureCollection(await loadJson(spec.regions, ctx), '`regions`'), spec.label ?? 'name')
 
     const tilesLayer = doc.createElement('div')
@@ -213,13 +224,17 @@ const map: Renderer = {
         seriesIndex: 0,
         inRange: { color: [t('surface-2', '#eef'), accent] },
         calculable: false,
-        text: [String(Math.max(...values)), String(Math.min(...values))],
+        // The legend writes numbers in the deck's (or the block's) language.
+        text: [legend.format(Math.max(...values)), legend.format(Math.min(...values))],
         left: 16,
         bottom: 16,
         textStyle: { color: t('fg-muted', '#666'), fontSize: 14 },
       }
     }
 
+    // One picture to a screen reader: `alt=`, then its places (syntax.md §8.2).
+    const restore = asImage(el)
+    el.setAttribute('aria-label', mapLabel(ariaWords(ctx.lang), el.getAttribute('aria-label') ?? undefined, [...markers.map((m) => m.name), ...(regions?.features.map((f) => String(f.properties?.name ?? '')) ?? [])]))
     const chart = echarts.init(chartEl, undefined, { renderer: 'svg' })
     const imgs = new Map<string, HTMLImageElement>()
     let pending: Promise<void>[] = []
@@ -237,7 +252,9 @@ const map: Renderer = {
       if (!template) return
       const p = placement()
       if (!p) return
-      const want = tilesFor(p, chartEl.clientWidth, chartEl.clientHeight, template)
+      // Screen pixels per canvas pixel: the stage's scale, times the screen's density.
+      const scale = chartEl.getBoundingClientRect().width / (chartEl.clientWidth || 1) || 1
+      const want = tilesFor(p, chartEl.clientWidth, chartEl.clientHeight, template, scale * (doc.defaultView?.devicePixelRatio ?? 1))
       const keep = new Set(want.map((w) => w.key))
       for (const [key, img] of imgs) {
         if (!keep.has(key)) {
@@ -281,6 +298,7 @@ const map: Renderer = {
       destroy() {
         chart.dispose()
         el.replaceChildren()
+        restore()
       },
       /** Rendered, and the tiles it shows have loaded (or failed). */
       get ready() {

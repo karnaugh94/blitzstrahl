@@ -6,11 +6,11 @@
  * URIs; data files are already inlined in the payload.
  */
 import { readFile } from 'node:fs/promises'
-import { extname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { build as viteBuild, type Plugin, type Rolldown } from 'vite'
 import { BUILTIN_RENDERERS } from '@blitzstrahl/renderers'
 import type { Deck } from '@blitzstrahl/core'
+import { mimeType } from './mime.js'
 
 const ENTRY_ID = 'virtual:blitzstrahl-standalone'
 
@@ -40,9 +40,11 @@ export function usedRenderers(deck: Deck, plugins: Record<string, { browser: str
  * names them all, since a save can add any.) Without this, every deck would
  * bundle Mermaid's hundred-odd chunks.
  */
-export function staticEntry(renderers: RendererModules): string {
+export function staticEntry(renderers: RendererModules, remote = false): string {
   const map = Object.entries(renderers).map(([r, file]) => `${JSON.stringify(r)}: () => import(${JSON.stringify(file)})`).join(', ')
-  return `import { start } from ${JSON.stringify(resolve('@blitzstrahl/runtime'))}\nstart({ renderers: { ${map} } })\n`
+  const code = `import { start } from ${JSON.stringify(resolve('@blitzstrahl/runtime'))}\nstart({ renderers: { ${map} } })\n`
+  // `present` only (M12.6): the deck takes a phone's intents through the server.
+  return remote ? `${code}import { linkRemote } from ${JSON.stringify(resolve('@blitzstrahl/runtime/remote-link'))}\nlinkRemote()\n` : code
 }
 
 /** A Vite plugin serving `code` as the module `id`. */
@@ -65,8 +67,18 @@ export function standaloneEntry(renderers: RendererModules): string {
 }
 
 /** Bundle the entry into a single ES module, in memory. */
-export async function bundleStandalone(root: string, cacheDir: string, renderers: RendererModules, quiet = false): Promise<string> {
-  const plugin = virtualEntry(ENTRY_ID, standaloneEntry(renderers))
+export function bundleStandalone(root: string, cacheDir: string, renderers: RendererModules, quiet = false): Promise<string> {
+  return bundleInline(root, cacheDir, standaloneEntry(renderers), quiet)
+}
+
+/** The phone remote's page script (M12.6), one inline module like a standalone deck's. */
+export function bundleRemote(root: string, cacheDir: string, quiet = false): Promise<string> {
+  return bundleInline(root, cacheDir, `import { startRemote } from ${JSON.stringify(resolve('@blitzstrahl/runtime/remote'))}\nstartRemote()\n`, quiet)
+}
+
+/** `entry` and everything it imports as one module's code. */
+async function bundleInline(root: string, cacheDir: string, entry: string, quiet: boolean): Promise<string> {
+  const plugin = virtualEntry(ENTRY_ID, entry)
   const result = await viteBuild({
     configFile: false,
     root,
@@ -98,27 +110,12 @@ export function inlineSafe(code: string): string {
   return code.replace(/<(\/script|!--)/gi, '\\x3C$1')
 }
 
-const MIME: Record<string, string> = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-  '.avif': 'image/avif',
-  '.bmp': 'image/bmp',
-  '.ico': 'image/x-icon',
-  '.woff': 'font/woff',
-  '.woff2': 'font/woff2',
-  '.ttf': 'font/ttf',
-  '.otf': 'font/otf',
-}
 
 /** A local file as a `data:` URI, or undefined if it can't be read. */
 export async function dataUri(file: string): Promise<string | undefined> {
   try {
     const bytes = await readFile(file)
-    return `data:${MIME[extname(file).toLowerCase()] ?? 'application/octet-stream'};base64,${bytes.toString('base64')}`
+    return `data:${mimeType(file).replace(/;.*$/, '')};base64,${bytes.toString('base64')}`
   } catch {
     return undefined // reported as asset/missing
   }

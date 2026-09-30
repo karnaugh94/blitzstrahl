@@ -82,8 +82,8 @@ export function isCode(p: MorphPair): boolean {
 export function candidates(slide: HTMLElement, visible: (el: HTMLElement) => boolean): Candidate<HTMLElement>[] {
   const out: Candidate<HTMLElement>[] = []
   for (const el of slide.querySelectorAll<HTMLElement>(`[data-blitz-key], ${AUTO}`)) {
-    // Inside a render block is the renderer's DOM, not the author's.
-    if (el.parentElement?.closest('[data-blitz-block]') || !visible(el)) continue
+    // Inside a render block is the renderer's DOM, not the author's; chrome is the deck's, on every slide.
+    if (el.parentElement?.closest('[data-blitz-block]') || el.closest('.blitz-chrome') || !visible(el)) continue
     const c: Candidate<HTMLElement> = { el }
     if (el.dataset.blitzKey !== undefined) c.key = el.dataset.blitzKey
     else if (el.matches(AUTO)) {

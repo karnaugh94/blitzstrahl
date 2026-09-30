@@ -1,3 +1,4 @@
+import { INTER, JETBRAINS_MONO } from './fonts.js'
 import { defineTheme } from './theme.js'
 
 /**
@@ -22,7 +23,7 @@ export const aurora = defineTheme({
     'link': '#8fd8ff',
     'highlight': 'rgba(111, 240, 192, .30)',
     'letterbox': '#05070e',
-    'font-sans': '"Inter", "InterVariable", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
+    'font-sans': '"Inter", system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", sans-serif',
     'font-mono': '"JetBrains Mono", "SF Mono", ui-monospace, Menlo, Consolas, monospace',
     'text': '30px',
     'text-small': '22px',
@@ -57,6 +58,8 @@ export const aurora = defineTheme({
     'code-token-link': '#8fd8ff',
     'map-tiles': 'invert(1) hue-rotate(180deg) brightness(.85) contrast(.9) saturate(.35)',
   },
+  // Every font it names ships (fonts.ts), so it breaks lines the same way everywhere.
+  fonts: [...INTER, ...JETBRAINS_MONO],
   css: /* css */ `
 .blitz-slide {
   color: var(--blitz-fg);
@@ -183,12 +186,12 @@ export const aurora = defineTheme({
 [data-layout="quote"] blockquote + p { color: var(--blitz-fg-muted); font-size: var(--blitz-text); }
 [data-layout="quote"] blockquote + p::before { content: "\\2014\\2002"; color: var(--blitz-accent); }
 
-[data-layout="stat-grid"] > [data-slot="main"] > div {
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div {
   padding: 28px 30px; border-radius: var(--blitz-radius);
   background: var(--blitz-surface); border: 1px solid var(--blitz-rule);
 }
-[data-layout="stat-grid"] > [data-slot="main"] > div > :first-child { color: var(--blitz-accent); font-variant-numeric: tabular-nums; }
-[data-layout="stat-grid"] > [data-slot="main"] > div > :not(:first-child) { color: var(--blitz-fg-muted); font-size: var(--blitz-text-small); }
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div > :first-child { color: var(--blitz-accent); font-variant-numeric: tabular-nums; }
+:is([data-layout="stat-grid"] > [data-slot="main"], .blitz-slide [data-as="stats"]) > div > :not(:first-child) { color: var(--blitz-fg-muted); font-size: var(--blitz-text-small); }
 
 [data-layout="full-bleed"] > [data-slot="main"]::before {
   content: ""; position: absolute; inset: 0; z-index: -1;

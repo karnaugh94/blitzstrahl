@@ -7,6 +7,8 @@
  * The overview is also the presenter's slide grid, so it takes callbacks
  * rather than a deck.
  */
+import { fill, strings, uiLanguage, type Strings } from '@blitzstrahl/core/i18n'
+import type { BlockData } from './renderer.js'
 
 /** A modal layer. `onKey` returns true when it handled the key. */
 export interface Layer {
@@ -33,6 +35,13 @@ export class LayerHost {
     this.close()
     this.returnFocus = this.doc.activeElement
     this.open_ = layer
+    // On the layer itself, so Tab stays in it from a text box too (the deck's keys skip those).
+    layer.el.addEventListener('keydown', (e) => {
+      if (e.key !== 'Tab') return
+      e.preventDefault()
+      e.stopPropagation()
+      this.cycle(layer.el, e.shiftKey)
+    })
     this.doc.body.append(layer.el)
     ;(layer.focus ?? layer.el).focus()
   }
@@ -53,7 +62,18 @@ export class LayerHost {
     if (!layer) return false
     if (layer.onKey?.(e)) return true
     if (e.key === 'Escape') this.close()
+    // A focused button or link in the layer is pressed, as it would be anywhere else.
+    else if ((e.key === 'Enter' || e.key === ' ') && this.doc.activeElement !== layer.el && this.doc.activeElement?.matches('button, a[href]') && layer.el.contains(this.doc.activeElement)) (this.doc.activeElement as HTMLElement).click()
     return true
+  }
+
+  /** Tab moves between the layer's own controls, round and round: the keyboard stays in the dialog. */
+  private cycle(el: HTMLElement, back: boolean) {
+    const stops = [...el.querySelectorAll<HTMLElement>('button, a[href], input, [tabindex]')].filter((c) => !c.hidden && c.tabIndex >= 0 && !c.closest('[inert]'))
+    if (!stops.length) return el.focus()
+    const at = stops.indexOf(this.doc.activeElement as HTMLElement)
+    const next = at < 0 ? (back ? stops.length - 1 : 0) : (at + (back ? -1 : 1) + stops.length) % stops.length
+    stops[next]!.focus()
   }
 }
 
@@ -72,10 +92,23 @@ function h<K extends keyof HTMLElementTagNameMap>(
 export interface SlideInfo {
   id: string
   title?: string
+  /** Its render blocks: the overview draws them (M12.5). */
+  blocks?: ReadonlyArray<Pick<BlockData, 'id' | 'renderer' | 'spec'>>
+}
+
+/** What the overview asks for its thumbnails' render blocks (drawings.ts). */
+export interface ThumbDrawings {
+  get(id: string): HTMLElement | undefined
+  /** Draw slide `i`'s blocks that have no drawing yet; resolves when they're in. */
+  draw(i: number): Promise<void>
 }
 
 /** Label for a slide in lists: its title, or its number. */
-export const slideLabel = (s: SlideInfo, i: number) => s.title ?? `Slide ${i + 1}`
+/** The words of the overlays: for whoever presents, so in the browser's language (docs/presenting.md). */
+export const uiWords = (doc: Document) => strings(uiLanguage(doc.defaultView?.navigator.languages)).ui
+
+/** A slide's title, or "Slide 3" in `words`' language. */
+export const slideLabel = (s: SlideInfo, i: number, words: { slide: string }) => s.title ?? fill(words.slide, { n: i + 1 })
 
 export interface OverviewOptions {
   /** The deck's `.blitz-stage`, whose sections are cloned as thumbnails. */
@@ -87,6 +120,10 @@ export interface OverviewOptions {
   /** Close after picking (the deck); the presenter keeps its grid. */
   closeOnPick?: boolean
   host?: LayerHost
+  /** Short marks after a slide's label (the presenter's: has notes, rehearsed time). */
+  extra?(index: number): string[]
+  /** Charts, maps and diagrams as drawn; without it, thumbnails show placeholders. */
+  drawings?: ThumbDrawings
 }
 
 /**
@@ -94,20 +131,26 @@ export interface OverviewOptions {
  * a click picks. Render blocks show as labelled placeholders.
  */
 export function overview(doc: Document, o: OverviewOptions): Layer {
-  const grid = h(doc, 'div', { class: 'blitz-overview-grid', role: 'listbox', 'aria-label': 'Slides' })
-  const el = h(doc, 'div', { class: 'blitz-layer blitz-overview', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'All slides' }, grid)
+  const words = uiWords(doc)
+  const grid = h(doc, 'div', { class: 'blitz-overview-grid', role: 'listbox', 'aria-label': words.slides })
+  const el = h(doc, 'div', { class: 'blitz-layer blitz-overview', role: 'dialog', 'aria-modal': 'true', 'aria-label': words.allSlides }, grid)
   const sections = [...o.stage.querySelectorAll<HTMLElement>(':scope > .blitz-slide')]
   const thumbs = o.slides.map((s, i) => {
-    const btn = h(doc, 'button', { class: 'blitz-thumb', type: 'button', role: 'option', 'data-index': String(i), 'aria-label': `${i + 1}. ${slideLabel(s, i)}` })
+    const btn = h(doc, 'button', { class: 'blitz-thumb', type: 'button', role: 'option', 'data-index': String(i), 'aria-label': `${i + 1}. ${slideLabel(s, i, words)}` })
     const frame = h(doc, 'div', { class: 'blitz-thumb-frame' })
     frame.style.aspectRatio = `${o.canvas.width} / ${o.canvas.height}`
-    const canvas = h(doc, 'div', { class: 'blitz-thumb-canvas' })
+    // A picture of the slide: its links and text aren't the overview's.
+    const canvas = h(doc, 'div', { class: 'blitz-thumb-canvas', inert: '' })
     canvas.style.width = `${o.canvas.width}px`
     canvas.style.height = `${o.canvas.height}px`
     const section = sections[i]
     if (section) canvas.append(thumbnail(section))
+    fillBlocks(doc, canvas, s, o.drawings)
     frame.append(canvas)
-    btn.append(frame, h(doc, 'span', { class: 'blitz-thumb-label' }, h(doc, 'b', {}, String(i + 1)), ' ', slideLabel(s, i)))
+    const marks = o.extra?.(i) ?? []
+    const label = h(doc, 'span', { class: 'blitz-thumb-label' }, h(doc, 'b', {}, String(i + 1)), ' ', slideLabel(s, i, words))
+    btn.append(frame, marks.length ? h(doc, 'span', { class: 'blitz-thumb-caption' }, label, ...marks.map((m) => h(doc, 'span', { class: 'blitz-thumb-mark' }, m))) : label)
+    if (marks.length) btn.setAttribute('aria-label', `${btn.getAttribute('aria-label')} (${marks.join(', ')})`)
     btn.addEventListener('click', () => choose(i))
     grid.append(btn)
     return btn
@@ -116,7 +159,11 @@ export function overview(doc: Document, o: OverviewOptions): Layer {
   let selected = o.current
   const select = (i: number) => {
     selected = Math.max(0, Math.min(thumbs.length - 1, i))
-    thumbs.forEach((t, k) => t.setAttribute('aria-selected', String(k === selected)))
+    thumbs.forEach((t, k) => {
+      t.setAttribute('aria-selected', String(k === selected))
+      // One tab stop for the grid: the selected slide (arrows move it).
+      t.tabIndex = k === selected ? 0 : -1
+    })
     thumbs[selected]?.focus()
     thumbs[selected]?.scrollIntoView({ block: 'nearest' })
   }
@@ -126,6 +173,17 @@ export function overview(doc: Document, o: OverviewOptions): Layer {
     else select(i)
   }
   thumbs[o.current]?.setAttribute('aria-current', 'true')
+
+  // Blocks never drawn are drawn as their thumbnail comes into view, and filled in when ready.
+  const seen = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting || !o.drawings) continue
+      const i = thumbs.indexOf(entry.target as HTMLButtonElement)
+      seen.unobserve(entry.target)
+      void o.drawings.draw(i).then(() => fillBlocks(doc, entry.target.querySelector<HTMLElement>('.blitz-thumb-canvas')!, o.slides[i]!, o.drawings))
+    }
+  })
+  if (o.drawings) thumbs.forEach((t, i) => o.slides[i]?.blocks?.some((b) => b.renderer !== 'embed' && !o.drawings!.get(b.id)) && seen.observe(t))
 
   const ro = new ResizeObserver(() => {
     const w = thumbs[0]?.querySelector<HTMLElement>('.blitz-thumb-frame')?.clientWidth ?? 0
@@ -167,12 +225,71 @@ export function overview(doc: Document, o: OverviewOptions): Layer {
       }
       return false
     },
-    onClose: () => ro.disconnect(),
+    onClose: () => {
+      ro.disconnect()
+      seen.disconnect()
+    },
   }
   const first = thumbs[o.current]
   if (first) layer.focus = first
   queueMicrotask(() => select(o.current))
   return layer
+}
+
+/**
+ * An embedded page as a card, without loading it: its name (`alt`, else
+ * `title`), a label and its host. For the next preview and the overview.
+ */
+export function embedCard(doc: Document, el: HTMLElement, spec: unknown): HTMLElement {
+  const s = (typeof spec === 'string' ? { src: spec } : (spec ?? {})) as { src?: unknown; title?: unknown }
+  let host = ''
+  try {
+    host = new URL(String(s.src)).host
+  } catch {
+    // not a URL: the card has no host
+  }
+  const name = el.dataset.blitzAlt ?? (typeof s.title === 'string' ? s.title : '') ?? ''
+  return h(doc, 'div', { class: 'blitz-embed-card' }, h(doc, 'span', {}, uiWords(doc).embeddedPage), ...(name ? [h(doc, 'b', {}, name)] : []), h(doc, 'span', {}, host))
+}
+
+/** Put each block's drawing into a thumbnail, or a card for an embedded page. */
+function fillBlocks(doc: Document, canvas: HTMLElement, slide: SlideInfo, drawings: ThumbDrawings | undefined) {
+  for (const block of slide.blocks ?? []) {
+    const el = canvas.querySelector<HTMLElement>(`[data-blitz-block="${CSS.escape(block.id)}"]`)
+    if (!el) continue
+    if (block.renderer === 'embed') {
+      el.replaceChildren(embedCard(doc, el, block.spec))
+      delete el.dataset.blitzPlaceholder
+      continue
+    }
+    const drawn = drawings?.get(block.id)
+    if (!drawn) continue
+    const copy = drawn.cloneNode(true) as HTMLElement
+    reid(copy, `${block.id}-thumb-`)
+    el.replaceChildren(...copy.childNodes)
+    delete el.dataset.blitzPlaceholder
+  }
+}
+
+/**
+ * Give a copied drawing ids of its own: a diagram's styles (`#mermaid-1 .node`)
+ * and a chart's clip paths (`url(#zr0-c0)`) name them, and the original may
+ * be in the page too.
+ */
+export function reid(root: HTMLElement, prefix: string): void {
+  const ids = new Map<string, string>()
+  for (const el of root.querySelectorAll('[id]')) {
+    ids.set(el.id, prefix + el.id)
+    el.id = prefix + el.id
+  }
+  if (!ids.size) return
+  const esc = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const pattern = new RegExp(`#(${[...ids.keys()].map(esc).join('|')})(?![\\w-])`, 'g')
+  const swap = (text: string) => text.replace(pattern, (_, id: string) => `#${ids.get(id)}`)
+  for (const el of root.querySelectorAll('*')) {
+    if (el.localName === 'style') el.textContent = swap(el.textContent ?? '')
+    for (const a of [...el.attributes]) if (a.value.includes('#')) a.value = swap(a.value)
+  }
 }
 
 /** A static copy of a slide with every step shown and no live renderers. */
@@ -219,19 +336,20 @@ export function findSlide(query: string, slides: SlideInfo[]): number | undefine
 
 /** `G`: type a slide number, id or part of a title. */
 export function gotoPrompt(doc: Document, o: GotoOptions): Layer {
-  const input = h(doc, 'input', { type: 'text', class: 'blitz-goto-input', 'aria-label': 'Slide number, id or title', placeholder: `1–${o.slides.length}, id or title`, autocomplete: 'off', spellcheck: 'false' })
+  const words = uiWords(doc)
+  const input = h(doc, 'input', { type: 'text', class: 'blitz-goto-input', 'aria-label': words.gotoLabel, placeholder: fill(words.gotoPlaceholder, { total: o.slides.length }), autocomplete: 'off', spellcheck: 'false' })
   const hint = h(doc, 'p', { class: 'blitz-goto-hint', 'aria-live': 'polite' })
-  const el = h(doc, 'div', { class: 'blitz-layer blitz-dialog blitz-goto', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Go to slide' }, h(doc, 'label', {}, 'Go to slide'), input, hint)
+  const el = h(doc, 'div', { class: 'blitz-layer blitz-dialog blitz-goto', role: 'dialog', 'aria-modal': 'true', 'aria-label': words.gotoTitle }, h(doc, 'label', {}, words.gotoTitle), input, hint)
   const preview = () => {
     const i = findSlide(input.value, o.slides)
-    hint.textContent = i === undefined ? (input.value.trim() ? 'No such slide' : '') : `${i + 1} · ${slideLabel(o.slides[i]!, i)}`
+    hint.textContent = i === undefined ? (input.value.trim() ? words.noSuchSlide : '') : `${i + 1} · ${slideLabel(o.slides[i]!, i, words)}`
   }
   input.addEventListener('input', preview)
   input.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') {
       const i = findSlide(input.value, o.slides)
       if (i === undefined) {
-        hint.textContent = 'No such slide'
+        hint.textContent = words.noSuchSlide
         return
       }
       o.host.close()
@@ -243,27 +361,33 @@ export function gotoPrompt(doc: Document, o: GotoOptions): Layer {
   return { el, focus: input }
 }
 
-/** The keys, as shown by `?`. */
-export const KEYS: Array<[string, string]> = [
-  ['→  ↓  Space  PageDown', 'Next step or slide'],
-  ['←  ↑  Shift+Space  PageUp', 'Previous step or slide'],
-  ['Home  End', 'First / last slide'],
-  ['Esc  O', 'Overview of all slides (Esc first puts the laser or pen down)'],
-  ['G', 'Go to a slide by number, id or title'],
-  ['B  .', 'Black out the screen'],
-  ['F', 'Fullscreen'],
-  ['P', 'Presenter view'],
-  ['L', 'Laser pointer'],
-  ['D', 'Draw on the slide'],
-  ['C', 'Clear the drawing on this slide'],
-  ['?', 'This help'],
+/** The keys, as shown by `?`, with what each does (`ui.keys`). */
+export const KEYS: ReadonlyArray<[string, keyof Strings['ui']['keys']]> = [
+  ['→  ↓  Space  PageDown', 'next'],
+  ['←  ↑  Shift+Space  PageUp', 'previous'],
+  ['Home  End', 'firstLast'],
+  ['Esc  O', 'overview'],
+  ['G', 'goto'],
+  ['B  .', 'blackout'],
+  ['F', 'fullscreen'],
+  ['P', 'presenter'],
+  ['L', 'laser'],
+  ['D', 'draw'],
+  ['H', 'highlighter'],
+  ['1  2  3', 'colors'],
+  ['Z', 'undo'],
+  ['C', 'clear'],
+  ['Ctrl+P  ⌘P', 'print'],
+  ['R', 'document'],
+  ['?', 'help'],
 ]
 
 export function help(doc: Document, host: LayerHost): Layer {
-  const rows = KEYS.map(([k, what]) => h(doc, 'tr', {}, h(doc, 'th', {}, ...k.split('  ').flatMap((x, i) => (i ? [' ', h(doc, 'kbd', {}, x)] : [h(doc, 'kbd', {}, x)]))), h(doc, 'td', {}, what)))
-  const close = h(doc, 'button', { type: 'button', class: 'blitz-dialog-close', 'aria-label': 'Close' }, '×')
+  const words = uiWords(doc)
+  const rows = KEYS.map(([k, key]) => [k, words.keys[key]] as const).map(([k, what]) => h(doc, 'tr', {}, h(doc, 'th', {}, ...k.split('  ').flatMap((x, i) => (i ? [' ', h(doc, 'kbd', {}, x)] : [h(doc, 'kbd', {}, x)]))), h(doc, 'td', {}, what)))
+  const close = h(doc, 'button', { type: 'button', class: 'blitz-dialog-close', 'aria-label': words.close }, '×')
   close.addEventListener('click', () => host.close())
-  const el = h(doc, 'div', { class: 'blitz-layer blitz-dialog blitz-help', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Keyboard shortcuts', tabindex: '-1' }, close, h(doc, 'h2', {}, 'Keyboard'), h(doc, 'table', {}, ...rows), h(doc, 'p', {}, 'Click the left or right edge, or swipe, to move too.'))
+  const el = h(doc, 'div', { class: 'blitz-layer blitz-dialog blitz-help', role: 'dialog', 'aria-modal': 'true', 'aria-label': words.keyboardShortcuts, tabindex: '-1' }, close, h(doc, 'h2', {}, words.keyboard), h(doc, 'table', {}, ...rows), h(doc, 'p', {}, words.edgeHint))
   return {
     el,
     onKey(e) {
@@ -282,18 +406,19 @@ export function help(doc: Document, host: LayerHost): Layer {
  * `rel="opener"` lets the presenter find this deck.
  */
 export function presenterBlocked(doc: Document, host: LayerHost, href: string): Layer {
-  const close = h(doc, 'button', { type: 'button', class: 'blitz-dialog-close', 'aria-label': 'Close' }, '×')
+  const words = uiWords(doc)
+  const close = h(doc, 'button', { type: 'button', class: 'blitz-dialog-close', 'aria-label': words.close }, '×')
   close.addEventListener('click', () => host.close())
-  const link = h(doc, 'a', { href, target: '_blank', rel: 'opener', class: 'blitz-presenter-link' }, 'Open the presenter view')
+  const link = h(doc, 'a', { href, target: '_blank', rel: 'opener', class: 'blitz-presenter-link' }, words.openPresenter)
   link.addEventListener('click', () => queueMicrotask(() => host.close()))
   const el = h(
     doc,
     'div',
-    { class: 'blitz-layer blitz-dialog', role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Presenter view', tabindex: '-1' },
+    { class: 'blitz-layer blitz-dialog', role: 'dialog', 'aria-modal': 'true', 'aria-label': words.presenterView, tabindex: '-1' },
     close,
-    h(doc, 'h2', {}, 'The browser blocked the presenter window'),
+    h(doc, 'h2', {}, words.presenterBlocked),
     h(doc, 'p', {}, link),
-    h(doc, 'p', { class: 'blitz-dialog-hint' }, 'To use P next time, allow pop-ups for this deck.'),
+    h(doc, 'p', { class: 'blitz-dialog-hint' }, words.allowPopups),
   )
   return { el, focus: link, onKey: () => false }
 }

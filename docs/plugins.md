@@ -38,7 +38,10 @@ plugins:
   file.
 - **`theme`**: a built-in name (`aurora`, `broadsheet`), a package, or a path.
   A bare name that isn't built in is tried as `blitzstrahl-theme-<name>`,
-  then as `<name>`. So `theme: acme` finds `blitzstrahl-theme-acme`.
+  then as `<name>`. So `theme: acme` finds `blitzstrahl-theme-acme`. A path
+  ending in `.css` is a CSS theme (docs/themes.md); any other path, and a
+  package, is a JS module. A package can also point at a CSS theme, with
+  `"main": "brand.css"` or `exports` naming a `.css` file. *(1.1)*
 - A plugin or theme that can't be found, loaded or validated is an
   **error**, reported at its frontmatter key (`deck.md:3:1`). `build`
   refuses the deck. `dev` still serves it, with aurora in place of a broken
@@ -176,6 +179,8 @@ export default poll
 | `loadAsset(path)` | The text of a deck-relative asset (inlined by builds) |
 | `assetUrl(path)` | The URL an asset (an image) is served from |
 | `meta` | The values of frontmatter keys registered by plugins, by name |
+| `lang` | The deck's `lang` (default `en`). Write numbers and dates for it: `new Intl.NumberFormat(ctx.lang)` *(1.1)* |
+| `number(text, thousands?)` | A number from data, read as the built-in renderers read it (`'3.5'` is 3.5; the deck's `thousands`, or the one given), or `undefined` if the text isn't one *(1.1)* |
 
 The rules the built-in renderers follow apply to plugins too. They're
 requirements, not suggestions:
@@ -228,9 +233,18 @@ A registered key is no longer an "unknown key" warning. Its value is passed to e
 in the page. Don't put secrets in frontmatter. Only deck frontmatter can be
 extended in 1.0; slide frontmatter can't.
 
+**Reserved names.** `public`, `css`, `background`, `footer`,
+`slide-numbers`, `logo`, `duration` and `pace-margin` are built in from
+1.1, and a built-in key can't be registered.
+
 ---
 
 ## 3. Writing a theme
+
+From 1.1, a CSS file is the simpler way to write a theme, and the
+recommended one (docs/themes.md). A JS theme does the same things, and
+stays supported: it suits a theme that computes its tokens, or ships as
+a package with a plugin beside it.
 
 ```js
 // blitzstrahl-theme-acme/index.js
@@ -239,7 +253,7 @@ import { defineTheme } from 'blitzstrahl/theme'
 export default defineTheme({
   name: 'acme',
   tokens: { bg: '#fbfaf7', fg: '#1a1a1a', 'fg-muted': '#6b6b6b', accent: '#c2410c', /* chart-1 … chart-8 */ },
-  css: `.blitz-slide h1 { font-family: var(--blitz-font-display); }`,
+  css: `.blitz-slide h1 { font-family: var(--blitz-font-serif); }`,
   fonts: [
     { family: 'Fraunces', src: new URL('./fonts/fraunces.woff2', import.meta.url), weight: '300 900' },
   ],
@@ -250,8 +264,8 @@ export default defineTheme({
 |---|---|
 | `name` | Required |
 | `tokens` | Become `:root { --blitz-<name>: value }`. The **token names are the contract** (§3.1). A missing required token is an error, and an unknown one is a warning. |
-| `css` | Styles for slide content. Scope every rule to `.blitz-slide` or `[data-layout]`: bare `h1` or `table` would also style the overlays and the presenter view. |
-| `fonts` | `@font-face`s: `{ family, src, weight?, style? }`. `src` is a file URL or a path relative to the theme module. Files are copied into static builds and inlined into standalone ones. |
+| `css` | Styles for slide content. Scope every rule to `.blitz-slide` or `[data-layout]`: bare `h1` or `table` would also style the overlays and the presenter view. Relative `url()`s are relative to the theme's module file, and the files they name are copied and inlined like fonts (a per-layout background, say). *(`url()`: 1.1)* |
+| `fonts` | `@font-face`s: `{ family, src, weight?, style?, unicodeRange? }`. `src` is a file URL or a path relative to the theme module. Files are copied into static builds. `unicodeRange` (CSS syntax, `U+0000-00FF, U+0131`) says which characters a file covers: split a family into subsets, one file each, and a standalone file inlines only the subsets its text uses (§3.2). *(`unicodeRange`: 1.1)* |
 
 Before the theme's `css`, every slide already gets `color: var(--blitz-fg)`,
 `background-color: var(--blitz-bg)` and the `text` size in `font-sans`, and
@@ -269,6 +283,27 @@ The complete list, with defaults and what reads each token, is in
 palette `chart-1` … `chart-8`. Renderers read these from script, so they
 need real colours. Every other token has a default. New tokens can be added
 in minor versions, always with a default, so an older theme keeps working.
+
+### 3.2 Fonts
+
+Ship the fonts your theme names. A font that isn't shipped is whatever the
+presenting machine has, or a fallback, so line breaks and overflow change
+from one computer to the next. `check` says so (docs/cli.md).
+
+Split each family into subsets with `unicodeRange`, as the built-in themes
+do (Fontsource publishes the files and their ranges). Browsers download only
+the subsets a page uses, and standalone files inline only those. Put the
+shipped families first in your font tokens:
+
+```js
+fonts: [
+  { family: 'Fraunces', src: './fonts/fraunces-latin.woff2', weight: '300 900', unicodeRange: 'U+0000-00FF, U+0131, U+0152-0153, …' },
+  { family: 'Fraunces', src: './fonts/fraunces-latin-ext.woff2', weight: '300 900', unicodeRange: 'U+0100-02BA, …' },
+],
+tokens: { 'font-serif': 'Fraunces, Georgia, serif', /* … */ },
+```
+
+Ship each font's licence with the theme.
 
 ---
 

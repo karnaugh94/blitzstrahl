@@ -1,0 +1,37 @@
+/*
+ * kestrel: a blitzstrahl theme (docs/themes.md), imported from kestrel.potx
+ * by `blitzstrahl theme import`. Edit it like any stylesheet.
+ *
+ * Not carried over:
+ *   - layout "Quote": matches no blitzstrahl layout (its background is img/layout-quote.png, to use by hand)
+ *   - layout "Closing": matches no blitzstrahl layout
+ *   - placeholders' positions and sizes, shapes and text boxes, text sizes and styles
+ */
+
+:root {
+  --blitz-bg: #ffffff;
+  --blitz-fg: #1b2a3a;
+  --blitz-fg-muted: #767f89;
+  --blitz-accent: #0b7a75;
+  --blitz-accent-2: #e07a1f;
+  --blitz-chart-1: #0b7a75;
+  --blitz-chart-2: #e07a1f;
+  --blitz-chart-3: #6b8f2a;
+  --blitz-chart-4: #7a4fa0;
+  --blitz-chart-5: #c23b4a;
+  --blitz-chart-6: #3a78c2;
+  --blitz-chart-7: #085552;
+  --blitz-chart-8: #9d5516;
+  --blitz-surface: #eef3f6;
+  --blitz-link: #0b5f9a;
+  --blitz-font-sans: "Source Sans 3", system-ui, sans-serif;
+}
+
+.blitz-slide :is(h1, h2, h3, h4) { font-family: "Source Serif 4", serif; }
+
+[data-layout="title"] { background-image: url("./img/bg-title.png"); background-size: cover; background-position: center; }
+[data-layout="section"] { background-color: #085c58; color: #ffffff; --blitz-fg-muted: #b5cecd; }
+[data-layout="default"] { background-image: url("./img/bg-default.png"); background-size: cover; background-position: center; }
+[data-layout="full-bleed"] .blitz-chrome [data-chrome="logo"] { display: none; }
+
+.blitz-chrome [data-chrome="logo"] { top: 20px; left: 1042px; right: auto; width: 150px; height: 50px; transform: none; object-fit: contain; }

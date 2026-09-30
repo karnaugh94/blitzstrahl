@@ -4,15 +4,21 @@
 import type { DeckMeta, SourceSpan, TransitionName, TransitionSpec } from './ir.js'
 import type { Diagnostics } from './diagnostics.js'
 import { keySpan, type Frontmatter } from './split.js'
-import { LAYOUTS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
+import type { Thousands } from './numbers.js'
+import { normalizeRelative } from './assets.js'
+import { DECK_SCHEMA, keyProblem, matches, MS, TIME_PATTERN, VERSION_PATTERN } from './schema.js'
+import { LAYOUTS, SLIDE_KEYS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
 
-export const DECK_KEYS = new Set(['title', 'author', 'date', 'lang', 'theme', 'canvas', 'transition', 'transition-dur', 'plugins'])
-export const SLIDE_KEYS = new Set(['id', 'layout', 'transition', 'transition-dur', 'background', 'class', 'style'])
+export const DECK_KEYS: ReadonlySet<string> = new Set(Object.keys(DECK_SCHEMA))
+export { SLIDE_KEYS }
 
-export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics, pluginKeys: readonly string[] = []): Omit<DeckMeta, 'title'> & { title?: string } {
+/** The deck's settings; `footerText` is the footer's markdown, which the parser turns into `footer`. */
+export type ResolvedMeta = Omit<DeckMeta, 'title'> & { title?: string; footerText?: string }
+
+export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics, pluginKeys: readonly string[] = []): ResolvedMeta {
   const data = fm?.data ?? {}
   const none = { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } }
-  const meta: Omit<DeckMeta, 'title'> & { title?: string } = {
+  const meta: ResolvedMeta = {
     lang: 'en',
     theme: 'aurora',
     canvas: { width: 1280, height: 720 },
@@ -23,6 +29,13 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
   for (const [key, value] of Object.entries(data)) {
     const span = keySpan(fm, key, none)
     switch (key) {
+      case 'blitzstrahl': {
+        // Read as written: YAML reads `1.10` as the number 1.1.
+        const v = (fm?.written?.[key] ?? String(value)).trim()
+        if (!new RegExp(VERSION_PATTERN).test(v)) diags.error('frontmatter/blitzstrahl', `\`blitzstrahl\` ${DECK_SCHEMA.blitzstrahl!.message}`, span)
+        else meta.blitzstrahl = v
+        break
+      }
       case 'title':
       case 'author':
       case 'date':
@@ -33,12 +46,18 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         else meta[key] = s
         break
       }
+      case 'thousands': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/thousands', problem, span)
+        else meta.thousands = value as Thousands
+        break
+      }
       case 'canvas': {
-        const m = /^(\d+)\s*x\s*(\d+)$/.exec(String(value))
-        if (!m || Number(m[1]) === 0 || Number(m[2]) === 0) {
-          diags.error('frontmatter/canvas', '`canvas` must look like `1280x720`', span)
-        } else {
-          meta.canvas = { width: Number(m[1]), height: Number(m[2]) }
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/canvas', problem, span)
+        else {
+          const [w, h] = String(value).split('x').map(Number)
+          meta.canvas = { width: w!, height: h! }
         }
         break
       }
@@ -52,13 +71,58 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         if (d !== undefined) meta.transition.dur = d
         break
       }
-      case 'plugins': {
-        const list = typeof value === 'string' ? [value] : value
-        if (!Array.isArray(list) || !list.every((p) => typeof p === 'string' && p.trim())) {
-          diags.error('frontmatter/plugins', '`plugins` must be a list of module names or paths', span)
-        } else {
-          meta.plugins = list.map((p: string) => p.trim())
+      case 'public': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/public', problem, span)
+        else meta.public = normalizeRelative(value as string)
+        break
+      }
+      case 'background': {
+        // Layout names first, for a message that names the one that's wrong.
+        let v = value
+        if (v && typeof v === 'object' && !Array.isArray(v)) {
+          const known = Object.entries(v).filter(([layout]) => {
+            if (layout in LAYOUTS) return true
+            diags.warn('layout/unknown', `\`background\` names an unknown layout \`${layout}\` (built-in: ${Object.keys(LAYOUTS).join(', ')})`, span)
+            return false
+          })
+          v = Object.fromEntries(known)
         }
+        const problem = keyProblem(DECK_SCHEMA, key, v)
+        if (problem) diags.warn('frontmatter/type', problem, span)
+        else if (typeof v === 'object' && v !== null) meta.background = Object.fromEntries(Object.entries(v).map(([l, bg]) => [l, scalarString(bg)!]))
+        else meta.background = scalarString(v)!
+        break
+      }
+      case 'css': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/css', problem, span)
+        else meta.css = typeof value === 'string' ? [value] : (value as string[])
+        break
+      }
+      case 'footer':
+      case 'slide-numbers':
+      case 'logo': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.warn('frontmatter/type', problem, span)
+        else if (key === 'footer') meta.footerText = scalarString(value)!
+        else if (key === 'logo') meta.logo = (value as string).trim()
+        else if (value !== false) meta.slideNumbers = value === true ? '{n}' : (value as string)
+        break
+      }
+      case 'duration':
+      case 'pace-margin': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) {
+          const bare = typeof value === 'number' || /^\s*\d+(\.\d+)?\s*$/.test(String(value))
+          diags.error('frontmatter/time', bare ? `${problem}: is \`${String(value).trim()}\` minutes? Write \`${String(value).trim()}min\`` : problem, span)
+        } else if (key === 'duration') meta.duration = timeMs(value as string)
+        break
+      }
+      case 'plugins': {
+        const problem = keyProblem(DECK_SCHEMA, key, value)
+        if (problem) diags.error('frontmatter/plugins', problem, span)
+        else meta.plugins = (typeof value === 'string' ? [value] : (value as string[])).map((p) => p.trim())
         break
       }
       default:
@@ -68,7 +132,19 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
         }
     }
   }
+  // A margin is a share of the duration, so it's resolved once both are known.
+  const margin = data['pace-margin']
+  if (margin !== undefined && keyProblem(DECK_SCHEMA, 'pace-margin', margin) === undefined) {
+    if (meta.duration === undefined) diags.warn('frontmatter/pace-margin', '`pace-margin` does nothing without a `duration`', keySpan(fm, 'pace-margin', none))
+    else meta.paceMargin = String(margin).includes('%') ? Math.round((meta.duration * parseFloat(String(margin))) / 100) : timeMs(String(margin))
+  }
   return meta
+}
+
+/** `1h30min` → ms. The value has passed `TIME_PATTERN`. */
+export function timeMs(value: string): number {
+  const [, h = '0', min = '0', s = '0'] = new RegExp(TIME_PATTERN).exec(value)!
+  return Math.round((Number(h) * 3600 + Number(min) * 60 + Number(s)) * 1000)
 }
 
 export function transitionName(value: unknown, diags: Diagnostics, span: SourceSpan | undefined): TransitionName | undefined {
@@ -82,7 +158,7 @@ export function transitionName(value: unknown, diags: Diagnostics, span: SourceS
 
 export function milliseconds(value: unknown, key: string, diags: Diagnostics, span: SourceSpan | undefined): number | undefined {
   const n = typeof value === 'number' ? value : Number(String(value).replace(/ms$/, ''))
-  if (!Number.isFinite(n) || n < 0) {
+  if (!matches(MS.schema, value)) {
     diags.error('attr/bad-value', `\`${key}\` must be a duration in milliseconds`, span)
     return undefined
   }

@@ -16,7 +16,9 @@ let url = ''
 let server: Server
 
 test.beforeAll(async () => {
-  ;({ url, server } = await buildAndServe(deck))
+  // The fixture has a broken block on purpose (the error shown in place is
+  // under test), and `build` stops for errors unless forced (M6.6).
+  ;({ url, server } = await buildAndServe(deck, { force: true }))
 })
 
 test.afterAll(() => server?.close())
@@ -91,7 +93,7 @@ test('a diagram Mermaid can’t read says why, on the slide, and leaves nothing 
 test('`check` reports the syntax error at its block', async () => {
   const r = await check(deck, { offline: true, overflow: false })
   expect(r.diagnostics.filter((d) => d.code === 'renderer/mermaid').map((d) => [d.span.start.line, d.message])).toEqual([
-    [56, expect.stringMatching(/^`mermaid` block: Parse error on line \d+: Expecting .*got 'EOF'$/)],
+    [58, expect.stringMatching(/^`mermaid` block: Parse error on line \d+: Expecting .*got 'EOF'$/)],
   ])
 })
 
@@ -113,7 +115,7 @@ test('a deck without diagrams doesn’t ship Mermaid', async () => {
   const { tmpdir } = await import('node:os')
   const { build } = await import('../dist/index.js')
   const outDir = mkdtempSync(join(tmpdir(), 'blitz-nomermaid-'))
-  const r = await build(join(here, 'fixtures/charts.md'), { outDir, quiet: true, overflowCheck: false })
+  const r = await build(join(here, 'fixtures/charts.md'), { outDir, quiet: true, overflowCheck: false, force: true })
   expect(r.ok).toBe(true)
   const scripts = readdirSync(join(outDir, 'assets')).filter((f) => f.endsWith('.js'))
   expect(scripts.filter((f) => readFileSync(join(outDir, 'assets', f), 'utf8').includes('mermaid'))).toEqual([])

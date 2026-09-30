@@ -9,6 +9,7 @@
  * below refer to it.
  */
 import type { ElementContent } from 'hast'
+import type { Thousands } from './numbers.js'
 
 export const IR_VERSION = 1
 
@@ -41,9 +42,33 @@ export interface DeckMeta {
   author?: string
   date?: string
   lang: string
+  /** How the deck's data groups thousands, if not plainly (§3.1, 1.1). */
+  thousands?: Thousands
   theme: string
   canvas: { width: number; height: number }
   transition: TransitionSpec
+  /** `public`: a folder served and copied as it is, deck-relative and normalised (`demos`) (syntax.md §3.5, 1.1). */
+  public?: string
+  /**
+   * `background`: every slide's, or one per layout name (`default` for the
+   * rest), as written (syntax.md §3.6, 1.1). Already applied to each slide's
+   * `attrs.background` where the slide sets none.
+   */
+  background?: string | Record<string, string>
+  /** `footer`: one line of inline markdown, as HTML (syntax.md §3.6, 1.1). */
+  footer?: HastNode[]
+  /** `slide-numbers` as a template: `{n}` the slide's number, `{total}` the count. `true` is `{n}` (1.1). */
+  slideNumbers?: string
+  /** `logo`: an image, as written; a local one is also in `assets` (1.1). */
+  logo?: string
+  /** `duration`: how long the talk should take, in ms (presenting.md, *Pacing*; 1.1). */
+  duration?: number
+  /** `pace-margin`, in ms: how far behind the clock the presenter may fall before the pace bar warns. Only with `duration` (1.1). */
+  paceMargin?: number
+  /** `blitzstrahl`: the version the deck is written for, `major.minor` as written (syntax.md §3.1, 1.1). */
+  blitzstrahl?: string
+  /** `css`: stylesheets after the theme's, `./paths` as written (docs/themes.md, 1.1). */
+  css?: string[]
   /** Plugin module specifiers, as written (docs/plugins.md §1). */
   plugins: string[]
   /** Frontmatter keys that aren't built in, including those plugins register. */
@@ -91,6 +116,8 @@ export interface Slide {
 /** Slide-level settings from frontmatter or first-heading shorthand (§3.2). */
 export interface SlideAttrs {
   background?: string
+  /** `chrome: false`: no footer, number or logo on this slide (syntax.md §3.6, 1.1). */
+  chrome?: false
   class: string[]
   style?: string
   /** Unknown frontmatter keys, kept for plugins. */
@@ -156,7 +183,8 @@ export interface RenderBlock {
   span: SourceSpan
 }
 
-export type AssetKind = 'image' | 'data' | 'font' | 'other'
+/** `media`: video and audio (1.1). */
+export type AssetKind = 'image' | 'media' | 'data' | 'font' | 'other'
 
 export interface AssetRef {
   /** Path exactly as written in the markdown. */

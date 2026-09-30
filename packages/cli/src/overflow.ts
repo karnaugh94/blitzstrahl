@@ -3,12 +3,10 @@
  * browser, let the runtime measure every slide, and report each problem as
  * a warning at the slide's `deck.md:line:col`.
  */
-import { createReadStream, existsSync, statSync } from 'node:fs'
-import { createServer, type Server } from 'node:http'
-import { extname, join, normalize, sep } from 'node:path'
 import type { Deck, Diagnostic } from '@blitzstrahl/core'
 import { describeOverflow, type Overflow } from '@blitzstrahl/runtime/overflow-report'
 import { INSTALL_BROWSER, launchBrowser } from './browser.js'
+import { serveFolder } from './serve.js'
 
 export interface OverflowCheck {
   diagnostics: Diagnostic[]
@@ -41,46 +39,13 @@ export function overflowDiagnostics(deck: Deck, found: Overflow[], source?: stri
   })
 }
 
-const TYPES: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript',
-  '.css': 'text/css',
-  '.svg': 'image/svg+xml',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.webp': 'image/webp',
-  '.avif': 'image/avif',
-}
-
-/** Serve `root` on a free local port (module scripts need HTTP, not file://). */
-async function serve(root: string): Promise<{ server: Server; url: string }> {
-  const server = createServer((req, res) => {
-    let file = join(root, normalize(decodeURIComponent((req.url ?? '/').split('?')[0]!)))
-    if (existsSync(file) && statSync(file).isDirectory()) file = join(file, 'index.html')
-    if (!(file + sep).startsWith(root + sep) && file !== root) file = ''
-    if (!file || !existsSync(file)) {
-      res.statusCode = 404
-      res.end()
-      return
-    }
-    res.setHeader('content-type', TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream')
-    createReadStream(file).pipe(res)
-  })
-  await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
-  const addr = server.address()
-  if (!addr || typeof addr === 'string') throw new Error('no port')
-  return { server, url: `http://127.0.0.1:${addr.port}/` }
-}
-
 /** `page` is the file to open inside `outDir` (default: its index.html). */
 export async function checkBuiltOverflow(outDir: string, deck: Deck, source?: string, page = ''): Promise<OverflowCheck> {
   const browser = await launchBrowser()
   if (!browser) {
     return { diagnostics: [], skipped: `no browser to measure slides with; install one with ${INSTALL_BROWSER}` }
   }
-  const { server, url } = await serve(outDir)
+  const { server, url } = await serveFolder(outDir)
   try {
     const tab = await browser.newPage({ viewport: deck.meta.canvas, reducedMotion: 'reduce' })
     await tab.goto(url + encodeURIComponent(page))

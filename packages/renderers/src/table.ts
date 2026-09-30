@@ -10,18 +10,27 @@
  * leaving, and `destroy` puts the table back as written, so a table always
  * starts a visit in its authored order.
  */
+import { langNumerals, readNumber, type Numerals } from '@blitzstrahl/core/numbers'
 import type { RenderCtx, RenderInstance, Renderer } from '@blitzstrahl/runtime'
 
 type Direction = 'ascending' | 'descending'
 
 const SUFFIX: Record<string, number> = { '%': 1, k: 1e3, K: 1e3, M: 1e6, B: 1e9, bn: 1e9 }
-const NUMBER = /^([-+−]?)\s*[$€£¥]?\s*(\d[\d,]*(?:\.\d+)?|\.\d+)\s*(%|k|K|M|B|bn)?$/
+const NUMBER = /^([-+−]?)\s*[$€£¥]?\s*(\d(?:[\d.,\u0020\u00a0\u2009\u202f]*\d)?|[.,]\d+)\s*(%|k|K|M|B|bn)?$/
 
-/** A cell's numeric value (`1,200`, `-3.5%`, `$4.1M`), or undefined for text. */
-export function cellNumber(text: string): number | undefined {
-  const m = NUMBER.exec(text.trim().replace(/[   ]/g, ''))
+const EN = langNumerals('en')
+
+/**
+ * A cell's numeric value, read the way the table's language writes numbers
+ * (in English `1,200`, `-3.5%`, `$4.1M`; in German `3,5 %`, `1.234,5`), or
+ * undefined for text. A table is text for the audience (PLAN D3′).
+ */
+export function cellNumber(text: string, numerals: Numerals = EN): number | undefined {
+  const m = NUMBER.exec(text.trim())
   if (!m) return undefined
-  const n = Number(m[2]!.replace(/,/g, '')) * (SUFFIX[m[3] ?? ''] ?? 1)
+  const value = readNumber(m[2]!, numerals)
+  if (value === undefined) return undefined
+  const n = value * (SUFFIX[m[3] ?? ''] ?? 1)
   return m[1] === '-' || m[1] === '−' ? -n : n
 }
 
@@ -30,9 +39,9 @@ export function cellNumber(text: string): number | undefined {
  * natural order (`item 2` before `item 10`). Empty cells go last in either
  * direction, so they're handled by the caller.
  */
-export function compareCells(a: string, b: string): number {
-  const x = cellNumber(a)
-  const y = cellNumber(b)
+export function compareCells(a: string, b: string, numerals: Numerals = EN): number {
+  const x = cellNumber(a, numerals)
+  const y = cellNumber(b, numerals)
   if (x !== undefined && y !== undefined) return x - y
   if (x !== undefined) return -1
   if (y !== undefined) return 1
@@ -40,12 +49,12 @@ export function compareCells(a: string, b: string): number {
 }
 
 /** Row order for a column and direction. Stable; empty cells last. */
-export function sortedOrder(cells: readonly string[], dir: Direction): number[] {
+export function sortedOrder(cells: readonly string[], dir: Direction, numerals: Numerals = EN): number[] {
   const idx = cells.map((_, i) => i)
   const empty = (i: number) => cells[i]!.trim() === ''
   return idx.sort((i, j) => {
     if (empty(i) || empty(j)) return Number(empty(i)) - Number(empty(j))
-    const c = compareCells(cells[i]!, cells[j]!)
+    const c = compareCells(cells[i]!, cells[j]!, numerals)
     return (dir === 'ascending' ? c : -c) || i - j
   })
 }
@@ -62,6 +71,8 @@ const table: Renderer = {
 
     const doc = el.ownerDocument
     const authored = [...body.rows]
+    // The deck's language, or the table's own `{lang=…}`.
+    const numerals = langNumerals(el.closest('[lang]')?.getAttribute('lang') || ctx.lang)
     let sorted: { col: number; dir: Direction } | undefined
     const moving: Animation[] = []
 
@@ -96,7 +107,7 @@ const table: Renderer = {
       })
       if (!dir) return place(authored)
       const cells = authored.map((r) => r.cells[col]?.textContent ?? '')
-      place(sortedOrder(cells, dir).map((i) => authored[i]!))
+      place(sortedOrder(cells, dir, numerals).map((i) => authored[i]!))
     }
 
     const buttons = headers.map((th, col) => {

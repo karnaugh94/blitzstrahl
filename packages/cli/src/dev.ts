@@ -3,17 +3,20 @@
  * uses) pushes the rebuilt deck over HMR, and the runtime swaps it in while
  * keeping the current slide and step (PLAN §7).
  */
-import { createReadStream } from 'node:fs'
-import { dirname, extname, relative, resolve } from 'node:path'
+import { mkdir } from 'node:fs/promises'
+import { dirname, join, relative, resolve } from 'node:path'
 import { createServer, type Plugin, type ViteDevServer } from 'vite'
-import { toPayload } from '@blitzstrahl/core'
+import { toPayload, type Diagnostic } from '@blitzstrahl/core'
+import launchEditor from 'launch-editor'
 import type { Overflow } from '@blitzstrahl/runtime/overflow-report'
-import { fontCss } from './extend.js'
+import { fontCss, themeStylesheet } from './extend.js'
 import { renderNotes, renderPage, renderStage } from './html.js'
 import { loadDeck, type LoadedDeck } from './load.js'
 import { overflowDiagnostics } from './overflow.js'
 import { printDiagnostics, summary } from './report.js'
+import { inPublic, publicFile } from './public.js'
 import { mathCss, mathFont } from './math.js'
+import { sendFile } from './mime.js'
 import { allRenderers } from './standalone.js'
 import { ENTRY, cacheDir, servedDirs } from './vite.js'
 
@@ -24,108 +27,77 @@ export interface DevOptions {
 }
 
 const ASSET_PREFIX = '/_blitz/asset/'
+const OPEN = '/_blitz/open'
+/** Where each slide starts in the markdown, for an editor's preview to follow the cursor. */
+const SLIDES = '/_blitz/slides'
+/** Whoever asks is on this machine: `--host` shouldn't let a phone open files in the author's editor. */
+const isLoopback = (address: string | undefined) => !!address && /^(127\.|::1$|::ffff:127\.)/.test(address)
 const RENDERERS_ID = 'virtual:blitzstrahl-renderers'
 const fsUrl = (file: string) => '/@fs/' + file.replace(/^\//, '')
-const assetUrl = (path: string) => ASSET_PREFIX + encodeURIComponent(path)
-
-const TYPES: Record<string, string> = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.gif': 'image/gif',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-  '.avif': 'image/avif',
-  '.csv': 'text/csv; charset=utf-8',
-  '.tsv': 'text/tab-separated-values; charset=utf-8',
-  '.json': 'application/json',
-}
 
 export async function dev(deckPath: string, options: DevOptions = {}): Promise<ViteDevServer> {
   const abs = resolve(deckPath)
   const display = relative(process.cwd(), abs) || abs
+  // Local themes and plugins are imported through Vite's SSR loader, which
+  // tracks their imports and drops them when they change. Node's own import
+  // cache never forgets a module, so in 1.0 an edit needed a restart. That's
+  // why the deck loads only once the server exists.
+  let server: ViteDevServer
+  let loaded: LoadedDeck
+  /** Files in the `public` folder keep their path; the rest go through /_blitz/asset/. */
+  const assetUrl = (path: string) => (inPublic(loaded.publicDir && loaded.deck.meta.public, path) ? path : ASSET_PREFIX + encodeURIComponent(path))
   const load = async () => {
-    const l = await loadDeck(abs, display)
+    const l = await loadDeck(abs, display, { importModule: (file) => server.ssrLoadModule(file) })
     printDiagnostics(l.diagnostics)
     return l
   }
-  let loaded: LoadedDeck = await load()
 
   /** Loaders for every renderer the deck could use: a save can add any. */
   const renderersModule = () => {
     const map = Object.entries(allRenderers(loaded.extras.renderers)).map(([r, file]) => `${JSON.stringify(r)}: () => import(${JSON.stringify(file)})`)
     return `export default { ${map.join(', ')} }\n`
   }
-  const allowed = () => [dirname(abs), ...servedDirs(), cacheDir(dirname(abs)), ...loaded.extras.dirs]
+  // The deck's files are reachable only through /_blitz/asset/, and only
+  // those the deck uses (PLAN §15, M6.2): its folder isn't in `fs.allow`,
+  // which Vite's static serving obeys too. Vite's root is an empty folder of
+  // our own, so Vite doesn't watch the deck's folder recursively either (a
+  // deck at ~/talk.md would have it watching the whole home directory).
+  const root = join(cacheDir(dirname(abs)), 'root')
+  await mkdir(root, { recursive: true })
 
   const plugin: Plugin = {
     name: 'blitzstrahl:dev',
     resolveId: (id) => (id === RENDERERS_ID ? `\0${RENDERERS_ID}` : undefined),
     load: (id) => (id === `\0${RENDERERS_ID}` ? renderersModule() : undefined),
-    configureServer(server) {
-      const watched = () => new Set([abs, ...loaded.files.values()])
-      server.watcher.add([...watched()])
-
-      let timer: NodeJS.Timeout | undefined
-      const reload = () => {
-        clearTimeout(timer)
-        timer = setTimeout(async () => {
-          const before = loaded
-          try {
-            loaded = await load()
-          } catch (err) {
-            server.config.logger.error(`[blitzstrahl] ${(err as Error).message}`)
-            return
-          }
-          server.watcher.add([...watched()])
-          server.config.logger.info(`[blitzstrahl] ${display} rebuilt: ${summary(loaded.diagnostics)}`, { timestamp: true })
-          const m = loaded.deck.meta
-          const b = before.deck.meta
-          if (m.theme !== b.theme || m.lang !== b.lang || String(m.plugins) !== String(b.plugins) || loaded.css !== before.css) {
-            // New plugins: new renderer modules, and folders to serve them from.
-            for (const dir of loaded.extras.dirs) if (!server.config.server.fs.allow.includes(dir)) server.config.server.fs.allow.push(dir)
-            const mod = server.moduleGraph.getModuleById(`\0${RENDERERS_ID}`)
-            if (mod) server.moduleGraph.invalidateModule(mod)
-            server.ws.send({ type: 'full-reload' })
-            return
-          }
-          server.ws.send({
-            type: 'custom',
-            event: 'blitz:update',
-            data: {
-              payload: toPayload(loaded.deck, loaded.inline, assetUrl, loaded.plugins),
-              stage: renderStage(loaded.deck, assetUrl),
-              notes: renderNotes(loaded.deck, assetUrl),
-              diagnostics: loaded.diagnostics,
-            },
-          })
-        }, 30)
-      }
-      const onFile = (file: string) => {
-        if (watched().has(resolve(file))) reload()
-      }
-      server.watcher.on('change', onFile)
-      server.watcher.on('add', onFile)
-
-      // The browser measures overflow (it's the only place with layout) and
-      // reports back; print it here, at file:line:col, when it changes.
-      let lastOverflow = ''
-      server.ws.on('blitz:overflow', (found: Overflow[]) => {
-        const diags = overflowDiagnostics(loaded.deck, found, loaded.source)
-        const key = JSON.stringify(diags)
-        if (key === lastOverflow) return
-        lastOverflow = key
-        if (diags.length) printDiagnostics(diags)
-        else server.config.logger.info('[blitzstrahl] no slide overflows', { timestamp: true })
-      })
-
-      server.middlewares.use(async (req, res, next) => {
+    configureServer(s) {
+      s.middlewares.use(async (req, res, next) => {
         const url = (req.url ?? '/').split('?')[0]!
+        // Vite's own route opens any path it's given, for anyone who can reach the server.
+        if (url === '/__open-in-editor') {
+          res.statusCode = 404
+          res.end()
+          return
+        }
+        if (url === OPEN) {
+          res.statusCode = openInEditor(req.url!, req.socket.remoteAddress)
+          res.end()
+          return
+        }
+        if (url === SLIDES) {
+          if (!isLoopback(req.socket.remoteAddress)) res.statusCode = 403
+          else {
+            res.setHeader('content-type', 'application/json')
+            res.setHeader('cache-control', 'no-store')
+            res.write(JSON.stringify({ slides: loaded.deck.slides.map((s) => ({ id: s.id, line: s.span.start.line })) }))
+          }
+          res.end()
+          return
+        }
         if (url === '/' || url === '/index.html') {
           const page = renderPage({
             deck: loaded.deck,
             inline: loaded.inline,
-            theme: loaded.extras.theme,
+            theme: { ...loaded.extras.theme, stylesheet: await themeStylesheet(loaded.extras, fsUrl) },
             assetUrl,
             entry: { src: fsUrl(ENTRY) },
             diagnostics: loaded.diagnostics,
@@ -138,7 +110,24 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             ].join('\n'),
           })
           res.setHeader('content-type', 'text/html; charset=utf-8')
-          res.end(await server.transformIndexHtml(url, page))
+          res.end(await s.transformIndexHtml(url, page))
+          return
+        }
+        const pub = loaded.publicDir && loaded.deck.meta.public
+        if (pub && url.startsWith(`/${pub}/`)) {
+          let rel: string
+          try {
+            rel = decodeURIComponent(url.slice(pub.length + 2))
+          } catch {
+            rel = ''
+          }
+          const file = publicFile(loaded.publicDir!, rel)
+          if (!file) {
+            res.statusCode = 404
+            res.end()
+            return
+          }
+          sendFile(req, res, file)
           return
         }
         if (url.startsWith(ASSET_PREFIX)) {
@@ -148,13 +137,7 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
             res.end()
             return
           }
-          const stream = createReadStream(file)
-          stream.on('error', () => {
-            res.statusCode = 404
-            res.end()
-          })
-          res.setHeader('content-type', TYPES[extname(file).toLowerCase()] ?? 'application/octet-stream')
-          stream.pipe(res)
+          sendFile(req, res, file)
           return
         }
         next()
@@ -162,9 +145,27 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
     },
   }
 
-  const server = await createServer({
+  /**
+   * Open `?file=…&line=…&column=…` in the author's editor (docs/cli.md,
+   * *Opening your editor*): only the deck and the files it uses, and only
+   * for a request from this machine. Returns the HTTP status.
+   */
+  const openInEditor = (reqUrl: string, address: string | undefined): number => {
+    if (!isLoopback(address)) return 403
+    const q = new URL(reqUrl, 'http://x').searchParams
+    const name = q.get('file') ?? ''
+    const file = name === display ? abs : (loaded.files.get(name) ?? loaded.extras.stylesheets[name])
+    if (!file) return 404
+    const n = (k: string) => (/^\d+$/.test(q.get(k) ?? '') ? Number(q.get(k)) : 1)
+    launchEditor(`${file}:${n('line')}:${n('column')}`, (f, why) => {
+      server.config.logger.error(`[blitzstrahl] couldn't open ${relative(process.cwd(), f) || f} in an editor${why ? `: ${why}` : ''} (set LAUNCH_EDITOR to choose one)`)
+    })
+    return 204
+  }
+
+  server = await createServer({
     configFile: false,
-    root: dirname(abs),
+    root,
     cacheDir: cacheDir(dirname(abs)),
     publicDir: false,
     appType: 'custom',
@@ -174,9 +175,95 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
       ...(options.port !== undefined ? { port: options.port } : {}),
       ...(options.host !== undefined ? { host: options.host } : {}),
       open: options.open ?? false,
-      fs: { allow: allowed() },
+      fs: { allow: [...servedDirs(), cacheDir(dirname(abs))] },
     },
   })
+  loaded = await load()
+
+  /** Plugins' browser modules and theme fonts, once the deck says which. */
+  const allowServed = () => {
+    const allow = server.config.server.fs.allow
+    for (const file of loaded.extras.served) if (!allow.includes(file)) allow.push(file)
+  }
+  allowServed()
+  const watched = () => new Set([abs, ...loaded.files.values(), ...Object.values(loaded.extras.stylesheets)])
+  server.watcher.add([...watched()])
+  /** The local themes and plugins (and what they import) the SSR loader holds. */
+  const ssr = server.environments.ssr.moduleGraph
+  const isModule = (file: string) => (ssr.getModulesByFile(file)?.size ?? 0) > 0
+
+  let timer: NodeJS.Timeout | undefined
+  let modulesChanged = false
+  const reload = () => {
+    clearTimeout(timer)
+    timer = setTimeout(async () => {
+      const before = loaded
+      const forceFull = modulesChanged
+      modulesChanged = false
+      try {
+        loaded = await load()
+      } catch (err) {
+        const message = (err as Error).message
+        server.config.logger.error(`[blitzstrahl] ${message}`)
+        // The page keeps the last deck that loaded, and says this one didn't.
+        const at = { line: 1, column: 1 }
+        const failed: Diagnostic = { severity: 'error', code: 'deck/load', message: `the deck couldn't be loaded: ${message}`, file: display, span: { start: at, end: at } }
+        server.ws.send({ type: 'custom', event: 'blitz:diagnostics', data: [failed] })
+        return
+      }
+      server.watcher.add([...watched()])
+      server.config.logger.info(`[blitzstrahl] ${display} rebuilt: ${summary(loaded.diagnostics)}`, { timestamp: true })
+      const m = loaded.deck.meta
+      const b = before.deck.meta
+      const fonts = (l: LoadedDeck) => JSON.stringify(l.extras.fonts)
+      if (forceFull || m.theme !== b.theme || m.lang !== b.lang || String(m.plugins) !== String(b.plugins) || loaded.css !== before.css || fonts(loaded) !== fonts(before)) {
+        // A theme or plugin changed: new CSS, fonts or renderer modules, and files to serve them from.
+        allowServed()
+        const mod = server.moduleGraph.getModuleById(`\0${RENDERERS_ID}`)
+        if (mod) server.moduleGraph.invalidateModule(mod)
+        server.ws.send({ type: 'full-reload' })
+        return
+      }
+      // A CSS theme or `css:` file changed: restyle the page in place (docs/themes.md).
+      allowServed()
+      const css = await themeStylesheet(loaded.extras, fsUrl)
+      if (css !== (await themeStylesheet(before.extras, fsUrl))) server.ws.send({ type: 'custom', event: 'blitz:css', data: { css } })
+      server.ws.send({
+        type: 'custom',
+        event: 'blitz:update',
+        data: {
+          payload: toPayload(loaded.deck, loaded.inline, assetUrl, loaded.plugins),
+          stage: renderStage(loaded.deck, assetUrl),
+          notes: renderNotes(loaded.deck, assetUrl),
+          diagnostics: loaded.diagnostics,
+        },
+      })
+    }, 30)
+  }
+  const onFile = (changed: string) => {
+    const file = resolve(changed)
+    if (isModule(file)) {
+      // Vite's own watcher has already dropped the module and what imports it,
+      // so the reload (30 ms on) reads the edit.
+      modulesChanged = true
+      reload()
+    } else if (watched().has(file)) reload()
+  }
+  server.watcher.on('change', onFile)
+  server.watcher.on('add', onFile)
+
+  // The browser measures overflow (it's the only place with layout) and
+  // reports back; print it here, at file:line:col, when it changes.
+  let lastOverflow = ''
+  server.ws.on('blitz:overflow', (found: Overflow[]) => {
+    const diags = overflowDiagnostics(loaded.deck, found, loaded.source)
+    const key = JSON.stringify(diags)
+    if (key === lastOverflow) return
+    lastOverflow = key
+    if (diags.length) printDiagnostics(diags)
+    else server.config.logger.info('[blitzstrahl] no slide overflows', { timestamp: true })
+  })
+
   await server.listen()
   return server
 }

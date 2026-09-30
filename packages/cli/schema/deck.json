@@ -1,0 +1,314 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "blitzstrahl deck frontmatter",
+  "description": "See https://github.com/karnaugh94/blitzstrahl/blob/main/docs/syntax.md#31-deck",
+  "type": "object",
+  "properties": {
+    "blitzstrahl": {
+      "description": "The blitzstrahl the deck is written for, as major.minor (1.1). Marks the file as a deck for editors",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+$"
+        },
+        {
+          "type": "number",
+          "minimum": 0,
+          "not": {
+            "type": "integer"
+          }
+        }
+      ]
+    },
+    "title": {
+      "description": "The document's title. Default: the first slide's title",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "author": {
+      "description": "The page's author (<meta name=\"author\">)",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "date": {
+      "description": "Free-form",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "lang": {
+      "description": "BCP 47 language tag (default en): the audience's text, and how numbers are written and read",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "thousands": {
+      "description": "How numbers are written in the data, when not plainly: \".\" reads 1.200,5 as 1200.5",
+      "enum": [
+        ",",
+        ".",
+        " "
+      ]
+    },
+    "theme": {
+      "description": "aurora (default), broadsheet, a ./brand.css file, a package (acme finds blitzstrahl-theme-acme), or a ./path to a JS theme",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "canvas": {
+      "description": "Logical canvas size in CSS pixels, e.g. 1280x720 (the default)",
+      "type": "string",
+      "pattern": "^0*[1-9]\\d*\\s*x\\s*0*[1-9]\\d*$"
+    },
+    "transition": {
+      "description": "Default slide transition (default fade)",
+      "enum": [
+        "none",
+        "fade",
+        "zoom",
+        "auto-animate",
+        "push-left",
+        "cover-left",
+        "uncover-left",
+        "push-right",
+        "cover-right",
+        "uncover-right",
+        "push-up",
+        "cover-up",
+        "uncover-up",
+        "push-down",
+        "cover-down",
+        "uncover-down"
+      ]
+    },
+    "transition-dur": {
+      "description": "Default transition duration, in milliseconds",
+      "anyOf": [
+        {
+          "type": "number",
+          "minimum": 0
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*\\d+(\\.\\d+)?(ms)?$"
+        }
+      ]
+    },
+    "public": {
+      "description": "A ./folder served and copied as it is: a demo page with its scripts, downloads",
+      "type": "string",
+      "pattern": "^(\\./)?(?!_blitz(/|$))[^/.@][^/]*(/[^/.][^/]*)*/?$"
+    },
+    "background": {
+      "description": "Every slide's background: an image or a CSS background, or one per layout (title:, section:, default: for the rest). A slide's own wins",
+      "anyOf": [
+        {
+          "type": [
+            "string",
+            "number",
+            "boolean"
+          ]
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "enum": [
+              "title",
+              "section",
+              "default",
+              "two-col",
+              "three-col",
+              "quote",
+              "stat-grid",
+              "full-bleed",
+              "image-left",
+              "image-right",
+              "code",
+              "end"
+            ]
+          },
+          "properties": {
+            "title": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "section": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "default": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "two-col": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "three-col": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "quote": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "stat-grid": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "full-bleed": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "image-left": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "image-right": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "code": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            },
+            "end": {
+              "type": [
+                "string",
+                "number",
+                "boolean"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "css": {
+      "description": "Stylesheets after the theme's: a ./file.css or a list, in order",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\.\\.?/.*\\.css$"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "pattern": "^\\.\\.?/.*\\.css$"
+          }
+        }
+      ]
+    },
+    "footer": {
+      "description": "One line of inline markdown on every slide, bottom left by default",
+      "type": [
+        "string",
+        "number",
+        "boolean"
+      ]
+    },
+    "slide-numbers": {
+      "description": "Number the slides: true shows 3, \"{n} / {total}\" shows 3 / 12",
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "pattern": "\\{n\\}"
+        }
+      ]
+    },
+    "logo": {
+      "description": "An image on every slide, top right by default",
+      "type": "string",
+      "pattern": "\\S"
+    },
+    "duration": {
+      "description": "How long the talk should take (20min, 1h30min, 90s): the presenter view counts down and shows your pace",
+      "type": "string",
+      "pattern": "^\\s*(?=\\d)(?:(\\d+(?:\\.\\d+)?)\\s*h)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*min)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*s)?\\s*$"
+    },
+    "pace-margin": {
+      "description": "How far behind the clock before the pace bar turns amber: 10% of the duration, or a time (2min). Default 5%",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^\\s*(?=\\d)(?:(\\d+(?:\\.\\d+)?)\\s*h)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*min)?\\s*(?:(\\d+(?:\\.\\d+)?)\\s*s)?\\s*$"
+        },
+        {
+          "type": "string",
+          "pattern": "^\\s*\\d+(\\.\\d+)?\\s*%\\s*$"
+        }
+      ]
+    },
+    "plugins": {
+      "description": "Plugin packages or ./paths, loaded in order",
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "\\S"
+        },
+        {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "pattern": "\\S"
+          }
+        }
+      ]
+    }
+  },
+  "dependentRequired": {
+    "pace-margin": [
+      "duration"
+    ]
+  }
+}

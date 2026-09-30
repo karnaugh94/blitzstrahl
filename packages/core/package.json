@@ -1,12 +1,28 @@
 {
   "name": "@blitzstrahl/core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./numbers": {
+      "types": "./dist/numbers.d.ts",
+      "default": "./dist/numbers.js"
+    },
+    "./schema": {
+      "types": "./dist/schema.d.ts",
+      "default": "./dist/schema.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n.d.ts",
+      "default": "./dist/i18n.js"
+    },
+    "./i18n-remote": {
+      "types": "./dist/i18n-remote.d.ts",
+      "default": "./dist/i18n-remote.js"
     }
   },
   "files": [

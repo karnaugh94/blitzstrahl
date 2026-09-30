@@ -25,6 +25,8 @@ flowchart LR
 sequenceDiagram
   Presenter->>Deck: advance
   Deck-->>Presenter: state
+  Presenter->>Deck: draw
+  Deck-->>Presenter: ink
 ```
 
 ---

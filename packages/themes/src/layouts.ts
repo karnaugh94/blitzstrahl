@@ -7,7 +7,7 @@
  * `<div class="blitz-slot" data-slot>` children, `main` first.
  */
 export const layoutCss = /* css */ `
-.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-slide[data-blitz-measure], .blitz-thumb-canvas > .blitz-slide, .blitz-print > .blitz-slide { display: grid; }
+.blitz-slide[data-blitz-current], .blitz-slide[data-blitz-outgoing], .blitz-slide[data-blitz-measure], .blitz-thumb-canvas > .blitz-slide, .blitz-print > .blitz-slide, .blitz-doc-frame > .blitz-slide { display: grid; }
 .blitz-slide {
   padding: var(--blitz-pad-y) var(--blitz-pad-x);
   grid-template: "main" minmax(0, 1fr) / minmax(0, 1fr);
@@ -23,6 +23,28 @@ export const layoutCss = /* css */ `
 .blitz-slot[data-slot="middle"] { grid-area: middle; }
 .blitz-slot[data-slot="right"] { grid-area: right; }
 .blitz-slot[data-slot="image"] { grid-area: image; }
+
+/*
+ * Chrome (syntax.md §3.6): footer, number and logo, laid over the slide in its
+ * padding; title, author and date hidden until a theme places them. Rules are
+ * .blitz-chrome [data-chrome], which beats a theme's .blitz-slide img
+ * and loses to its own chrome rules, which come later.
+ */
+.blitz-chrome { position: absolute; inset: 0; pointer-events: none; }
+.blitz-chrome > * { position: absolute; margin: 0; pointer-events: auto; }
+.blitz-chrome :is([data-chrome="footer"], [data-chrome="number"]) {
+  bottom: calc(var(--blitz-pad-y) / 2); transform: translateY(50%);
+  font-size: var(--blitz-text-small); line-height: 1.2; color: var(--blitz-fg-muted);
+  white-space: nowrap;
+}
+.blitz-chrome [data-chrome="footer"] { left: var(--blitz-pad-x); max-width: calc(100% - 2 * var(--blitz-pad-x) - 8em); overflow: hidden; text-overflow: ellipsis; }
+.blitz-chrome [data-chrome="number"] { right: var(--blitz-pad-x); font-variant-numeric: tabular-nums; }
+.blitz-chrome [data-chrome="logo"] {
+  top: calc(var(--blitz-pad-y) / 2); right: var(--blitz-pad-x); transform: translateY(-50%);
+  height: calc(var(--blitz-pad-y) * .6); width: auto; max-width: none; border-radius: 0;
+}
+.blitz-chrome :is([data-chrome="title"], [data-chrome="author"], [data-chrome="date"]) { display: none; }
+:where(.blitz-slide:is([data-layout="title"], [data-layout="section"], [data-layout="end"])) .blitz-chrome [data-chrome="number"] { display: none; }
 
 /* Render blocks in a column or beside an image fill the space left. */
 .blitz-slide :is([data-slot="left"], [data-slot="middle"], [data-slot="right"], [data-slot="image"]) > [data-blitz-block] {
@@ -61,10 +83,10 @@ export const layoutCss = /* css */ `
   position: relative; isolation: isolate; justify-content: flex-end;
   padding: var(--blitz-pad-y) var(--blitz-pad-x);
 }
-[data-layout="full-bleed"] > [data-slot="main"] > :is(p:has(> img:only-child), [data-blitz-block]) {
+[data-layout="full-bleed"] > [data-slot="main"] > :is(p:has(> :is(img, video):only-child), [data-blitz-block]) {
   position: absolute; inset: 0; z-index: -2; width: auto; height: auto;
 }
-[data-layout="full-bleed"] > [data-slot="main"] > p > img:only-child {
+[data-layout="full-bleed"] > [data-slot="main"] > p > :is(img, video):only-child {
   width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; border-radius: 0; display: block;
 }
 
@@ -75,8 +97,8 @@ export const layoutCss = /* css */ `
   padding: var(--blitz-pad-y) calc(var(--blitz-pad-x) * .7); justify-content: center;
 }
 :is([data-layout="image-left"], [data-layout="image-right"]) > [data-slot="image"] { gap: 0; }
-[data-slot="image"] > p:has(> img:only-child) { flex: 1 1 0; min-height: 0; }
-[data-slot="image"] > p > img:only-child {
+[data-slot="image"] > p:has(> :is(img, video):only-child) { flex: 1 1 0; min-height: 0; }
+[data-slot="image"] > p > :is(img, video):only-child {
   width: 100%; height: 100%; max-width: none; max-height: none; object-fit: cover; border-radius: 0; display: block;
 }
 

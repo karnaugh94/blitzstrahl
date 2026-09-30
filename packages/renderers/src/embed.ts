@@ -6,6 +6,8 @@
  * A browser gives the page no way to tell, so `blitzstrahl check` asks each
  * site before the talk instead (CLAUDE.md: catch it, don't engineer around it).
  */
+import { fill, strings } from '@blitzstrahl/core/i18n'
+import { keyProblem, type KeyTable, type Schema } from '@blitzstrahl/core/schema'
 import type { RenderCtx, RenderInstance, Renderer } from '@blitzstrahl/runtime'
 
 export interface EmbedSpec {
@@ -19,19 +21,30 @@ export interface EmbedSpec {
   title?: string
 }
 
-const KEYS = new Set(['src', 'fallback', 'zoom', 'title'])
+const URL_PATTERN = '^https?://[^/\\s]+'
+
+/** Every key an embed takes (docs/renderers/embed.md), and what each may hold (schema.ts). */
+export const EMBED_SCHEMA: KeyTable = {
+  src: { schema: { type: 'string', pattern: URL_PATTERN }, message: 'must be an http:// or https:// URL' },
+  fallback: { schema: { type: 'string' }, message: 'must be an image path or URL' },
+  zoom: { schema: { type: 'number', minimum: 0.1, maximum: 4 }, message: 'must be a number between 0.1 and 4' },
+  title: { schema: { type: 'string' }, message: 'must be text' },
+}
+
+/** What `validate` checks across keys, as JSON Schema. The body may also be just the URL. */
+export const EMBED_RULES: Schema = { required: ['src'] }
+export const EMBED_SHORT: Schema = { type: 'string', pattern: URL_PATTERN }
 
 export function validate(spec: unknown): EmbedSpec {
   if (typeof spec === 'string') spec = { src: spec }
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('the block must be a YAML mapping with `src`')
   const s = spec as Record<string, unknown>
-  for (const k of Object.keys(s)) if (!KEYS.has(k)) throw new Error(`unknown key \`${k}\``)
-  if (typeof s.src !== 'string' || !/^https?:\/\/[^/\s]+/i.test(s.src)) {
-    throw new Error(s.src === undefined ? '`src` is required: the page to show, e.g. https://example.com' : '`src` must be an http:// or https:// URL')
+  for (const k of Object.keys(s)) if (!Object.hasOwn(EMBED_SCHEMA, k)) throw new Error(`unknown key \`${k}\``)
+  if (s.src === undefined) throw new Error('`src` is required: the page to show, e.g. https://example.com')
+  for (const [k, v] of Object.entries(s)) {
+    const problem = keyProblem(EMBED_SCHEMA, k, v)
+    if (problem) throw new Error(problem)
   }
-  if (s.fallback !== undefined && typeof s.fallback !== 'string') throw new Error('`fallback` must be an image path or URL')
-  if (s.zoom !== undefined && !(typeof s.zoom === 'number' && s.zoom >= 0.1 && s.zoom <= 4)) throw new Error('`zoom` must be a number between 0.1 and 4')
-  if (s.title !== undefined && typeof s.title !== 'string') throw new Error('`title` must be text')
   return s as unknown as EmbedSpec
 }
 
@@ -47,6 +60,10 @@ const embed: Renderer = {
     const spec = validate(raw)
     const doc = el.ownerDocument
     const host = new URL(spec.src).host
+    // `alt=` names the frame (syntax.md §8.2), over the spec's `title`.
+    const name = el.dataset.blitzAlt ?? spec.title
+    // Notices are for the audience, so in the deck's (or the block's) language.
+    const words = strings(el.closest('[lang]')?.getAttribute('lang') || ctx.lang).deck
     const box = doc.createElement('div')
     box.className = 'blitz-embed'
     // PDF export prints this if the page doesn't load.
@@ -59,20 +76,20 @@ const embed: Renderer = {
         const img = doc.createElement('img')
         img.className = 'blitz-embed-fallback'
         img.src = fallbackUrl(spec.fallback, ctx)
-        img.alt = spec.title ?? `${host} (offline copy)`
+        img.alt = name ?? fill(words.offlineCopy, { host })
         box.append(img)
         return done(img.decode().catch(() => {}))
       }
       const note = doc.createElement('p')
       note.className = 'blitz-embed-offline'
-      note.textContent = `${host} needs a network connection`
+      note.textContent = fill(words.needsNetwork, { host })
       box.append(note)
       return done(Promise.resolve())
     }
 
     const frame = doc.createElement('iframe')
     frame.src = spec.src
-    frame.title = spec.title ?? host
+    frame.title = name ?? host
     frame.allow = ALLOW
     frame.referrerPolicy = 'strict-origin-when-cross-origin'
     const zoom = spec.zoom ?? 1

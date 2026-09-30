@@ -479,22 +479,6 @@
       }
     },
     {
-      "severity": "warning",
-      "code": "frontmatter/yaml",
-      "message": "slide frontmatter is not valid YAML: Flow sequence in block collection must be sufficiently indented and end with a ]",
-      "file": "frontmatter.md",
-      "span": {
-        "start": {
-          "line": 29,
-          "column": 1
-        },
-        "end": {
-          "line": 29,
-          "column": 1
-        }
-      }
-    },
-    {
       "severity": "error",
       "code": "transition/unknown",
       "message": "unknown transition `sideways`",

@@ -46,6 +46,24 @@ describe('map geometry', () => {
     expect(w[0]!.left).toBeCloseTo(100 - 64 * 2 ** 2.4)
   })
 
+  it('loads the zoom that is sharp on the screen: a projector or a 2x screen gets the next level', () => {
+    const p = { scale: 2 ** 13, dx: 0, dy: 0 }
+    const z = (density: number, template = '{z}/{x}/{y}') => tilesFor(p, 256, 256, template, density)[0]!.url
+    expect(z(1)).toMatch(/^13\//)
+    expect(z(2)).toMatch(/^14\//)
+    expect(z(1.5 * 2)).toMatch(/^15\//) // a 1.5x stage on a 2x screen: 3 screen pixels per canvas pixel
+    // Tiles stay where the map puts them, whatever their zoom.
+    expect(tilesFor(p, 256, 256, '{z}/{x}/{y}', 2)[0]!.size).toBeCloseTo(128)
+  })
+
+  it('{r} asks a provider for its 512px tiles on a dense screen, at the zoom that suits them', () => {
+    const p = { scale: 2 ** 13, dx: 0, dy: 0 }
+    const url = (density: number) => tilesFor(p, 256, 256, 'https://t/{z}/{x}/{y}{r}.png', density)[0]!.url
+    expect(url(1)).toMatch(/^https:\/\/t\/13\/\d+\/\d+\.png$/)
+    expect(url(2)).toMatch(/^https:\/\/t\/13\/\d+\/\d+@2x\.png$/)
+    expect(url(4)).toMatch(/^https:\/\/t\/14\/\d+\/\d+@2x\.png$/)
+  })
+
   it('reads markers from rows and from GeoJSON', () => {
     expect(markersFromRows([{ name: 'A', Latitude: 1, lon: 2, n: 5 }], 'name', 'n')).toEqual([{ name: 'A', at: [2, 1], size: 5 }])
     expect(() => markersFromRows([{ x: 1, y: 2 }])).toThrow('`lat` and `lng`')

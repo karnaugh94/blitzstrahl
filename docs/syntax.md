@@ -13,7 +13,7 @@ document follow semver.
 
 A deck is a UTF-8 [CommonMark](https://spec.commonmark.org/) document with
 [GitHub Flavored Markdown](https://github.github.com/gfm/) extensions (tables,
-strikethrough, task lists, autolinks, footnotes), parsed by remark.
+strikethrough, task lists, autolinks, footnotes (§14)), parsed by remark.
 
 blitzstrahl makes these changes to that base:
 
@@ -23,9 +23,14 @@ blitzstrahl makes these changes to that base:
 | **`{...}` attribute blocks** (§4). | Styling, IDs, build steps and animation. |
 | **`:::` containers** (§5). | Grouping, presenter notes and layout slots. |
 | **Renderer fences** (§8). | Charts, maps, embeds. |
+| **Images that are video or audio** (§13) *(1.1)*. | `![](./demo.mp4)` plays. |
 
-Raw HTML is passed through unchanged. Decks are written by their authors and are
-not treated as untrusted input. HTML comments (`<!-- -->`) are dropped from the
+Raw HTML is passed through unchanged, except that the local files it refers
+to ship with every build, as Markdown images do. Those are the files in
+`src`, `srcset`, `poster`, `href` and `data` attributes, and in CSS `url()`s
+in `style` attributes and `<style>` elements. So are the targets of
+Markdown links to local files (`[report](./report.pdf)`). Decks are written
+by their authors and are not treated as untrusted input. HTML comments (`<!-- -->`) are dropped from the
 output. They are **not** presenter notes (see §7).
 
 Line endings are normalised to `\n` before parsing. Diagnostics report
@@ -81,8 +86,12 @@ The rule is exact so it can't be misread:
    line looks like a mapping key (`name:` at the start of the line). Any other
    first line is ordinary slide content.
 2. It runs up to the next separator.
-3. It must parse as a YAML **mapping**. If it doesn't, the block is ordinary
-   slide content and a warning is emitted.
+3. It must parse as a YAML **mapping** that sets at least one slide key
+   (§3.2). Otherwise the block is ordinary slide content. So a slide that
+   starts `Agenda:` over a list, or `Q:` and `A:`, is a slide, not settings.
+   A warning is emitted only where settings were probably meant: invalid
+   YAML whose first key is a slide key, or a lower-case key a letter or two
+   off one (`layuot`).
 4. The `---` that closes a slide frontmatter block starts that slide's
    content. It never starts another frontmatter block.
 
@@ -102,8 +111,8 @@ background: ./cover.jpg
 # Quarterly review
 ```
 
-To start a slide with literal text that looks like `key: value`, leave a blank
-line after the separator.
+To start a slide with literal text that looks like a slide setting
+(`layout: …`), leave a blank line after the separator.
 
 ### 2.4 Slide identity
 
@@ -140,21 +149,32 @@ sequence.
 ## 3. Frontmatter keys
 
 Unknown keys are warnings, not errors. Plugins may register their own deck
-keys, which are then known (docs/plugins.md §2.4).
+keys, which are then known (docs/plugins.md §2.4), except the names
+blitzstrahl 1.1 will use (listed there).
 
 ### 3.1 Deck
 
 | Key | Type | Default | Meaning |
 |---|---|---|---|
+| `blitzstrahl` | version | — | The blitzstrahl the deck is written for, as `major.minor`: `blitzstrahl: 1.1`. It marks the file as a deck for editors (the VS Code extension checks and previews only marked files), and `check` and `build` warn when the blitzstrahl running is older than it. Read as written, so `1.10` is 1.10, not 1.1. `blitzstrahl new` writes it. *(1.1)* |
 | `title` | string | first slide's title | Document title, `<title>` |
-| `author` | string | — | Shown by themes that display it |
-| `date` | string | — | Free-form, displayed as written |
-| `lang` | string | `en` | BCP 47 tag, `<html lang>` |
-| `theme` | string | `aurora` | A built-in theme (`aurora`, `broadsheet`), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` (docs/plugins.md §1) |
+| `author` | string | — | The page's `<meta name="author">`. Themes may show it on slides (§3.6) |
+| `date` | string | — | Free-form. Themes may show it on slides (§3.6) |
+| `lang` | string | `en` | BCP 47 tag, `<html lang>`. Also the language of the text blitzstrahl writes for the audience (§3.3), how charts and maps write numbers, and how numbers in tables and `count-up` are read (`3,5` is 3.5 in `de`) |
+| `thousands` | `","`, `"."` or `" "` | — | How numbers are written in the deck's data files, when not plainly (`1200`, `3.5`): `thousands: "."` reads `1.200,5` as 1200.5. Charts and maps can set their own (docs/renderers/chart.md, *Data*). Quote it |
+| `theme` | string | `aurora` | A built-in theme (`aurora`, `broadsheet`), a `./brand.css` file (docs/themes.md), a package (`theme: acme` finds `blitzstrahl-theme-acme`), or a `./path` to a JS theme (docs/plugins.md §1) |
+| `css` | `./file.css` or a list | — | Stylesheets added after the theme's, in order: the place for a deck's own styles (docs/themes.md, *Adding to a theme*). *(1.1)* |
 | `plugins` | list | — | Plugin packages or `./paths`, loaded in order (docs/plugins.md) |
 | `canvas` | `WxH` string | `1280x720` | Logical canvas size in CSS pixels |
 | `transition` | transition | `fade` | Default slide transition (§9) |
 | `transition-dur` | ms | theme-defined | Default transition duration |
+| `public` | `./folder` | — | A folder served and copied as it is, for files the deck links to but doesn't show: a demo page with its scripts, downloads (§3.5) |
+| `background` | string, or layouts to strings | — | Every slide's background unless the slide sets its own: an image or a CSS `background`, as the slide key. Or one per layout (§3.6). *(1.1)* |
+| `footer` | inline markdown | — | A line on every slide (§3.6). *(1.1)* |
+| `slide-numbers` | `true` or a string | — | Number the slides: `true` shows `3`, `"{n} / {total}"` shows `3 / 12` (§3.6). *(1.1)* |
+| `logo` | image path or URL | — | A logo on every slide (§3.6). *(1.1)* |
+| `duration` | time | — | How long the talk should take: `20min`, `1h`, `1h30min`, `90s`. The presenter view counts down from it and shows whether you're on pace (presenting.md, *Pacing*). A bare number is an error (is `20` minutes or milliseconds?). Nothing the audience sees changes. *(1.1)* |
+| `pace-margin` | percentage or time | `5%` | How far behind the clock you may fall before the presenter view's pace bar turns amber: `10%` of the `duration`, or a time (`2min`). Needs `duration` *(1.1)* |
 
 ### 3.2 Slide
 
@@ -164,7 +184,8 @@ keys, which are then known (docs/plugins.md §2.4).
 | `layout` | layout name | Named layout (§10). Default `default`. **Slide 1 defaults to `title`** (§2.5) |
 | `transition` | transition | Transition used to *enter* this slide (§9) |
 | `transition-dur` | ms | Duration for that transition |
-| `background` | string | Image path/URL (covers the canvas), or any CSS `background` value |
+| `background` | string | Image path/URL (covers the canvas), or any CSS `background` value. Wins over the deck's and the theme's; `background: none` clears them |
+| `chrome` | `false` | No footer, number or logo on this slide (§3.6). *(1.1)* |
 | `class` | string | Space-separated classes on the slide root |
 | `style` | string | Inline CSS on the slide root |
 
@@ -179,6 +200,134 @@ hoisted to the slide:
 On any other element these keys are an error. Classes and `#id` on the first
 heading stay on the heading. If a key is set both in frontmatter and on the
 heading, frontmatter wins and a warning is emitted.
+
+### 3.3 The deck's language
+
+The few words blitzstrahl adds to a deck for its audience are written in
+the deck's `lang`:
+
+- what a screen reader announces on each slide change ("Results (3 of
+  12)", or "Slide 3 (3 of 12)" for a slide without a title);
+- the footnotes' heading and the labels of their back-links, which screen
+  readers read out;
+- an embed's notices ("needs a network connection", "offline copy");
+- the note a static build shows when it's opened from a file, not a web
+  server.
+
+Built in: English, German, French, Spanish, Italian, Polish and Swedish
+(`en`, `de`, `fr`, `es`, `it`, `pl`, `sv`). A region is ignored
+(`de-AT` is `de`), and any other language gets English. The overview, the
+go-to box, the key help and the presenter view are for whoever's
+presenting, so they follow the browser's language instead
+(docs/presenting.md). Your own text is never translated, and error
+messages (in the console, and in place of a broken block) stay English.
+
+### 3.4 Schemas for editors
+
+The package ships a [JSON Schema](https://json-schema.org) for each kind of
+YAML a deck contains, so an editor can complete keys and underline
+mistakes as you type:
+
+| Schema | Describes |
+|---|---|
+| `blitzstrahl/schema/deck.json` | Deck frontmatter (§3.1) |
+| `blitzstrahl/schema/slide.json` | Slide frontmatter (§3.2) |
+| `blitzstrahl/schema/chart.json` | A `chart` block's body (docs/renderers/chart.md) |
+| `blitzstrahl/schema/map.json` | A `map` block's body |
+| `blitzstrahl/schema/embed.json` | An `embed` block's body |
+
+They're made from the same rules `check` applies, and a test keeps them in
+step. A schema sees one block at a time, without its data: whether a
+column exists, or a map's markers are on the globe, is still `check`'s
+job. Unknown frontmatter keys are allowed, since plugins add their own. On
+disk they're in `node_modules/blitzstrahl/schema/`.
+
+
+### 3.5 Files served as they are: `public`
+
+blitzstrahl serves and builds only the files a deck uses, one by one:
+an image, a data file, a PDF you link to (docs/cli.md). A file that needs
+its neighbours, like a local demo page with its own scripts and styles,
+breaks that way. Name its folder instead:
+
+```yaml
+public: ./demos
+```
+
+```markdown
+[Try the prototype](./demos/prototype/index.html)
+```
+
+- Everything in the folder is served by `dev` and copied into a static
+  build, at the same path, so the link above works in both. Links into it
+  keep their path (they aren't renamed with a hash).
+- It must be a folder inside the deck's own folder, and can't be the deck's
+  folder itself, since that would publish everything beside the deck.
+  Nor can it be named `_blitz`, or start with `@` or `.`: `dev` uses those
+  paths itself.
+- Files and folders whose names start with `.` (`.git`, `.env`) are never
+  served or copied, and neither is anything a symbolic link leads to outside
+  the folder.
+- `build --standalone` can't carry a folder, and warns that it's left out.
+- A missing folder is an error; an empty one is fine.
+
+### 3.6 On every slide: background, footer, numbers, logo *(1.1)*
+
+What a slide master does in PowerPoint, the deck's frontmatter does here,
+once for every slide:
+
+```yaml
+---
+title: Report Generator
+author: Ana Ruiz
+date: September 2026
+background:
+  title: ./img/bg-title.jpg
+  section: ./img/bg-section.png
+  default: ./img/bg-content.png
+footer: Report Generator · [ecdc.europa.eu](https://ecdc.europa.eu)
+slide-numbers: "{n} / {total}"
+logo: ./img/logo.svg
+---
+```
+
+**Backgrounds.** `background` is one value for every slide, or one per
+layout (§10), with `default` for the layouts not listed. A slide's own
+`background` wins, and `background: none` on a slide clears the deck's
+and the theme's. Themes can set backgrounds per layout too (docs/themes.md):
+the deck's win over the theme's. Each image is stored once, however many
+slides show it.
+
+**Chrome.** `footer`, `slide-numbers` and `logo` are the deck's *chrome*,
+laid over each slide:
+
+- `footer` is one line of inline markdown: emphasis, links and code work,
+  and a list or a second paragraph doesn't (it's shown as plain text,
+  with a warning).
+- `slide-numbers` counts slides, not steps, from 1 for the first slide.
+  `true` shows the number alone, and is the same as `"{n}"`. A string is
+  a template: `{n}` is the slide's number and `{total}` the number of
+  slides (`"{n} / {total}"`, `"Slide {n} of {total}"`). Quote it: YAML
+  reads a bare `{` as the start of a map.
+- `logo` is an image, shown as it is (no caption, not described to screen
+  readers).
+- By default the footer sits bottom left, the number bottom right and the
+  logo top right. Themes move and restyle them.
+- The `title`, `section` and `end` layouts have no number by default.
+- `chrome: false` on a slide leaves all three off it: a full-bleed photo,
+  say.
+- Chrome is the same on every step of a slide, isn't counted when looking
+  for overflow (a footer too long for its line is cut short, with `…`),
+  isn't paired by `auto-animate`, and prints in PDFs.
+
+Themes can also place the deck's `title`, `author` and `date` on slides
+(a title in the footer, a date on the title slide). The built-in themes
+don't.
+
+In the page, each slide has a `<div class="blitz-chrome">` holding one
+element per item the deck sets, each with `data-chrome="footer"`,
+`"number"`, `"logo"`, `"title"`, `"author"` or `"date"`. That's what
+themes style (docs/themes.md).
 
 ---
 
@@ -266,14 +415,15 @@ container) is an error.
 
 ### 4.3 Keys
 
-Keys fall into four groups:
+Keys fall into these groups:
 
 | Kind | Keys | Behaviour |
 |---|---|---|
 | Animation | `dur`, `delay`, `ease`, `reverse`, plus effect options (§6.3) | Consumed, drives the animation |
-| Structure | `reveal`, `key`, `lines` | Consumed (§6.4, §8.1, §9.1) |
+| Structure | `reveal`, `key`, `lines`, `as` *(1.1)* | Consumed (§6.4, §8.1, §9.1, §5.1) |
 | Slide shorthand | `transition`, `transition-dur`, `layout`, `background` | First heading only (§3.2) |
-| HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes |
+| Media *(1.1)* | `autoplay`, `loop`, `muted`, `controls`, `poster`, `start`, `end` | Video and audio only (§13); an error anywhere else |
+| HTML pass-through | `style`, `title`, `lang`, `dir`, `width`, `height`, `alt`, `data-*`, `aria-*` | Emitted as HTML attributes. On a container, `width` and `height` set its size instead (§5.2) *(1.1)*. On a render block, `alt` is its description for screen readers (§8.2) *(1.1)* |
 
 **Any other key is an error.** Unrecognised keys are *not* silently passed
 through. That leaves every un-prefixed key free for blitzstrahl to give meaning
@@ -333,6 +483,99 @@ The rules for opening and closing are Pandoc's
 |---|---|
 | `notes` | Presenter notes (§7) |
 | *layout slot names* | Fill a named slot of the slide's layout (§10) |
+
+### 5.1 Components: `as=` *(1.1)*
+
+`as=` turns a list, a table or a container into one of the structures decks
+keep drawing by hand: a process, a timeline, cards. You write the content
+as ordinary markdown; the theme draws the shape.
+
+```markdown
+1. **Choose data**
+
+   Raw cases or curated indicators
+2. **Transform**
+
+   Apply standard methods
+3. **Publish**
+
+   Disseminate and archive
+
+{as=steps reveal=items .fade-right @1}
+```
+
+| Value | Goes on | Draws |
+|---|---|---|
+| `steps` | a list | A numbered process: a marker per item, a connector to the next, the item's text below |
+| `timeline` | a list | Stops on a line: a marker per item (numbered in an `ol`), its text below |
+| `chevrons` | a list | A road of arrow-shaped items, pointing right |
+| `flow` | a list, or a container | Boxes with an arrow between each and the next (definition → generator → report). In a container, each child block is one box |
+| `cards` | a list, or a container | A grid of cards. In a container, each child block is one card |
+| `compare` | a two-column table, or a container with two children | Before → after: an arrow between the two sides, the "after" side in the accent. In a table, one arrow per row |
+| `stats` | a container | Figures, as in the `stat-grid` layout (§10): each child container is one stat, its first paragraph the figure, the rest the caption |
+
+- **The item's first line is its title.** In `steps`, `timeline`, `flow`
+  and `cards`, an item's first paragraph (or heading) is set as its title
+  and the rest as its description. A one-line item is all title.
+- **`.accent` on an item marks it**: its marker, box or chevron takes the
+  accent colour. `- Open-source release {.accent}`.
+- **Rows.** `steps`, `timeline`, `chevrons` and `flow` lay their items out
+  in one row. `cards` and `stats` put up to four in a row and wrap longer
+  sets into even rows (five and six make rows of three).
+- **Steps and effects work as anywhere else.** `reveal=items` gives each
+  item its own step (§6.4), in a container too; a connector or arrow
+  arrives with the item it points to.
+- **Everything else too**: components are measured for overflow, printed,
+  and pair in `auto-animate` (§9.1) like the list, table or container they
+  are.
+- `as=` anywhere else (a paragraph, a heading, an image), or on the wrong
+  kind of block (`as=compare` on a list), is an error; so is an unknown
+  value, with "did you mean". A `compare` table with more than two columns,
+  or a container with more than two children, is an error.
+- In the page, the element carries `data-as="…"`, which is what themes style
+  (docs/themes.md). The value is never added as a class, so a deck that
+  styles its own `.timeline` or `.card` is unaffected.
+
+`as=` is Pandoc-compatible in form (a key-value attribute), but Pandoc gives
+it no meaning, so a deck converted with Pandoc keeps the content and loses
+the shape.
+
+### 5.2 Utility classes *(1.1)*
+
+Every theme styles these classes (docs/themes.md, "Utility classes"), so a
+deck can rely on them whatever its theme:
+
+| Class | On | Does |
+|---|---|---|
+| `.columns` | a container | Its children side by side, in equal columns, top-aligned |
+| `.column` | a container in `.columns` | One column. `width=40%` gives it that width; columns without one share the rest |
+| `.callout` | a container | A boxed aside |
+| `.muted` | anything | Secondary text colour |
+| `.accent` | anything | The accent colour |
+| `.small` | anything | Caption-sized text |
+| `.big` | anything | 1.6× the text around it |
+| `.center` | anything | Centred text, and centred in its column |
+| `.zebra` | a table | Striped body rows |
+
+The columns follow Pandoc's convention, so decks written for Pandoc's
+slide writers work unchanged:
+
+````markdown
+:::: columns
+::: {.column width=40%}
+The argument.
+:::
+::: column
+```chart
+…
+```
+:::
+::::
+````
+
+**`width` and `height` on a container** set its size, as CSS lengths or
+percentages (`width=440px`, `width=40%`; a bare number is pixels). On any
+other element they stay HTML attributes, as in 1.0.
 
 ---
 
@@ -427,7 +670,9 @@ each:
 - An element with `@n` and **no** effect uses `fade`.
 - An entrance effect with **no** `@` plays on slide entry.
 - An emphasis effect with no `@` is applied from state 0.
-- `dim-others` dims the element's siblings, not the element itself.
+- `dim-others` dims the element's siblings, not the element itself,
+  including bare text beside it: in `The [key point]{.dim-others @1} of it`,
+  "The" and "of it" dim too. *(1.1)*
 - Under `prefers-reduced-motion: reduce`, every effect is instant. Steps still
   apply, so things still appear and disappear on cue.
 
@@ -439,7 +684,7 @@ Options:
 | `delay` | all | milliseconds, after the step is triggered |
 | `ease` | all | `linear`, `in`, `out`, `in-out`, `out-expo`, `in-out-expo`, `out-back`, or a quoted CSS easing, e.g. `ease="cubic-bezier(.2,0,0,1)"` |
 | `reverse` | all | `true`: stepping *backwards* plays the effect in reverse instead of snapping (the default) |
-| `from` | `count-up` | starting number, default `0`. The target is the element's own numeral text |
+| `from` | `count-up` | starting number, default `0`. The target is the element's own numeral text, read the way the deck's `lang` (or the element's own `lang=`) writes numbers, and it counts in the same style: in `de`, `4,2 %` counts through `2,1 %`, and `1.234.567` keeps its dots |
 | `cps` | `typewriter` | characters per second |
 
 Custom entrance effects can be defined in CSS, in the theme or a `<style>`
@@ -458,6 +703,7 @@ Container names (`::: stat`) aren't listed: they often group without styling.
 | Value | Target | Children |
 |---|---|---|
 | `reveal=items` | list | each top-level `<li>` |
+| `reveal=items` | container *(1.1)* | each child block: a paragraph, a nested container, a card in `as=cards` |
 | `reveal=rows` | table | each body row. The header row appears with the table |
 
 The first child takes the block's own step (or `@+` if it has none). Each
@@ -484,7 +730,7 @@ Remember to mention the Q3 dip. **Don't** read the chart aloud.
 :::
 ```
 
-- Full markdown, rendered in the presenter view and the `--notes` handout.
+- Full markdown, rendered in the presenter view.
   Never rendered to the audience.
 - A slide may have several `notes` containers. They are concatenated in order.
 - Allowed anywhere in a slide, including inside other containers.
@@ -571,6 +817,36 @@ separated by `|` are successive steps:
   emphasis effects (§6.3). PDFs print each page's group.
 - `lines=` on anything but a code block is an error; a line number past the
   end of the block is a warning.
+
+### 8.2 `alt`: what a screen reader says *(1.1)*
+
+A chart, map or diagram is a picture to a screen reader. `alt=` on the
+fence says what it shows, as `![alt](…)` does for an image:
+
+````markdown
+```chart {alt="Revenue doubled from Q1 to Q4; the East region led every quarter."}
+type: bar
+data: ./sales.csv
+```
+````
+
+- On `chart`, `map`, `mermaid` and a plugin's render blocks, the block is
+  read as one image (`role="img"`) named by `alt`. Say what the picture
+  *means*, not what it looks like.
+- A **chart** or **map** is also described from its data, in the deck's
+  language, after `alt`: a chart's kind, title, series and their first
+  values; a map's places, by name. Without `alt`, that description is its
+  name.
+- A **Mermaid** diagram also has Mermaid's own `accTitle:` and `accDescr:`
+  lines (docs/renderers/mermaid.md); `alt` wins over `accTitle`.
+- On an **`embed`**, `alt` names the frame (as the embed's `title:` does,
+  and over it): the page inside stays readable on its own.
+- On **math**, `alt` is read instead of the formula.
+- `alt` works in the deck, in document mode, and in the PDF `export` writes.
+
+`check` notes a chart, map or diagram without `alt` (an info, never a
+warning: a chart's generated description is a fallback, not a failure).
+In 1.0, `alt` on a fence was accepted and did nothing.
 
 ---
 
@@ -666,6 +942,32 @@ function add(a: number, b: number): number {
 The moving code stays at full strength while the rest of the slide
 cross-fades. A longer `transition-dur` (800 ms or so) suits bigger changes.
 
+**Within a slide** *(1.1)*. Blocks that follow one another and share a
+`key=` take turns in one place: each one replaces the one before it at its
+step, and morphs out of it as above. Code blocks magic-move; anything else
+moves and resizes.
+
+````markdown
+```ts {key=add}
+function add(a, b) {
+```
+
+```ts {key=add @1}
+function add(a: number, b: number): number {
+```
+````
+
+- The blocks must be consecutive siblings. The first is shown from its own
+  step; each later one needs a later step (`@1`, `@+`), and the one before
+  it leaves as it arrives, so a range (`@0-0`) isn't needed.
+- They share one box, the size of the largest, so the slide doesn't jump.
+- Stepping back morphs back. `dur=` on a block sets its morph's duration
+  (default: the slide's `transition-dur`).
+- If a later block has no later step, the blocks aren't a stack: the
+  `key=` used twice is a warning, as above, which says to add a step.
+- In a PDF, the slide shows the last version (or, with `--steps`, each in
+  turn).
+
 ---
 
 ## 10. Layouts
@@ -708,7 +1010,7 @@ columns.
 | `two-col` | `left`, `right` | A heading spanning both columns |
 | `three-col` | `left`, `middle`, `right` | A heading spanning all three |
 | `quote` | — | A blockquote, set large; a paragraph after it is the attribution |
-| `stat-grid` | — | A heading, then each container (`::: stat`, say) becomes one stat: its first paragraph is the figure, the rest the caption |
+| `stat-grid` | — | A heading, then each container (`::: stat`, say) becomes one stat: its first paragraph is the figure, the rest the caption. `as=stats` (§5.1) gives the same look inside any layout |
 | `full-bleed` | — | The first image or render block covers the whole canvas; the rest is overlaid |
 | `image-left`, `image-right` | `image` | The text beside the image. The `image` slot fills its half edge to edge |
 | `code` | — | A heading and a code block that fills the slide |
@@ -774,6 +1076,95 @@ and its fonts, but no TeX engine:
   functions](https://katex.org/docs/supported).
 
 A literal dollar where these rules would see math is written `\$`.
+
+## 13. Video and audio *(1.1)*
+
+An image whose file is video or audio becomes a player:
+
+```markdown
+![The dashboard in use](./demo.mp4){muted=true loop=true}
+
+![The interview](./clip.mp3){@2}
+```
+
+| Kind | Extensions |
+|---|---|
+| Video | `.mp4`, `.m4v`, `.webm`, `.ogv`, `.mov` |
+| Audio | `.mp3`, `.m4a`, `.aac`, `.ogg`, `.oga`, `.opus`, `.wav`, `.flac` |
+
+The file is recognised by its extension, local or remote
+(`https://…/demo.mp4`). Pages that play video (YouTube, Vimeo) are
+`embed`s (§8). The alt text becomes the player's accessible name, and is
+shown if the browser can't play the file.
+
+**Playback.** A video or audio clip plays when it appears: on slide entry,
+or at its step (`@2`). It pauses and goes back to its start when the slide
+is left, or when stepping back hides it. Clicking a video pauses and
+resumes it (the edge-click gutters stay out of its way, as for charts).
+
+| Key | Default | Value |
+|---|---|---|
+| `autoplay` | `true` | `false`: wait for a click (or the controls) instead of playing on arrival |
+| `loop` | `false` | `true`: start again at `start` after `end` |
+| `muted` | `false` | `true`: no sound |
+| `controls` | `false` for video, `true` for audio | Show the browser's player controls |
+| `poster` | the frame at `start` | An image to show before it plays, and in PDFs. A local path ships like any image |
+| `start`, `end` | the whole file | Where to begin and stop, in seconds (`12.5`) or `m:ss` (`1:05`). Stopping at `end` holds that frame |
+
+- `true` and `false` are written out: `loop=true`. The grammar has no bare
+  keys (§4.1).
+- These keys are errors on anything but video and audio, and so are values
+  they don't take (`start=1:75`, `end` before `start`).
+- `width` and `height` size the player as they size an image. Alone in
+  its paragraph, a video fills the `image` slot of `image-left` and
+  `image-right`, and the canvas in `full-bleed` (§10), as an image does.
+- **In the presenter view**, the previews and mirrors show the video
+  paused and silent; only the audience's window plays it, so there's no
+  double sound. The presenter sees what's playing on the deck itself.
+- **PDF and print** show the poster, or the frame at `start`.
+- **Standalone files** carry the media inline, so they grow with it: a
+  minute of video is often 10 MB or more. `build --standalone` already
+  warns over 8 MB and names the largest files (docs/cli.md). A static
+  build copies the file like an image.
+- Autoplay with sound needs the browser to have seen a key press or click
+  on the page, which presenting provides. A deck that opens straight onto a
+  video slide may start it muted; `check` doesn't know which browser will
+  be used, so it says nothing.
+
+---
+
+## 14. Footnotes
+
+Footnotes are GFM's: `[^label]` cites, `[^label]: text` defines. A slide
+that cites one lists it at its foot, numbered from 1 on each slide in the
+order it cites them.
+
+**Defined anywhere** *(1.1)*. A footnote can be defined on any slide, not
+just the one that cites it, so a deck can keep its sources together, at
+the end:
+
+```markdown
+# Cases rose
+
+Up 42 % on last year.[^atlas]
+
+---
+
+# Thank you
+
+[^atlas]: Surveillance Atlas, accessed September 2026.
+```
+
+The last slide shows "Thank you" and no footnote; the first lists the
+source.
+
+- A definition is shown only where it's cited, never where it's written. A
+  slide can cite a footnote another slide cites too; each lists it.
+- A cited label defined nowhere in the deck is a warning, and stays text
+  (`[^label]`), as in 1.0. A definition cited nowhere is a warning. A label
+  defined twice is a warning at the second, and the first is used, as in
+  GFM.
+- Definitions inside `::: notes` are notes, not footnotes.
 
 ---
 

@@ -2,14 +2,14 @@
  * Deck IR → the HTML page. Slide content is rendered here, at build time; the
  * runtime only hydrates it.
  */
-import { readFileSync } from 'node:fs'
 import type { Element, ElementContent, Root } from 'hast'
 import { toHtml } from 'hast-util-to-html'
-import { isImageBackground, toPayload, type Deck, type Diagnostic, type HastNode, type PayloadPlugins } from '@blitzstrahl/core'
+import { isImageBackground, rewriteCss, rewriteHtml, toPayload, type Deck, type Diagnostic, type HastNode, type PayloadPlugins } from '@blitzstrahl/core'
+import { fill, strings } from '@blitzstrahl/core/i18n'
 import { runtimeCss } from '@blitzstrahl/runtime/css'
 import type { Theme } from '@blitzstrahl/themes'
+import { VERSION } from './version.js'
 
-const VERSION = (JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')) as { version: string }).version
 
 /**
  * Every page carries blitzstrahl's runtime, so it carries the runtime's
@@ -27,35 +27,94 @@ export const LICENCE_NOTICE = `<!--
 /** Maps a deck-relative asset path to the URL the page should use. */
 export type AssetUrl = (path: string) => string
 
-/** Rewrites local image `src`s to the URLs the page serves them from. */
-function imageRewriter(deck: Deck, assetUrl: AssetUrl) {
+/** The last path segment of a URL: a download's file name. */
+function fileName(url: string): string {
+  const path = url.replace(/[?#].*$/, '')
+  return path.slice(path.lastIndexOf('/') + 1) || 'download'
+}
+
+/**
+ * Rewrites every local URL the deck's HTML uses (images, links, raw HTML,
+ * `style` values) to the URL the page serves that file from.
+ */
+function refRewriter(deck: Deck, assetUrl: AssetUrl) {
   const byRef = new Map(deck.assets.map((a) => [a.ref, a.path]))
+  const url = (ref: string): string | undefined => {
+    const path = byRef.get(ref)
+    return path === undefined ? undefined : assetUrl(path)
+  }
+  const css = (value: string) => rewriteCss(value, url)
   const rewrite = (nodes: HastNode[]): ElementContent[] =>
-    nodes.map((n) => {
+    nodes.map((n): ElementContent => {
+      // Raw HTML (syntax.md §1) stays raw: only its URLs change.
+      const raw = n as unknown as { type: string; value: string }
+      if (raw.type === 'raw') return { ...raw, value: rewriteHtml(raw.value, url) } as unknown as ElementContent
       if (n.type !== 'element') return n
       const el: Element = { ...n, children: rewrite(n.children) }
-      const src = el.properties.src
-      if (el.tagName === 'img' && typeof src === 'string' && byRef.has(src)) {
-        el.properties = { ...el.properties, src: assetUrl(byRef.get(src)!) }
+      const p = el.properties
+      const next: Element['properties'] = {}
+      if (/^(img|video|audio)$/.test(el.tagName) && typeof p.src === 'string' && url(p.src) !== undefined) next.src = url(p.src)!
+      if (el.tagName === 'video' && typeof p.poster === 'string' && url(p.poster) !== undefined) next.poster = url(p.poster)!
+      if (el.tagName === 'a' && typeof p.href === 'string') {
+        const to = url(p.href)
+        if (to !== undefined) {
+          next.href = to
+          // A standalone file's links are data: URLs, which browsers download but won't open.
+          if (to.startsWith('data:') && p.download === undefined) next.download = fileName(p.href)
+        }
       }
+      if (typeof p.style === 'string' && css(p.style) !== p.style) next.style = css(p.style)
+      if (Object.keys(next).length) el.properties = { ...p, ...next }
       return el
     })
-  return { byRef, rewrite }
+  return { byRef, css, rewrite }
 }
 
 /** The `<section>`s, as HTML. Also what dev HMR swaps in. */
 export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
-  const { byRef, rewrite } = imageRewriter(deck, assetUrl)
+  const { byRef, css, rewrite } = refRewriter(deck, assetUrl)
+  const deckWords = strings(deck.meta.lang).deck
+  // Each background image is named once, as a custom property, however many
+  // slides use it: a standalone file carries it once, not once per slide.
+  const backgrounds = new Map<string, string>()
+  const background = (path: string) => {
+    let name = backgrounds.get(path)
+    if (!name) backgrounds.set(path, (name = `--blitz-bg-${backgrounds.size + 1}`))
+    return `var(${name})`
+  }
+
+  // The deck's chrome (syntax.md §3.6): the same items on every slide, but its number.
+  const m = deck.meta
+  const item = (name: string, children: ElementContent[]): Element => ({ type: 'element', tagName: 'div', properties: { dataChrome: name }, children })
+  const words = (value: string): ElementContent[] => [{ type: 'text', value }]
+  const footer = m.footer ? rewrite(m.footer) : undefined
+  const logo = m.logo === undefined ? undefined : byRef.has(m.logo) ? assetUrl(byRef.get(m.logo)!) : m.logo
+  const chrome = (index: number): Element => {
+    const items: Element[] = []
+    if (footer) items.push(item('footer', footer))
+    if (m.slideNumbers) {
+      const n = m.slideNumbers.replaceAll('{n}', String(index + 1)).replaceAll('{total}', String(deck.slides.length))
+      items.push(item('number', words(n)))
+    }
+    if (logo !== undefined) items.push({ type: 'element', tagName: 'img', properties: { dataChrome: 'logo', src: logo, alt: '' }, children: [] })
+    // For themes to place; hidden unless one does.
+    items.push(item('title', words(m.title)))
+    if (m.author) items.push(item('author', words(m.author)))
+    if (m.date) items.push(item('date', words(m.date)))
+    return { type: 'element', tagName: 'div', properties: { className: ['blitz-chrome'] }, children: items }
+  }
 
   const sections: Element[] = deck.slides.map((slide) => {
     const style: string[] = []
     const bg = slide.attrs.background
     if (bg !== undefined) {
-      if (byRef.has(bg)) style.push(`background-image: url("${assetUrl(byRef.get(bg)!)}")`)
+      // `none` clears the deck's and the theme's images, and keeps the `bg` colour.
+      if (bg.trim() === 'none') style.push('background-image: none')
+      else if (byRef.has(bg)) style.push(`background-image: ${background(byRef.get(bg)!)}`)
       else if (isImageBackground(bg)) style.push(`background-image: url("${bg}")`)
-      else style.push(`background: ${bg}`)
+      else style.push(`background: ${css(bg)}`)
     }
-    if (slide.attrs.style) style.push(slide.attrs.style)
+    if (slide.attrs.style) style.push(css(slide.attrs.style))
     return {
       type: 'element',
       tagName: 'section',
@@ -63,15 +122,17 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
         className: ['blitz-slide', ...slide.attrs.class],
         dataBlitzSlide: slide.id,
         dataLayout: slide.layout,
-        ariaRoledescription: 'slide',
-        ariaLabel: slide.title ?? `Slide ${slide.index + 1}`,
+        ariaRoledescription: deckWords.slideRole,
+        ariaLabel: slide.title ?? fill(deckWords.slide, { n: slide.index + 1 }),
         ariaHidden: 'true',
         ...(style.length ? { style: style.join('; ') } : {}),
       },
-      children: rewrite(slide.content),
+      children: slide.attrs.chrome === false ? rewrite(slide.content) : [...rewrite(slide.content), chrome(slide.index)],
     }
   })
-  return toHtml({ type: 'root', children: sections } as Root, { allowDangerousHtml: true })
+  const vars = [...backgrounds].map(([path, name]) => `${name}: url("${assetUrl(path)}");`)
+  const shared = vars.length ? `<style data-blitz-backgrounds>:root { ${vars.join(' ')} }</style>\n` : ''
+  return shared + toHtml({ type: 'root', children: sections } as Root, { allowDangerousHtml: true })
 }
 
 /**
@@ -80,7 +141,7 @@ export function renderStage(deck: Deck, assetUrl: AssetUrl): string {
  * A template's content is inert, so the audience never sees it rendered.
  */
 export function renderNotes(deck: Deck, assetUrl: AssetUrl): string {
-  const { rewrite } = imageRewriter(deck, assetUrl)
+  const { rewrite } = refRewriter(deck, assetUrl)
   const divs: Element[] = deck.slides
     .filter((s) => s.notes.length)
     .map((s) => ({ type: 'element', tagName: 'div', properties: { dataFor: s.id }, children: rewrite(s.notes) }))
@@ -102,12 +163,12 @@ export interface PageOptions {
   plugins?: PayloadPlugins
 }
 
-/** A deck with external chunks can't run from a file (module scripts need HTTP); say so. */
-const FILE_WARNING = `<script>
+/** A deck with external chunks can't run from a file (module scripts need HTTP); say so, in the deck's language. */
+const fileWarning = (lang: string) => `<script>
 if (location.protocol === 'file:') document.addEventListener('DOMContentLoaded', function () {
   var p = document.createElement('p')
   p.style.cssText = 'position:fixed;inset:auto 16px 16px;margin:0;padding:12px 16px;font:15px/1.4 system-ui,sans-serif;background:#fff;color:#111;border-radius:8px;z-index:9'
-  p.textContent = 'This deck was built for a web server and can\\u2019t run from a file. Serve the folder over HTTP (for example: npx serve dist), build it with --standalone, or use blitzstrahl dev.'
+  p.textContent = ${JSON.stringify(strings(lang).deck.needsServer).replace(/</g, '\\u003c')}
   document.body.appendChild(p)
 })
 </script>
@@ -124,22 +185,26 @@ ${LICENCE_NOTICE}
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="blitzstrahl">
-<title>${esc(o.deck.meta.title)}</title>
+${o.deck.meta.author ? `<meta name="author" content="${esc(o.deck.meta.author)}">\n` : ''}<title>${esc(o.deck.meta.title)}</title>
 <style>
 ${runtimeCss}
+</style>
+<style data-blitz-theme>
 ${o.theme.stylesheet}
+</style>
+<style>
 ${o.css ?? ''}
 </style>
 </head>
 <body>
 <div class="blitz-viewport">
-<main class="blitz-stage" aria-roledescription="slide deck" aria-label="${esc(o.deck.meta.title)}">
+<main class="blitz-stage" aria-roledescription="${esc(strings(o.deck.meta.lang).deck.deckRole)}" aria-label="${esc(o.deck.meta.title)}">
 ${renderStage(o.deck, o.assetUrl)}
 </main>
 <div class="blitz-sr" aria-live="polite"></div>
 </div>
 <template id="blitz-notes">${renderNotes(o.deck, o.assetUrl)}</template>
-${'src' in o.entry ? FILE_WARNING : ''}<script type="application/json" id="blitz-payload">${json(payload)}</script>
+${'src' in o.entry ? fileWarning(o.deck.meta.lang) : ''}<script type="application/json" id="blitz-payload">${json(payload)}</script>
 ${o.diagnostics ? `<script type="application/json" id="blitz-diagnostics">${json(o.diagnostics)}</script>\n` : ''}${
     'src' in o.entry ? `<script type="module" src="${esc(o.entry.src)}"></script>` : `<script type="module">\n${o.entry.code}\n</script>`
   }

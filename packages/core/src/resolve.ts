@@ -11,11 +11,52 @@ import { parseDocument } from 'yaml'
 import type { Attached } from './attach.js'
 import { mathData, type BlitzMath } from './syntax/mdast.js'
 import type { StepSpec } from './attrs.js'
-import { assetKind, isExplicitRelative, isLocalRef, normalizeRelative } from './assets.js'
+import { assetKind, isExplicitRelative, isLocalRef, mediaKind, normalizeRelative, pageAsset } from './assets.js'
+import { cssRefs, htmlRefs } from './html-refs.js'
 import { pointSpan, spanOf, type Diagnostics } from './diagnostics.js'
 import type { AnimSpec, AssetRef, EffectKind, HastNode, RenderBlock, SourceSpan, StepRange } from './ir.js'
 import { milliseconds, notYet } from './meta.js'
-import { ANIM_KEYS, LAYOUTS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES, type RendererBody } from './vocab.js'
+import { ANIM_KEYS, COMPONENTS, LAYOUTS, MEDIA_KEYS, NAMED_EASINGS, PASSTHROUGH_KEYS, RESERVED_KEYS, SLIDE_SHORTHAND_KEYS, SLOT_NAMES, type RendererBody } from './vocab.js'
+import { fill, strings } from './i18n.js'
+import { parseMarkdown } from './syntax/index.js'
+import { distance } from './split.js'
+
+/** A container's `width=`/`height=` as CSS (§5.2): a length or percentage; a bare number is pixels. */
+function cssSize(value: string): string | undefined {
+  const m = /^(\d+(?:\.\d+)?|\.\d+)(px|%|em|rem|vw|vh|cm|mm|in|pt)?$/.exec(value.trim())
+  return m ? `${m[1]}${m[2] ?? 'px'}` : undefined
+}
+
+type BlitzContainerNode = Extract<Nodes, { type: 'blitzContainer' }>
+
+/** Runs of two or more consecutive siblings with the same `key=` (§9.1). */
+function keyRuns(kids: RootContent[], keyOf: (n: Nodes) => string | undefined): Nodes[][] {
+  const runs: Nodes[][] = []
+  let run: Nodes[] = []
+  const close = () => {
+    if (run.length > 1) runs.push(run)
+    run = []
+  }
+  for (const n of kids as Nodes[]) {
+    const key = keyOf(n)
+    if (key === undefined) {
+      // Blank raw HTML between blocks doesn't break a run; anything else does.
+      if (!(n.type === 'html' && !n.value.trim())) close()
+      continue
+    }
+    if (run.length && keyOf(run[0]!) !== key) close()
+    run.push(n)
+  }
+  close()
+  return runs
+}
+
+/** A container's children that are blocks on the page: not raw HTML, definitions or notes. */
+function blockChildren(node: BlitzContainerNode): Nodes[] {
+  return (node.children as Nodes[]).filter(
+    (c) => c.type !== 'html' && c.type !== 'definition' && c.type !== 'footnoteDefinition' && !(c.type === 'blitzContainer' && c.name === 'notes'),
+  )
+}
 
 /** Deck-wide state threaded through every slide. */
 export interface DeckContext {
@@ -26,6 +67,8 @@ export interface DeckContext {
   /** Built-in renderers plus plugins' (`since` absent: always supported). */
   renderers: Readonly<Record<string, { body: RendererBody; since?: string }>>
   effects: Readonly<Record<string, EffectKind>>
+  /** The deck's `lang`: the footnotes' labels are written in it (§3.3). */
+  lang: string
 }
 
 /** A placeholder left where a render fence was. */
@@ -101,6 +144,13 @@ export function resolveSlide(
   /** Visible ranges of stepped (entrance) ancestors, for the nesting check. */
   const ancestors: StepRange[] = []
 
+  const addPageAssets = (urls: string[], span: SourceSpan) => {
+    for (const url of urls) {
+      const a = pageAsset(url, span)
+      if (a) ctx.assets.push(a)
+    }
+  }
+
   const setProps = (node: Nodes, props: Record<string, unknown>) => {
     if (Object.keys(props).length === 0) return
     const data = (node.data ??= {})
@@ -136,6 +186,7 @@ export function resolveSlide(
     let animIndex: number | undefined
     const anim: AnimSpec = { effect: 'fade', kind: 'entrance', options: {} }
     let revealMode: string | undefined
+    let as: { value: string; span: SourceSpan } | undefined
     let lineGroups: LineGroup[] | undefined
 
     if (blitz) {
@@ -157,6 +208,7 @@ export function resolveSlide(
       }
 
       const seen = new Set<string>()
+      const sizes: string[] = []
       for (const { key, value, offset } of attrs.pairs) {
         const span = here(offset)
         if (seen.has(key)) diags.warn('attr/repeated-key', `\`${key}\` given twice; the last value wins`, span)
@@ -165,34 +217,67 @@ export function resolveSlide(
           animOption(anim, key, value, diags, span)
         } else if (key === 'reveal') {
           revealMode = value
+        } else if (key === 'as') {
+          as = { value, span }
+        } else if (MEDIA_KEYS.has(key)) {
+          if (node.type === 'image' && mediaKind(node.url)) mediaOption(props, key, value, span)
+          else diags.error('attr/media-only', `\`${key}=\` applies to video and audio only (\`![](./clip.mp4)\`)`, span)
         } else if (key === 'lines') {
           lineGroups = linesOption(node, value, diags, span)
         } else if (key === 'key') {
           // auto-animate pairs elements by key (§9); one slide can't use a key twice.
-          if (keys.has(value)) diags.warn('key/duplicate', `key \`${value}\` is already used on this slide; auto-animate pairs only the first`, span)
+          if (keys.has(value) && !stacked.has(node)) diags.warn('key/duplicate', `key \`${value}\` is already used on this slide; auto-animate pairs only the first`, span)
           keys.add(value)
+          keySpans.set(node, span)
           props.dataBlitzKey = value
         } else if (key in RESERVED_KEYS) {
           notYet(`\`${key}=\``, RESERVED_KEYS[key]!, diags, span)
         } else if (SLIDE_SHORTHAND_KEYS.has(key)) {
           diags.error('attr/slide-key', `\`${key}\` is a slide setting: put it in slide frontmatter or on the slide's first heading`, span)
+        } else if ((key === 'width' || key === 'height') && node.type === 'blitzContainer') {
+          // On a container, a size (§5.2); `flex: none` so a `.column` keeps it beside `flex: 1` ones.
+          const size = cssSize(value)
+          if (size) sizes.push(`${key}: ${size}`)
+          else diags.error('attr/size', `\`${key}=${value}\` isn't a size: use a length or percentage (\`440px\`, \`40%\`)`, span)
+        } else if (key === 'alt' && (node.type === 'blitzBlock' || node.type === 'blitzMath')) {
+          // A chart, map, diagram or formula is one picture to a screen reader, named by `alt` (§8.2).
+          // An embed's frame is named instead (by its renderer): the page inside stays readable.
+          if (String(node.data?.hProperties?.dataBlitzBlock).startsWith('embed-')) props.dataBlitzAlt = value
+          else {
+            props.role = 'img'
+            props.ariaLabel = value
+          }
         } else if (PASSTHROUGH_KEYS.has(key) || key.startsWith('data-') || key.startsWith('aria-')) {
           props[key] = value
+          if (key === 'style') addPageAssets(cssRefs(value), span)
         } else {
           diags.error('attr/unknown-key', `unknown attribute \`${key}\`; use \`data-${key}\` for custom data`, span)
         }
+      }
+
+      if (sizes.length) {
+        // The author's own `style` comes after, so it still wins.
+        const own = typeof props.style === 'string' ? ` ${props.style}` : ''
+        props.style = `${sizes.join('; ')}; flex: none;${own}`
+      }
+
+      if (as && componentOk(node, as.value, as.span)) props.dataAs = as.value
+      if (typeof props.dataBlitzStart === 'number' && typeof props.dataBlitzEnd === 'number' && props.dataBlitzEnd <= props.dataBlitzStart) {
+        diags.error('attr/media-value', '`end` must come after `start`', pointSpan(at))
+        delete props.dataBlitzEnd
       }
 
       if (attrs.step) range = resolveStep(attrs.step, pointSpan(at))
 
       if (revealMode !== undefined) {
         const ok =
-          (revealMode === 'items' && node.type === 'list') || (revealMode === 'rows' && node.type === 'table')
+          (revealMode === 'items' && (node.type === 'list' || node.type === 'blitzContainer')) ||
+          (revealMode === 'rows' && node.type === 'table')
         if (!ok) {
           diags.error(
             'reveal/target',
             revealMode === 'items' || revealMode === 'rows'
-              ? `\`reveal=${revealMode}\` applies to a ${revealMode === 'items' ? 'list' : 'table'}`
+              ? `\`reveal=${revealMode}\` applies to a ${revealMode === 'items' ? 'list or a container' : 'table'}`
               : `unknown \`reveal=${revealMode}\`: use \`items\` (lists) or \`rows\` (tables)`,
             pointSpan(at),
           )
@@ -238,8 +323,11 @@ export function resolveSlide(
       }
     }
     if (revealMode && range) {
-      const children =
-        node.type === 'list' ? node.children : node.type === 'table' ? node.children.slice(1) : []
+      const children: Nodes[] =
+        node.type === 'list' ? node.children
+        : node.type === 'table' ? node.children.slice(1)
+        : node.type === 'blitzContainer' ? blockChildren(node)
+        : []
       children.forEach((child, k) => {
         if (k === 0) return
         const data = (child.data ??= {})
@@ -278,8 +366,60 @@ export function resolveSlide(
     return range && anims[animIndex ?? -1]?.kind !== 'emphasis' ? range : undefined
   }
 
+  /** A media key (§13) onto `props`, or an error for a value it doesn't take. */
+  const mediaOption = (props: Record<string, unknown>, key: string, value: string, span: SourceSpan) => {
+    const bad = (want: string) => diags.error('attr/media-value', `\`${key}=${value}\`: ${want}`, span)
+    if (key === 'poster') {
+      props.poster = value
+      if (isLocalRef(value)) ctx.assets.push({ ref: value, path: normalizeRelative(value), kind: assetKind(value), span })
+    } else if (key === 'start' || key === 'end') {
+      const t = /^(?:(\d+):([0-5]\d)(\.\d+)?|(\d+(?:\.\d+)?|\.\d+))$/.exec(value)
+      if (!t) return bad('use seconds (`12.5`) or minutes and seconds (`1:05`)')
+      props[key === 'start' ? 'dataBlitzStart' : 'dataBlitzEnd'] = t[4] !== undefined ? Number(t[4]) : Number(t[1]) * 60 + Number(t[2]) + Number(t[3] ?? 0)
+    } else if (value !== 'true' && value !== 'false') {
+      bad('write `true` or `false`')
+    } else if (key === 'autoplay') {
+      if (value === 'false') props.dataBlitzAutoplay = 'false'
+    } else if (key === 'loop') {
+      if (value === 'true') props.dataBlitzLoop = 'true'
+    } else {
+      // muted, controls: HTML's own attributes.
+      props[key] = value === 'true'
+    }
+  }
+
+  /** `as=value` fits this node (§5.1); reports why not. */
+  const componentOk = (node: Nodes, value: string, span: SourceSpan): boolean => {
+    const targets = COMPONENTS[value]
+    if (!targets) {
+      const near = Object.keys(COMPONENTS).find((c) => distance(value, c) <= 2)
+      diags.error('as/unknown', `unknown component \`as=${value}\`${near ? `: did you mean \`${near}\`?` : ` (${Object.keys(COMPONENTS).join(', ')})`}`, span)
+      return false
+    }
+    const kind = node.type === 'list' ? 'list' : node.type === 'table' ? 'table' : node.type === 'blitzContainer' ? 'container' : undefined
+    if (!kind || !targets.includes(kind)) {
+      const on = targets.map((t) => (t === 'table' && value === 'compare' ? 'a two-column table' : `a ${t}`)).join(' or ')
+      diags.error('as/target', `\`as=${value}\` goes on ${on}`, span)
+      return false
+    }
+    if (value === 'compare') {
+      const n = node.type === 'table' ? (node.children[0]?.children.length ?? 0) : blockChildren(node as BlitzContainerNode).length
+      if (n !== 2) {
+        diags.error('as/compare', `\`as=compare\` needs two sides: this ${kind} has ${n} ${kind === 'table' ? (n === 1 ? 'column' : 'columns') : n === 1 ? 'child' : 'children'}`, span)
+        return false
+      }
+    }
+    return true
+  }
+
+  /** Later members of a stack (§9.1): consecutive siblings sharing a `key=`. Not duplicates. */
+  const stacked = new WeakSet<Nodes>()
+  const keySpans = new WeakMap<Nodes, SourceSpan>()
+  const keyOf = (n: Nodes) => n.data?.blitz?.attrs.pairs.findLast((p) => p.key === 'key')?.value
+
   const walk = (parent: { children: RootContent[] }) => {
     const kids = parent.children
+    for (const run of keyRuns(kids, keyOf)) for (const n of run.slice(1)) stacked.add(n)
     for (let k = 0; k < kids.length; k++) {
       let node = kids[k]!
       // A math fence is display math (§12), rendered at build time like `$$…$$`, not a render block.
@@ -293,8 +433,33 @@ export function resolveSlide(
         kids[k] = placeholder
         node = placeholder
       }
+      if (node.type === 'image' && mediaKind(node.url)) {
+        // Video and audio from an image (§13): the runtime plays it, so no `autoplay`.
+        const kind = mediaKind(node.url)!
+        node.data = {
+          ...node.data,
+          hName: kind,
+          hProperties: {
+            ...node.data?.hProperties,
+            alt: undefined,
+            ariaLabel: node.alt || undefined,
+            dataBlitzMedia: '',
+            preload: 'metadata',
+            ...(kind === 'video' ? { playsInline: true } : { controls: true }),
+          },
+          hChildren: node.alt ? [{ type: 'text', value: node.alt }] : [],
+        }
+      }
       if (node.type === 'image' && isLocalRef(node.url)) {
         ctx.assets.push({ ref: node.url, path: normalizeRelative(node.url), kind: assetKind(node.url), span: spanOf(node.position) })
+      } else if (node.type === 'link' || node.type === 'definition') {
+        addPageAssets([node.url], spanOf(node.position))
+      } else if (node.type === 'html') {
+        // Raw HTML's src, srcset, poster, href and CSS url()s (syntax.md §1).
+        addPageAssets(
+          htmlRefs(node.value).map((r) => r.url),
+          spanOf(node.position),
+        )
       }
       if (node.type === 'blitzContainer') {
         node.data = { ...node.data, hName: 'div' }
@@ -315,6 +480,31 @@ export function resolveSlide(
         if (range) ancestors.pop()
       }
     }
+    // Again: render fences have become placeholders (which keep their attributes).
+    for (const run of keyRuns(kids, keyOf)) stack(kids, run)
+  }
+
+  /**
+   * Magic move within a slide (§9.1): each member of a run leaves as the next
+   * arrives, and the run shares one box (`data-blitz-stack`, a one-cell grid).
+   */
+  const stack = (kids: RootContent[], run: Nodes[]) => {
+    const props = run.map((n) => propTable[n.data?.hProperties?.dataBlitzProps as number]!)
+    const ins = props.map((p) => p.dataBlitzStepIn)
+    // Only a run whose every block comes at a later step is a stack; otherwise it's 1.0's duplicate key.
+    if (!ins.every((v, i) => i === 0 || (typeof v === 'number' && v > Number(ins[i - 1] ?? 0)))) {
+      for (const n of run.slice(1)) {
+        diags.warn('key/duplicate', `key \`${keyOf(n)}\` is already used on this slide; auto-animate pairs only the first (to replace the block before it, give this one a later step)`, keySpans.get(n) ?? n)
+      }
+      return
+    }
+    for (let i = 0; i < run.length - 1; i++) {
+      props[i]!.dataBlitzStepIn = Number(ins[i] ?? 0)
+      props[i]!.dataBlitzStepOut = (ins[i + 1] as number) - 1
+    }
+    const first = kids.indexOf(run[0] as RootContent)
+    const wrapper = { type: 'blitzContainer', children: run, data: { hName: 'div', hProperties: { dataBlitzStack: '' } } } as unknown as RootContent
+    kids.splice(first, run.length, wrapper)
   }
   walk({ children: nodes })
 
@@ -323,8 +513,8 @@ export function resolveSlide(
     layout,
     shorthand,
     steps: maxStep,
-    notes: toHastContent(notesNodes, `s${index}-notes-`, []),
-    content: toHastContent(slotted(nodes), `s${index}-`, propTable),
+    notes: toHastContent(notesNodes, `s${index}-notes-`, [], ctx.lang),
+    content: dimText(toHastContent(slotted(nodes), `s${index}-`, propTable, ctx.lang), anims),
     anims,
     blocks,
   }
@@ -526,13 +716,62 @@ function rewritePaths(value: unknown, onPath: (ref: string) => string): unknown 
   return value
 }
 
-function toHastContent(nodes: RootContent[], clobberPrefix: string, propTable: Array<Record<string, unknown>>): HastNode[] {
+/**
+ * One line of inline markdown from frontmatter (`footer`, syntax.md §3.6), as
+ * HTML. Anything more than a paragraph is shown as the text it is, with a
+ * warning. Local links and images in it are files the page uses.
+ */
+export function inlineMarkdown(text: string, key: string, span: SourceSpan, ctx: DeckContext): HastNode[] {
+  const [first, ...rest] = parseMarkdown(text).children
+  if (first?.type !== 'paragraph' || rest.length) {
+    ctx.diags.warn('frontmatter/type', `\`${key}\` should be one line of inline markdown; it's shown as plain text`, span)
+    return [{ type: 'text', value: text }]
+  }
+  // The paragraph's contents: converted alone, toHast would put line breaks between them.
+  const [p] = toHastContent([first], `${key}-`, [], ctx.lang)
+  const nodes = p?.type === 'element' ? p.children : []
+  const walk = (list: HastNode[]) => {
+    for (const n of list) {
+      if (n.type !== 'element') continue
+      for (const url of [n.properties.href, n.properties.src]) {
+        const a = typeof url === 'string' ? pageAsset(url, span) : undefined
+        if (a) ctx.assets.push(a)
+      }
+      walk(n.children)
+    }
+  }
+  walk(nodes)
+  return nodes
+}
+
+function toHastContent(nodes: RootContent[], clobberPrefix: string, propTable: Array<Record<string, unknown>>, lang: string): HastNode[] {
+  const words = strings(lang).deck
   const tree = toHast({ type: 'root', children: nodes } as Root, {
     allowDangerousHtml: true,
     clobberPrefix,
+    // Screen readers read these out, so they're in the deck's language.
+    footnoteLabel: words.footnotes,
+    footnoteBackLabel: (ref, again) => fill(words.backToReference, { ref: `${ref + 1}${again > 1 ? `-${again}` : ''}` }),
   }) as HastRoot
   applyProps(tree, undefined, propTable)
   return clean(tree.children).filter((n): n is ElementContent => n.type !== 'doctype')
+}
+
+/**
+ * `dim-others` dims its siblings (§6.3), which CSS can only do to elements:
+ * bare text beside it (`The [point]{.dim-others @1} of it`) is wrapped in a
+ * plain `<span>` so it dims too.
+ */
+function dimText(nodes: HastNode[], anims: AnimSpec[]): HastNode[] {
+  const visit = (list: HastNode[]) => {
+    const dims = list.some((n) => n.type === 'element' && anims[Number(n.properties.dataBlitzAnim ?? -1)]?.effect === 'dim-others')
+    list.forEach((n, i) => {
+      if (dims && n.type === 'text' && n.value.trim()) list[i] = { type: 'element', tagName: 'span', properties: {}, children: [n] }
+      else if (n.type === 'element') visit(n.children)
+    })
+  }
+  visit(nodes)
+  return nodes
 }
 
 /** Merge the side table of blitz properties into hast (className appends). */

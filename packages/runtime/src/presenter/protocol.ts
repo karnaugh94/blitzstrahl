@@ -20,7 +20,7 @@ export type PresenterMsg =
    * "I'm here": sent on start and as a heartbeat. The deck answers with
    * `state`, and with the drawing so far (an `ink` sync) if `sync` asks.
    */
-  | { type: 'hello'; role: 'deck' | 'presenter' | 'mirror'; sync?: boolean }
+  | { type: 'hello'; role: 'deck' | 'presenter' | 'mirror' | 'remote'; sync?: boolean }
   | { type: 'state'; slide: number; step: number; blackout: boolean; timer: TimerState }
   | { type: 'goto'; slide: number; step: number }
   | { type: 'advance' }
@@ -34,6 +34,15 @@ export type PresenterMsg =
   | { type: 'ink'; event: InkEvent }
   /** The sender is going away (unload). */
   | { type: 'bye' }
+
+/**
+ * What a phone remote may ask of the deck (presenting.md, *A phone as the
+ * remote*): turn slides and start or pause the timer. `present`'s server
+ * and the deck both hold it to this.
+ */
+export function remoteMayAsk(m: PresenterMsg): boolean {
+  return m.type === 'hello' || m.type === 'advance' || m.type === 'retreat' || (m.type === 'timer' && m.action !== 'reset')
+}
 
 /** Envelope tag: ignore every message without it. Bump on incompatible change. */
 export const PROTOCOL = 'blitzstrahl/presenter@1'

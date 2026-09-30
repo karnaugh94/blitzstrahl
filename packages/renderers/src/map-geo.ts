@@ -4,7 +4,9 @@
  * GeoJSON. Pure (no ECharts, no DOM), so it's unit-tested directly and
  * `check` can validate specs without a browser.
  */
-import { parseDelimited, rowsFrom, type Row } from './data.js'
+import { THOUSANDS, type Thousands } from '@blitzstrahl/core/numbers'
+import { keyProblem, type KeyRule, type KeyTable, type Schema } from '@blitzstrahl/core/schema'
+import { DELIMITERS, delimiterOf, parseDelimited, rowsFrom, type DataOptions, type Row } from './data.js'
 
 /** Web mercator's limit: the square world stops here. */
 const MAX_LAT = 85.0511287798
@@ -33,6 +35,10 @@ export interface MapSpec {
   attribution?: string
   /** Pan and zoom with the pointer. */
   roam?: boolean
+  /** How `markers` data groups thousands, if not plainly (D3′). */
+  thousands?: Thousands
+  /** What separates a `markers` CSV's cells, when its header doesn't say. */
+  delimiter?: string
 }
 
 export const OSM_TILES = 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'
@@ -58,7 +64,7 @@ export const isUrl = (s: string): boolean => /^https?:\/\//i.test(s)
  * is recognised by its content, since a URL often has no extension (an
  * ArcGIS `query?f=geojson`); anything else is CSV, or TSV by extension.
  */
-export function markersFromText(src: string, text: string, label?: string, size?: string): Marker[] {
+export function markersFromText(src: string, text: string, label?: string, size?: string, data: DataOptions = {}): Marker[] {
   const t = text.trimStart()
   if (t.startsWith('{') || t.startsWith('[')) {
     let value: unknown
@@ -71,42 +77,59 @@ export function markersFromText(src: string, text: string, label?: string, size?
     return markersFromGeoJson(asFeatureCollection(value, '`markers`'), label, size)
   }
   const tsv = /\.tsv$/i.test(src.replace(/[?#].*$/, ''))
-  return markersFromRows(parseDelimited(text, tsv ? '\t' : ','), label, size)
+  return markersFromRows(parseDelimited(text, data.delimiter ?? (tsv ? '\t' : delimiterOf(text)), data.read, `\`${src}\``), label, size)
 }
 
-const KEYS = new Set(['center', 'zoom', 'markers', 'regions', 'label', 'size', 'value', 'labels', 'tiles', 'attribution', 'roam'])
+const TEXT: KeyRule = { schema: { type: 'string' }, message: 'must be text' }
+const BOOL: KeyRule = { schema: { type: 'boolean' }, message: 'must be true or false' }
+
+/** Every key a map takes (docs/renderers/map.md), and what each may hold (schema.ts). */
+export const MAP_SCHEMA: KeyTable = {
+  center: {
+    schema: { type: 'array', prefixItems: [{ type: 'number', minimum: -90, maximum: 90 }, { type: 'number', minimum: -180, maximum: 180 }], minItems: 2, maxItems: 2 },
+    message: 'must be `[latitude, longitude]`, e.g. [41.38, 2.17]',
+  },
+  zoom: { schema: { type: 'number', minimum: 0, maximum: MAX_ZOOM }, message: `must be a number from 0 (the world) to ${MAX_ZOOM} (a building)` },
+  markers: {
+    schema: { anyOf: [{ type: 'string' }, { type: 'array' }] },
+    message: 'must be a ./file (GeoJSON, CSV) or an https:// URL, or a list of { lat, lng }',
+  },
+  regions: { schema: { type: 'string' }, message: 'must be a ./file.geojson or an https:// URL' },
+  label: TEXT,
+  size: TEXT,
+  value: TEXT,
+  labels: BOOL,
+  tiles: {
+    schema: { anyOf: [{ enum: ['none', ...Object.keys(TILE_PRESETS)] }, { type: 'string', pattern: '\\{z\\}' }] },
+    message: `must be a URL template with {z}, {x} and {y}, a provider (${Object.keys(TILE_PRESETS).join(', ')}), or \`none\``,
+  },
+  attribution: TEXT,
+  roam: BOOL,
+  thousands: { schema: { enum: THOUSANDS }, message: 'must be one of ",", ".", " "' },
+  delimiter: { schema: { enum: DELIMITERS }, message: 'must be one of ",", ";", "\\t"' },
+}
+
+/** What `validate` checks across keys, as JSON Schema: the generated schema's top level. */
+export const MAP_RULES: Schema = {
+  dependentRequired: { value: ['regions'], size: ['markers'] },
+  anyOf: [{ required: ['center'] }, { required: ['markers'] }, { required: ['regions'] }],
+}
 
 export function validate(spec: unknown): MapSpec {
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('the block must be a YAML mapping')
   const s = spec as Record<string, unknown>
-  for (const k of Object.keys(s)) if (!KEYS.has(k)) throw new Error(`unknown key \`${k}\``)
-  if (s.center !== undefined) {
-    const c = s.center
-    if (!Array.isArray(c) || c.length !== 2 || !c.every((v) => typeof v === 'number' && Number.isFinite(v))) {
-      throw new Error('`center` must be `[latitude, longitude]`, e.g. [41.38, 2.17]')
-    }
-    if (Math.abs(c[0]) > 90 || Math.abs(c[1]) > 180) {
-      throw new Error(`\`center\` [${c.join(', ')}] is off the globe: latitude comes first, then longitude`)
-    }
+  for (const k of Object.keys(s)) if (!Object.hasOwn(MAP_SCHEMA, k)) throw new Error(`unknown key \`${k}\``)
+  const c = s.center
+  // Swapped coordinates get their own message: the table's would only say what's wanted.
+  if (Array.isArray(c) && c.length === 2 && c.every((v) => typeof v === 'number' && Number.isFinite(v)) && (Math.abs(c[0]) > 90 || Math.abs(c[1]) > 180)) {
+    throw new Error(`\`center\` [${c.join(', ')}] is off the globe: latitude comes first, then longitude`)
   }
-  if (s.zoom !== undefined && !(typeof s.zoom === 'number' && s.zoom >= 0 && s.zoom <= MAX_ZOOM)) {
-    throw new Error(`\`zoom\` must be a number from 0 (the world) to ${MAX_ZOOM} (a building)`)
-  }
-  if (s.markers !== undefined && typeof s.markers !== 'string' && !Array.isArray(s.markers)) {
-    throw new Error('`markers` must be a ./file (GeoJSON, CSV) or an https:// URL, or a list of { lat, lng }')
-  }
-  if (s.regions !== undefined && typeof s.regions !== 'string') throw new Error('`regions` must be a ./file.geojson or an https:// URL')
-  for (const k of ['label', 'size', 'value', 'tiles', 'attribution'] as const) {
-    if (s[k] !== undefined && typeof s[k] !== 'string') throw new Error(`\`${k}\` must be text`)
-  }
-  for (const k of ['labels', 'roam'] as const) {
-    if (s[k] !== undefined && typeof s[k] !== 'boolean') throw new Error(`\`${k}\` must be true or false`)
+  for (const [k, v] of Object.entries(s)) {
+    const problem = keyProblem(MAP_SCHEMA, k, v)
+    if (problem) throw new Error(problem)
   }
   if (s.value !== undefined && s.regions === undefined) throw new Error('`value` colours `regions`: add a regions file')
   if (s.size !== undefined && s.markers === undefined) throw new Error('`size` sizes `markers`: add markers')
-  if (typeof s.tiles === 'string' && s.tiles !== 'none' && !Object.hasOwn(TILE_PRESETS, s.tiles) && !/\{z\}/.test(s.tiles)) {
-    throw new Error(`\`tiles\` must be a URL template with {z}, {x} and {y}, a provider (${Object.keys(TILE_PRESETS).join(', ')}), or \`none\``)
-  }
   if (s.center === undefined && s.markers === undefined && s.regions === undefined) {
     throw new Error('say where: give `center` and `zoom`, or `markers` or `regions` to fit the map to')
   }
@@ -176,8 +199,17 @@ export interface Tile {
 }
 
 /** The tiles that cover a `width`×`height` box, and where each goes. */
-export function tilesFor(p: Placement, width: number, height: number, template: string): Tile[] {
-  const z = Math.max(0, Math.min(MAX_ZOOM, Math.round(Math.log2(p.scale))))
+/**
+ * The tiles that cover the map, at the zoom that's sharp where it's shown.
+ * `density` is screen pixels per canvas pixel (the canvas's CSS scale ×
+ * `devicePixelRatio`): a projector or a 2× screen gets the next zoom level
+ * rather than stretched tiles. `{r}` in a template (Leaflet's convention)
+ * becomes `@2x` on a dense screen, for providers with 512px tiles.
+ */
+export function tilesFor(p: Placement, width: number, height: number, template: string, density = 1): Tile[] {
+  const retina = template.includes('{r}') && density >= 1.5
+  // A 512px tile covers twice the screen pixels of a 256px one at the same zoom.
+  const z = Math.max(0, Math.min(MAX_ZOOM, Math.round(Math.log2((p.scale * density) / (retina ? 2 : 1)))))
   const n = 2 ** z
   const size = (WORLD / n) * p.scale
   const tx0 = Math.floor(-p.dx / size)
@@ -193,6 +225,7 @@ export function tilesFor(p: Placement, width: number, height: number, template: 
         .replace('{x}', String(x))
         .replace('{y}', String(ty))
         .replace('{s}', 'abc'[(x + ty) % 3]!)
+        .replace('{r}', retina ? '@2x' : '')
       out.push({ key: `${z}/${tx}/${ty}`, url, left: p.dx + tx * size, top: p.dy + ty * size, size })
     }
   }

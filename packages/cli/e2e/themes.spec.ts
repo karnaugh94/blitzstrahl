@@ -24,7 +24,7 @@ function themed(example: string, theme: string): string {
 }
 
 for (const theme of ['aurora', 'broadsheet']) {
-  for (const example of ['layouts', 'palette', 'auto-animate', 'editorial']) {
+  for (const example of ['layouts', 'palette', 'auto-animate', 'editorial', 'european']) {
     test(`${example} fits every slide in ${theme}`, async () => {
       test.setTimeout(120_000)
       const outDir = mkdtempSync(join(tmpdir(), 'blitz-themes-out-'))
@@ -60,4 +60,26 @@ test('broadsheet inlines its fonts into a standalone file', async ({ page }) => 
   expect(readFileSync(outFile, 'utf8')).toContain('font-family: "Newsreader"; src: url("data:font/woff2;base64,')
   await page.goto(pathToFileURL(outFile).href)
   await newsreader(page)
+})
+
+test('broadsheet sets Central European text in Newsreader, upright and italic', async ({ page }) => {
+  const dir = mkdtempSync(join(tmpdir(), 'blitz-latin-ext-'))
+  const deck = join(dir, 'talk.md')
+  writeFileSync(deck, '---\ntheme: broadsheet\n---\n\n# Zażółć gęślą jaźń\n\nPříliš *žluťoučký kůň* úpěl ďábelské ódy. Árvíztűrő tükörfúrógép.\n')
+  const { url, server } = await buildAndServe(deck)
+  try {
+    await page.goto(url)
+    await page.waitForFunction(() => window.blitz)
+    // 1.0 shipped Latin-1 only: these letters fell back to another font, mid-word.
+    const ext = await page.evaluate(async () => {
+      await document.fonts.ready
+      return [...document.fonts]
+        .filter((f) => f.family.replace(/"/g, '') === 'Newsreader' && f.unicodeRange.includes('U+100-2BA'))
+        .map((f) => `${f.style} ${f.status}`)
+        .sort()
+    })
+    expect(ext).toEqual(['italic loaded', 'normal loaded'])
+  } finally {
+    server.close()
+  }
 })

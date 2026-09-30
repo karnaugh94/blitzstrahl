@@ -1,0 +1,7 @@
+{
+  "name": "blitzstrahl-integration",
+  "publisher": "test",
+  "version": "0.0.0",
+  "private": true,
+  "engines": { "vscode": "^1.101.0" }
+}

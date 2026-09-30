@@ -48,6 +48,9 @@ const GALLERY = [
   ['auto-animate', 'deck.md', 'Elements that glide between slides, and code that morphs.'],
   ['layouts', 'deck.md', 'All twelve built-in layouts.'],
   ['editorial', 'deck.md', 'An annual report in the light, editorial broadsheet theme.'],
+  ['european', 'deck.md', 'Polish, Czech, Greek and Bulgarian text, German numbers: a deck in the languages of Europe.'],
+  ['corporate', 'deck.md', 'A transit authority\'s report, in a theme imported from its PowerPoint template, with a footer, numbers and a logo.'],
+  ['components', 'deck.md', 'Steps, a timeline, a flow, chevrons, before and after, cards and stats, from plain markdown with `as=` and no CSS.'],
 ]
 
 rmSync(out, { recursive: true, force: true })

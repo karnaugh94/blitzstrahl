@@ -1,0 +1,54 @@
+/**
+ * The fonts the built-in themes ship (PLAN §15, M7.1): Fontsource's variable
+ * builds (5.3.0), weight axis only, split by script with Fontsource's own
+ * ranges, so a browser downloads only the scripts a slide uses and a
+ * standalone file carries only those (cli `standaloneFonts`). OFL; the
+ * licences are beside the files. Generated from the packages' unicode.json.
+ */
+import type { ThemeFont } from './theme.js'
+
+/**
+ * Inter: latin, latin-ext, greek, cyrillic, vietnamese; upright and italic.
+ * Plus `symbols`, which isn't Fontsource's: arrows (→), ≠ ≤ ≥, ✓ and the
+ * rest of what Inter draws in U+2000–2BFF that no other subset has, cut
+ * from Inter 4.1 (npm inter-ui) by scripts/inter-symbols.py, weight axis
+ * only, like the others (M8).
+ */
+export const INTER: ThemeFont[] = [
+  { family: 'Inter', src: '../fonts/inter-latin-wght-normal.woff2', weight: '100 900', unicodeRange: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' },
+  { family: 'Inter', src: '../fonts/inter-latin-wght-italic.woff2', weight: '100 900', style: 'italic', unicodeRange: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' },
+  { family: 'Inter', src: '../fonts/inter-latin-ext-wght-normal.woff2', weight: '100 900', unicodeRange: 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF' },
+  { family: 'Inter', src: '../fonts/inter-latin-ext-wght-italic.woff2', weight: '100 900', style: 'italic', unicodeRange: 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF' },
+  { family: 'Inter', src: '../fonts/inter-greek-wght-normal.woff2', weight: '100 900', unicodeRange: 'U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF' },
+  { family: 'Inter', src: '../fonts/inter-greek-wght-italic.woff2', weight: '100 900', style: 'italic', unicodeRange: 'U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF' },
+  { family: 'Inter', src: '../fonts/inter-cyrillic-wght-normal.woff2', weight: '100 900', unicodeRange: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' },
+  { family: 'Inter', src: '../fonts/inter-cyrillic-wght-italic.woff2', weight: '100 900', style: 'italic', unicodeRange: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' },
+  { family: 'Inter', src: '../fonts/inter-vietnamese-wght-normal.woff2', weight: '100 900', unicodeRange: 'U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB' },
+  { family: 'Inter', src: '../fonts/inter-vietnamese-wght-italic.woff2', weight: '100 900', style: 'italic', unicodeRange: 'U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB' },
+  { family: 'Inter', src: '../fonts/inter-symbols-wght-normal.woff2', weight: '100 900', unicodeRange: 'U+2070-2071,U+2074-208E,U+2090-209C,U+20DB-20DE,U+20E8,U+20F0,U+2100-2101,U+2103,U+2105-2106,U+2109,U+2117,U+211E-2121,U+2126,U+212A-212B,U+212E,U+2132,U+213B,U+214D,U+2150-217F,U+2183-2186,U+2189,U+2190,U+2192,U+2194-2199,U+21A9-21AA,U+21B0-21B1,U+21B3-21B5,U+21BA-21BB,U+21D0,U+21D2,U+21D4,U+21DE-21DF,U+21E4-21E5,U+21E7,U+21EA,U+2202,U+2205-2206,U+220F,U+2211,U+221A,U+221E,U+222B,U+2236,U+2248,U+2260,U+2264-2265,U+2295-2298,U+2303-2305,U+2318,U+2325-2327,U+232B,U+2380,U+2387,U+238B,U+23CE-23CF,U+2423,U+2460-2468,U+24B6-24CF,U+24EA,U+25A0-25A2,U+25AA,U+25B2-25B3,U+25B6-25B7,U+25BA-25BD,U+25C0-25C1,U+25C4-25C7,U+25CA-25CB,U+25CF,U+25E6,U+25EF,U+2600,U+2605-2606,U+263C,U+2661,U+2665,U+266A-266B,U+26A0,U+2713,U+2717,U+2756,U+2764,U+2780-2788,U+27EF,U+27F5-27FA,U+2913,U+2A38,U+2B06,U+2B12-2B13,U+2B1C,U+2B24' },
+  { family: 'Inter', src: '../fonts/inter-symbols-wght-italic.woff2', weight: '100 900', style: 'italic', unicodeRange: 'U+2070-2071,U+2074-208E,U+2090-209C,U+20DB-20DE,U+20E8,U+20F0,U+2100-2101,U+2103,U+2105-2106,U+2109,U+2117,U+211E-2121,U+2126,U+212A-212B,U+212E,U+2132,U+213B,U+214D,U+2150-217F,U+2183-2186,U+2189,U+2190,U+2192,U+2194-2199,U+21A9-21AA,U+21B0-21B1,U+21B3-21B5,U+21BA-21BB,U+21D0,U+21D2,U+21D4,U+21DE-21DF,U+21E4-21E5,U+21E7,U+21EA,U+2202,U+2205-2206,U+220F,U+2211,U+221A,U+221E,U+222B,U+2236,U+2248,U+2260,U+2264-2265,U+2295-2298,U+2303-2305,U+2318,U+2325-2327,U+232B,U+2380,U+2387,U+238B,U+23CE-23CF,U+2423,U+2460-2468,U+24B6-24CF,U+24EA,U+25A0-25A2,U+25AA,U+25B2-25B3,U+25B6-25B7,U+25BA-25BD,U+25C0-25C1,U+25C4-25C7,U+25CA-25CB,U+25CF,U+25E6,U+25EF,U+2600,U+2605-2606,U+263C,U+2661,U+2665,U+266A-266B,U+26A0,U+2713,U+2717,U+2756,U+2764,U+2780-2788,U+27EF,U+27F5-27FA,U+2913,U+2A38,U+2B06,U+2B12-2B13,U+2B1C,U+2B24' },
+]
+
+/** JetBrains Mono: latin, latin-ext, greek, cyrillic, vietnamese; upright and italic. */
+export const JETBRAINS_MONO: ThemeFont[] = [
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-latin-wght-normal.woff2', weight: '100 800', unicodeRange: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' },
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-latin-wght-italic.woff2', weight: '100 800', style: 'italic', unicodeRange: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' },
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-latin-ext-wght-normal.woff2', weight: '100 800', unicodeRange: 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF' },
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-latin-ext-wght-italic.woff2', weight: '100 800', style: 'italic', unicodeRange: 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF' },
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-greek-wght-normal.woff2', weight: '100 800', unicodeRange: 'U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF' },
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-greek-wght-italic.woff2', weight: '100 800', style: 'italic', unicodeRange: 'U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF' },
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-cyrillic-wght-normal.woff2', weight: '100 800', unicodeRange: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' },
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-cyrillic-wght-italic.woff2', weight: '100 800', style: 'italic', unicodeRange: 'U+0301,U+0400-045F,U+0490-0491,U+04B0-04B1,U+2116' },
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-vietnamese-wght-normal.woff2', weight: '100 800', unicodeRange: 'U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB' },
+  { family: 'JetBrains Mono', src: '../fonts/jetbrains-mono-vietnamese-wght-italic.woff2', weight: '100 800', style: 'italic', unicodeRange: 'U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB' },
+]
+
+/** Newsreader: latin, latin-ext, vietnamese; upright and italic. */
+export const NEWSREADER: ThemeFont[] = [
+  { family: 'Newsreader', src: '../fonts/newsreader-latin-wght-normal.woff2', weight: '200 800', unicodeRange: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' },
+  { family: 'Newsreader', src: '../fonts/newsreader-latin-wght-italic.woff2', weight: '200 800', style: 'italic', unicodeRange: 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD' },
+  { family: 'Newsreader', src: '../fonts/newsreader-latin-ext-wght-normal.woff2', weight: '200 800', unicodeRange: 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF' },
+  { family: 'Newsreader', src: '../fonts/newsreader-latin-ext-wght-italic.woff2', weight: '200 800', style: 'italic', unicodeRange: 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF' },
+  { family: 'Newsreader', src: '../fonts/newsreader-vietnamese-wght-normal.woff2', weight: '200 800', unicodeRange: 'U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB' },
+  { family: 'Newsreader', src: '../fonts/newsreader-vietnamese-wght-italic.woff2', weight: '200 800', style: 'italic', unicodeRange: 'U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB' },
+]

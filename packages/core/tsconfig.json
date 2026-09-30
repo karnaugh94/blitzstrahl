@@ -4,8 +4,9 @@
     "rootDir": "src",
     "outDir": "dist",
     "lib": ["ES2023"],
-    "types": []
+    "types": [],
+    "resolveJsonModule": true
   },
-  "include": ["src"],
+  "include": ["src", "src/**/*.json"],
   "references": []
 }

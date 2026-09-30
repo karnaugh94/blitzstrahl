@@ -114,6 +114,14 @@ describe('plugins', () => {
     expect(l.diagnostics.map((d) => d.message)).toEqual(['plugin `./b.js`: effect `wobble` is already registered by plugin `a`'])
   })
 
+  it("can't register a built-in deck key", async () => {
+    const l = await load({
+      'deck.md': '---\nplugins: [./p.js]\n---\n\n# S\n',
+      'p.js': "export default { name: 'p', frontmatter: { duration: {}, 'poll-endpoint': {} } }\n",
+    })
+    expect(l.diagnostics.map((d) => d.message)).toEqual(['plugin `./p.js`: frontmatter key `duration` is built in'])
+  })
+
   it('falls back to aurora for a theme that is missing or incomplete', async () => {
     const missing = await load({ 'deck.md': '---\ntheme: nope\n---\n\n# S\n' })
     expect(missing.diagnostics.map((d) => [d.code, d.span.start.line])).toEqual([['theme/load', 2]])

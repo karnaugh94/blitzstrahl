@@ -1,0 +1,163 @@
+{
+  "name": "blitzstrahl",
+  "displayName": "blitzstrahl",
+  "description": "Preview, check and present blitzstrahl slide decks written in Markdown",
+  "version": "0.1.0",
+  "publisher": "karnaugh94",
+  "license": "EUPL-1.2",
+  "private": true,
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/karnaugh94/blitzstrahl"
+  },
+  "engines": {
+    "vscode": "^1.101.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets",
+    "Linters",
+    "Other"
+  ],
+  "keywords": [
+    "slides",
+    "presentation",
+    "markdown",
+    "deck",
+    "blitzstrahl"
+  ],
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onLanguage:markdown"
+  ],
+  "contributes": {
+    "commands": [
+      {
+        "command": "blitzstrahl.preview",
+        "title": "Preview Deck",
+        "category": "blitzstrahl",
+        "icon": "$(zap)"
+      },
+      {
+        "command": "blitzstrahl.openInBrowser",
+        "title": "Open in Browser",
+        "category": "blitzstrahl",
+        "icon": "$(globe)"
+      },
+      {
+        "command": "blitzstrahl.check",
+        "title": "Check",
+        "category": "blitzstrahl"
+      },
+      {
+        "command": "blitzstrahl.present",
+        "title": "Present",
+        "category": "blitzstrahl"
+      },
+      {
+        "command": "blitzstrahl.exportPdf",
+        "title": "Export PDF",
+        "category": "blitzstrahl"
+      }
+    ],
+    "menus": {
+      "editor/title": [
+        {
+          "command": "blitzstrahl.preview",
+          "when": "blitzstrahl.isDeck",
+          "group": "navigation"
+        },
+        {
+          "command": "blitzstrahl.openInBrowser",
+          "when": "activeWebviewPanelId == 'blitzstrahl.preview'",
+          "group": "navigation"
+        }
+      ],
+      "commandPalette": [
+        {
+          "command": "blitzstrahl.preview",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "blitzstrahl.check",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "blitzstrahl.present",
+          "when": "editorLangId == markdown"
+        },
+        {
+          "command": "blitzstrahl.exportPdf",
+          "when": "editorLangId == markdown"
+        }
+      ]
+    },
+    "snippets": [
+      {
+        "language": "markdown",
+        "path": "./snippets/markdown.json"
+      }
+    ],
+    "configuration": {
+      "title": "blitzstrahl",
+      "properties": {
+        "blitzstrahl.check": {
+          "type": "string",
+          "enum": [
+            "onSave",
+            "onType",
+            "off"
+          ],
+          "default": "onSave",
+          "enumDescriptions": [
+            "Check a deck when it's opened and saved",
+            "Also check half a second after you stop typing, on the unsaved text",
+            "Don't check"
+          ],
+          "markdownDescription": "When to run `blitzstrahl check --offline` on a deck (a markdown file whose frontmatter has `blitzstrahl:`)."
+        },
+        "blitzstrahl.preview.followCursor": {
+          "type": "boolean",
+          "default": true,
+          "description": "The preview shows the slide the cursor is in."
+        },
+        "blitzstrahl.preview.where": {
+          "type": "string",
+          "enum": [
+            "beside",
+            "browser"
+          ],
+          "default": "beside",
+          "enumDescriptions": [
+            "A panel next to the markdown",
+            "Your default browser (the cursor isn't followed there)"
+          ],
+          "description": "Where the preview opens."
+        },
+        "blitzstrahl.cliPath": {
+          "type": "string",
+          "default": "",
+          "scope": "resource",
+          "markdownDescription": "blitzstrahl's `bin.js`, if it isn't in `node_modules/blitzstrahl` in the deck's folder or above. Relative to the deck's folder."
+        },
+        "blitzstrahl.nodePath": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "markdownDescription": "The Node (22 or later) that runs blitzstrahl. Empty: the one inside VS Code."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p . && node build.mjs",
+    "vsix": "pnpm build && vsce package --no-dependencies --out ../../.pack/"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.4",
+    "@types/vscode": "~1.101.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.28.2"
+  }
+}

@@ -1,3 +1,4 @@
+import { componentCss } from './components.js'
 import { layoutCss } from './layouts.js'
 
 /**
@@ -31,6 +32,12 @@ export interface ThemeFont {
   weight?: string | number
   /** CSS `font-style`. Default `normal`. */
   style?: string
+  /**
+   * CSS `unicode-range`: the characters this file covers, when a family
+   * comes in subsets (docs/plugins.md §3.2). Standalone files carry only
+   * the subsets their text uses. Default: every character. *(1.1)*
+   */
+  unicodeRange?: string
 }
 
 export interface Theme extends ThemeDefinition {
@@ -82,6 +89,11 @@ export const TOKEN_DEFAULTS: Readonly<Record<string, string>> = {
   'transition-dur': '550ms',
   'code-foreground': 'var(--blitz-fg)',
   'map-tiles': 'none',
+  // Components (1.1)
+  'marker': 'var(--blitz-accent-2)',
+  'marker-fg': 'var(--blitz-bg)',
+  'connector': 'var(--blitz-rule)',
+  'accent-fg': 'var(--blitz-bg)',
 }
 
 export const CODE_TOKENS: readonly string[] = [
@@ -104,13 +116,37 @@ const baseCss = /* css */ `
   background-color: var(--blitz-bg);
   font: 400 var(--blitz-text)/1.45 var(--blitz-font-sans);
 }
+/* Links in the link token, as docs/themes.md says; any theme rule wins. */
+:where(.blitz-slide) a { color: var(--blitz-link); }
 /* Render blocks have no intrinsic size: ECharts, maps and embeds fill the box they're given. */
 .blitz-slide [data-blitz-block] { width: 100%; height: var(--blitz-block-height); flex: none; }
+/* Video and audio (syntax.md §13): no wider than their column, like images. */
+:where(.blitz-slide) video { max-width: 100%; max-height: 100%; border-radius: var(--blitz-radius); background: #000; }
+:where(.blitz-slide) audio { width: min(100%, 640px); }
+
+/*
+ * Utility classes every theme has (docs/themes.md, syntax.md §5.2). Zero
+ * specificity: any theme rule wins, even an element rule. The built-in
+ * themes restate them as .blitz-slide .x, so they beat the theme's own h3 etc.
+ */
+:where(.blitz-slide .columns) { display: flex; gap: 48px; align-items: flex-start; }
+:where(.blitz-slide .columns > *) { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: var(--blitz-gap); }
+:where(.blitz-slide .callout) {
+  padding: 20px 26px; border-radius: var(--blitz-radius);
+  background: color-mix(in srgb, var(--blitz-accent) 8%, var(--blitz-surface));
+  border-left: 4px solid var(--blitz-accent);
+}
+:where(.blitz-slide .muted) { color: var(--blitz-fg-muted); }
+:where(.blitz-slide .accent) { color: var(--blitz-accent); }
+:where(.blitz-slide .small) { font-size: var(--blitz-text-small); }
+:where(.blitz-slide .big) { font-size: 1.6em; }
+:where(.blitz-slide .center) { text-align: center; align-self: center; }
+:where(.blitz-slide table.zebra tbody tr:nth-child(odd)) { background: color-mix(in srgb, var(--blitz-fg) 6%, transparent); }
 `
 
 export function defineTheme(def: ThemeDefinition): Theme {
   const vars = Object.entries({ ...TOKEN_DEFAULTS, ...def.tokens })
     .map(([k, v]) => `  --blitz-${k}: ${v};`)
     .join('\n')
-  return { ...def, stylesheet: `:root {\n${vars}\n}\n${layoutCss}\n${baseCss}\n${def.css}` }
+  return { ...def, stylesheet: `:root {\n${vars}\n}\n${layoutCss}\n${baseCss}\n${componentCss}\n${def.css}` }
 }

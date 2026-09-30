@@ -1,6 +1,6 @@
 {
   "name": "@blitzstrahl/runtime",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "exports": {
@@ -12,9 +12,25 @@
       "types": "./dist/css.d.ts",
       "default": "./dist/css.js"
     },
+    "./dev-panel": {
+      "types": "./dist/dev-panel.d.ts",
+      "default": "./dist/dev-panel.js"
+    },
     "./overflow-report": {
       "types": "./dist/overflow-report.d.ts",
       "default": "./dist/overflow-report.js"
+    },
+    "./remote-link": {
+      "types": "./dist/remote-link.d.ts",
+      "default": "./dist/remote-link.js"
+    },
+    "./protocol": {
+      "types": "./dist/presenter/protocol.d.ts",
+      "default": "./dist/presenter/protocol.js"
+    },
+    "./remote": {
+      "types": "./dist/remote.d.ts",
+      "default": "./dist/remote.js"
     }
   },
   "files": [

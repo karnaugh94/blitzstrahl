@@ -3,13 +3,15 @@
  * exist, inline data files, highlight code, render math.
  * The only place the CLI touches the deck's files.
  */
-import { existsSync } from 'node:fs'
+import { existsSync, statSync } from 'node:fs'
 import { readFile } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
-import { EFFECTS, parseDeck, type Deck, type Diagnostic, type Extensions, type PayloadPlugins } from '@blitzstrahl/core'
-import { loadExtras, pluginCss, pluginPayload, toExtensions, type Extras } from './extend.js'
+import { EFFECTS, parseDeck, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
+import { mermaidProblem, specNotes, specProblem } from '@blitzstrahl/renderers/specs'
+import { allCss, loadExtras, pluginCss, pluginPayload, toExtensions, type Extras } from './extend.js'
 import { highlightDeck } from './highlight.js'
 import { renderMath } from './math.js'
+import { VERSION } from './version.js'
 
 export interface LoadedDeck {
   path: string
@@ -28,20 +30,44 @@ export interface LoadedDeck {
   plugins: PayloadPlugins
   /** CSS for plugin effects, after the theme's. */
   css: string
+  /** The `public:` folder, absolute, when the deck names one that's there (syntax.md §3.5). */
+  publicDir?: string
+  /** Where each deck frontmatter key was written. */
+  keySpans: Record<string, SourceSpan>
 }
 
-export async function loadDeck(path: string, displayName = path): Promise<LoadedDeck> {
+export interface LoadOptions {
+  /**
+   * Imports a local theme or plugin module by its file path. Default: Node's
+   * `import()`. `dev` passes Vite's SSR loader, which picks up edits.
+   */
+  importModule?: (file: string) => Promise<unknown>
+  /** The markdown, instead of reading `path` (`check --stdin`: an editor's unsaved text). */
+  source?: string
+}
+
+export async function loadDeck(path: string, displayName = path, options: LoadOptions = {}): Promise<LoadedDeck> {
   const abs = resolve(path)
   const dir = dirname(abs)
-  const source = await readFile(abs, 'utf8')
+  const source = options.source ?? (await readFile(abs, 'utf8'))
   // Parse once to find the theme and plugins, then again knowing what they add.
   const first = parseDeck(source, { file: displayName })
-  const extras = await loadExtras(first.deck, dir, first.keySpans)
+  const extras = await loadExtras(first.deck, dir, first.keySpans, options.importModule)
   const extensions = toExtensions(extras)
-  const css = cssEffects(extras.theme.stylesheet + '\n' + deckStyles(source))
+  const css = cssEffects(allCss(extras) + '\n' + deckStyles(source))
   if (css.length) extensions.effects = { ...Object.fromEntries(css.map((n) => [n, 'entrance' as const])), ...extensions.effects }
   const { deck, diagnostics, keySpans } = hasAny(extensions) ? parseDeck(source, { file: displayName, extensions }) : first
   diagnostics.push(...extras.diagnostics)
+  const wants = deck.meta.blitzstrahl
+  if (wants && newer(wants, VERSION)) {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'deck/newer',
+      message: `the deck is written for blitzstrahl ${wants}, and this is ${VERSION}: what it adds since may be reported as errors. Update blitzstrahl`,
+      file: displayName,
+      span: keySpans.blitzstrahl ?? { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } },
+    })
+  }
   const plugins = pluginPayload(extras, deck, keySpans)
   diagnostics.push(...plugins.diagnostics)
   const inline: Record<string, string> = {}
@@ -65,22 +91,44 @@ export async function loadDeck(path: string, displayName = path): Promise<Loaded
     }
     if (asset.kind === 'data' && !(asset.path in inline)) inline[asset.path] = await readFile(file, 'utf8')
   }
+  // Every render block is checked the way its renderer would read it, built-in
+  // or plugin, so `dev` lists a broken chart and `build` stops for it
+  // (1.0 left built-in blocks to `check`, and shipped the error box).
+  const read = (p: string) => inline[p]
   for (const block of deck.slides.flatMap((s) => s.blocks)) {
+    const at = (severity: Diagnostic['severity'], code: string, message: string) =>
+      diagnostics.push({ severity, code, message: `\`${block.renderer}\` block: ${message}`, file: displayName, span: block.span })
     const r = extras.renderers[block.renderer]
-    if (!r?.check) continue
-    let problem: string | undefined
-    try {
-      problem = await r.check(block.spec, { readData: (p) => inline[p] })
-    } catch (err) {
-      problem = `check failed: ${(err as Error).message}`
+    if (r) {
+      if (!r.check) continue
+      let problem: string | undefined
+      try {
+        problem = await r.check(block.spec, { readData: read })
+      } catch (err) {
+        problem = `check failed: ${(err as Error).message}`
+      }
+      if (problem) at('error', `renderer/${block.renderer}`, problem)
+      continue
     }
-    if (problem) diagnostics.push({ severity: 'error', code: `renderer/${block.renderer}`, message: `\`${block.renderer}\` block: ${problem}`, file: displayName, span: block.span })
+    const problem = block.renderer === 'mermaid' ? await mermaidProblem(block.spec) : specProblem(block.renderer, block.spec, read, deck.meta)
+    if (problem) at('error', `renderer/${block.renderer}`, problem)
+    else for (const note of specNotes(block.renderer, block.spec, read, deck.meta)) at('info', `renderer/${block.renderer}-note`, note)
+  }
+  let publicDir: string | undefined
+  if (deck.meta.public !== undefined) {
+    const folder = resolve(dir, deck.meta.public)
+    if (existsSync(folder) && statSync(folder).isDirectory()) publicDir = folder
+    else diagnostics.push({ severity: 'error', code: 'public/missing', message: `the \`public\` folder isn't there (looked for ${folder})`, file: displayName, span: keySpans.public ?? spanOfDeck })
   }
   diagnostics.push(...(await highlightDeck(deck, source)))
   diagnostics.push(...renderMath(deck, source))
   diagnostics.sort((a, b) => a.span.start.line - b.span.start.line || a.span.start.column - b.span.start.column)
-  return { path: abs, dir, deck, source, diagnostics, inline, files, extras, plugins: plugins.payload, css: pluginCss(extras) }
+  const out: LoadedDeck = { path: abs, dir, deck, source, diagnostics, inline, files, extras, plugins: plugins.payload, css: pluginCss(extras), keySpans }
+  if (publicDir) out.publicDir = publicDir
+  return out
 }
+
+const spanOfDeck: SourceSpan = { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } }
 
 /** The CSS of the deck's own `<style>` elements. */
 export function deckStyles(source: string): string {
@@ -95,4 +143,11 @@ export function cssEffects(css: string): string[] {
 
 function hasAny(e: Extensions): boolean {
   return !!(Object.keys(e.renderers ?? {}).length || Object.keys(e.effects ?? {}).length || e.keys?.length)
+}
+
+/** Whether `wants` (`major.minor`) is a later release than `running` (`1.1.0`). */
+export function newer(wants: string, running: string): boolean {
+  const [a = 0, b = 0] = wants.split('.').map(Number)
+  const [x = 0, y = 0] = running.split('.').map(Number)
+  return a !== x ? a > x : b > y
 }

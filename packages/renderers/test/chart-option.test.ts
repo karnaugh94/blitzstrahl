@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { chartOption, validate } from '../src/chart-option.js'
+import { chartNotes, chartOption, timeAxis, validate } from '../src/chart-option.js'
 
 const ctx = { dur: 600, reducedMotion: false }
 const rows = [
@@ -71,8 +71,100 @@ describe('chart spec', () => {
     expect(() => chartOption(validate({ type: 'bar', data: big }), big, { ...ctx, locale: 'not a tag!' })).not.toThrow()
   })
 
+  it('bar and line sum a category that repeats, as pie does, and say so', () => {
+    const o = chartOption(validate({ type: 'bar', data: rows, x: 'region', y: 'revenue' }), rows, ctx)
+    expect(series(o)[0]!.data).toEqual([9, 6]) // North 4 + 5; 1.0 showed 4
+    expect(chartNotes(validate({ type: 'bar', data: rows, x: 'region', y: 'revenue' }), rows)).toEqual([
+      '`region` repeats (North is on 2 rows), so each category shows the sum of its rows; set `series` to split them, or `aggregate` to say how to combine them',
+    ])
+    expect(chartNotes(validate({ type: 'bar', data: rows, x: 'region', y: 'revenue', aggregate: 'sum' }), rows)).toEqual([])
+    expect(chartNotes(validate({ type: 'bar', data: rows, x: 'region', y: 'revenue', series: 'q' }), rows)).toEqual([])
+    expect(chartNotes(validate({ type: 'pie', data: rows, x: 'region', y: 'revenue' }), rows)).toEqual([])
+  })
+
+  it('horizontal bars run top to bottom in data order', () => {
+    const o = chartOption(validate({ type: 'bar', horizontal: true, data: rows, x: 'q', y: 'units' }), rows, ctx)
+    expect(o.yAxis).toMatchObject({ type: 'category', data: ['Q1', 'Q2'], inverse: true })
+    const v = chartOption(validate({ type: 'bar', data: rows, x: 'q', y: 'units' }), rows, ctx)
+    expect((v.xAxis as { inverse?: boolean }).inverse).toBeUndefined()
+  })
+
   it('bar and line are unchanged: one series per numeric column', () => {
     const o = chartOption(validate({ type: 'bar', data: rows, x: 'q' }), rows, ctx)
     expect(series(o).map((s) => s.name)).toEqual(['revenue', 'units', 'share'])
+  })
+
+  it('checks the 1.1 keys: which charts they fit, and their values', () => {
+    expect(() => validate({ type: 'scatter', data: './x.csv', time: true })).toThrow('`time` applies to bar and line charts')
+    expect(() => validate({ type: 'line', data: './x.csv', sort: 'asc' })).toThrow('`sort` applies to bar and pie charts')
+    expect(() => validate({ type: 'scatter', data: './x.csv', aggregate: 'sum' })).toThrow('`aggregate` applies to bar, line and pie')
+    expect(() => validate({ type: 'bar', data: './x.csv', aggregate: 'median' })).toThrow('`aggregate` must be one of sum, mean, min, max, count')
+    expect(() => validate({ type: 'bar', data: './x.csv', thousands: "'" })).toThrow('`thousands` must be one of ",", ".", " "')
+    expect(() => validate({ type: 'bar', data: './x.csv', delimiter: '|' })).toThrow('`delimiter` must be one of')
+    expect(() => validate({ type: 'bar', data: './x.csv', format: '#,##0' })).toThrow('`format` must be')
+    expect(() => validate({ type: 'bar', data: './x.csv', time: true, sort: 'asc' })).toThrow('date order')
+    for (const format of ['0', '0.0', '0.000', '0%', '0.0%', 'compact']) expect(() => validate({ type: 'bar', data: './x.csv', format })).not.toThrow()
+  })
+
+  it('format, prefix and suffix write every number, in the deck language', () => {
+    const d = [{ k: 'a', v: 0.425 }]
+    const fmt = (spec: Record<string, unknown>, locale: string) => {
+      const o = chartOption(validate({ type: 'bar', data: d, ...spec }), d, { ...ctx, locale })
+      return (o.tooltip as { valueFormatter: (v: unknown) => string }).valueFormatter
+    }
+    expect(fmt({ format: '0.0' }, 'en')(0.425)).toBe('0.4')
+    expect(fmt({ format: '0.00' }, 'de')(0.425)).toBe('0,43')
+    expect(fmt({ format: '0.0%' }, 'en')(0.425)).toBe('42.5%')
+    expect(fmt({ format: '0.0%' }, 'de')(0.425)).toBe('42,5\u00a0%')
+    expect(fmt({ format: 'compact' }, 'en')(1250000)).toBe('1.3M')
+    expect(fmt({ prefix: '€', format: '0' }, 'en')(1200)).toBe('€1,200')
+    expect(fmt({ suffix: ' t' }, 'de')(2.5)).toBe('2,5 t')
+  })
+
+  it('aggregate: mean, count (with no y), and a pie of means', () => {
+    const mean = chartOption(validate({ type: 'bar', data: rows, x: 'region', y: 'revenue', aggregate: 'mean' }), rows, ctx)
+    expect(series(mean)[0]!.data).toEqual([4.5, 6])
+    const count = chartOption(validate({ type: 'bar', data: rows, x: 'region', aggregate: 'count' }), rows, ctx)
+    expect(series(count).map((s) => [s.name, s.data])).toEqual([['count', [2, 1]]])
+    const byQ = chartOption(validate({ type: 'bar', data: rows, x: 'q', y: 'revenue', series: 'region', aggregate: 'max' }), rows, ctx)
+    expect(series(byQ).map((s) => s.data)).toEqual([[4, 5], [6, null]])
+    const pie = chartOption(validate({ type: 'pie', data: rows, x: 'region', y: 'revenue', aggregate: 'min' }), rows, ctx)
+    expect(series(pie)[0]!.data).toEqual([{ name: 'North', value: 4 }, { name: 'South', value: 6 }])
+  })
+
+  it('sort orders bars by value (their total over series) and slices by size', () => {
+    const d = [{ c: 'a', v: 2 }, { c: 'b', v: 9 }, { c: 'c', v: 5 }]
+    const desc = chartOption(validate({ type: 'bar', data: d, sort: 'desc', horizontal: true }), d, ctx)
+    expect((desc.yAxis as { data: unknown[] }).data).toEqual(['b', 'c', 'a'])
+    expect(series(desc)[0]!.data).toEqual([9, 5, 2])
+    const asc = chartOption(validate({ type: 'bar', data: rows, x: 'q', y: 'revenue', series: 'region', sort: 'asc' }), rows, ctx)
+    expect((asc.xAxis as { data: unknown[] }).data).toEqual(['Q2', 'Q1']) // Q1 totals 10, Q2 5
+    const pie = chartOption(validate({ type: 'pie', data: d, sort: 'asc' }), d, ctx)
+    expect((series(pie)[0]!.data as Array<{ name: string }>).map((s) => s.name)).toEqual(['a', 'c', 'b'])
+  })
+
+  it('pie percentages are written in the deck language, to format\'s decimals', () => {
+    const d = [{ c: 'a', v: 1 }, { c: 'b', v: 2 }]
+    const label = (spec: Record<string, unknown>, locale: string) => {
+      const o = chartOption(validate({ type: 'pie', data: d, ...spec }), d, { ...ctx, locale })
+      return (series(o)[0] as unknown as { label: { formatter: (p: { name: string; percent: number }) => string } }).label.formatter({ name: 'a', percent: 33.33 })
+    }
+    expect(label({}, 'en')).toBe('a  33%')
+    expect(label({}, 'de')).toBe('a  33\u00a0%')
+    expect(label({ format: '0.0%' }, 'en')).toBe('a  33.3%')
+  })
+
+  it('time: ISO dates to scale, in date order, labelled in the deck language', () => {
+    const d = [{ m: '2024-03', v: 1 }, { m: '2024-01', v: 2 }, { m: '2024-07', v: 3 }]
+    const o = chartOption(validate({ type: 'line', data: d, time: true }), d, { ...ctx, locale: 'de' })
+    const axis = o.xAxis as { type: string; axisLabel: { formatter: (t: number) => string } }
+    expect(axis.type).toBe('time')
+    expect(series(o)[0]!.data).toEqual([[Date.UTC(2024, 0), 2], [Date.UTC(2024, 2), 1], [Date.UTC(2024, 6), 3]])
+    expect(axis.axisLabel.formatter(Date.UTC(2024, 2))).toBe('März 2024')
+    expect(timeAxis([2024, 2025], 'en').label(Date.UTC(2025, 0))).toBe('2025') // CSV years arrive as numbers
+    expect(timeAxis(['2024-03-15T09:30'], 'en').interval).toBe(60_000)
+    expect(() => timeAxis(['2024-13'], 'en')).toThrow("`2024-13` isn't a date written the ISO way")
+    expect(() => timeAxis(['03/2024'], 'en')).toThrow('ISO')
+    expect(() => timeAxis(['2024-02-30'], 'en')).toThrow('ISO')
   })
 })

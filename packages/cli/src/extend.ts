@@ -5,13 +5,14 @@
  * gets the same checks.
  */
 import { existsSync } from 'node:fs'
-import { dirname, isAbsolute, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { resolve as resolveModule } from 'import-meta-resolve'
-import { DECK_KEYS, EFFECTS, RENDERERS, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
+import { DECK_KEYS, EFFECTS, RENDERERS, RESERVED_DECK_KEYS, cssRefs, isLocalRef, rewriteCss, type Deck, type Diagnostic, type Extensions, type PayloadPlugins, type SourceSpan } from '@blitzstrahl/core'
 import { BUILTIN_RENDERERS } from '@blitzstrahl/renderers'
 import { defineTheme, themes, tokenProblems, type Theme } from '@blitzstrahl/themes'
 import type { CheckCtx, EffectDef, KeyDef } from './plugin.js'
+import { readStylesheet, type Stylesheet } from './stylesheet.js'
 
 export interface PluginRenderer {
   plugin: string
@@ -26,17 +27,35 @@ export interface ThemeFontFile {
   file: string
   weight: string
   style: string
+  /** CSS `unicode-range`: the characters this file covers, when a family comes in subsets. */
+  unicodeRange?: string
 }
 
 /** Everything a deck's `theme` and `plugins` add. */
 export interface Extras {
   theme: Theme
   fonts: ThemeFontFile[]
+  /**
+   * The local files the theme's CSS names in `url()`s (per-layout
+   * backgrounds, say), by the URL as written: copied, served or inlined
+   * like fonts (docs/themes.md, *Backgrounds by layout*).
+   */
+  themeFiles: Record<string, string>
+  /** The deck's `css:` stylesheets, after the theme's (docs/themes.md, *Adding to a theme*). */
+  extraCss: string
+  /**
+   * The stylesheets read for a CSS theme and `css:`, by the name diagnostics
+   * give them: `dev` watches them, and opens them from the page.
+   */
+  stylesheets: Record<string, string>
   renderers: Record<string, PluginRenderer>
   effects: Record<string, EffectDef & { plugin: string }>
   keys: Record<string, KeyDef & { plugin: string }>
-  /** Folders the dev server must be allowed to serve (browser modules, fonts). */
-  dirs: string[]
+  /**
+   * Files the dev server may serve besides blitzstrahl's own: plugins'
+   * browser modules (Vite lets their imports through) and theme fonts.
+   */
+  served: string[]
   diagnostics: Diagnostic[]
 }
 
@@ -56,7 +75,7 @@ export function toExtensions(x: Extras): Extensions {
 
 /** A deck with no plugins and a built-in theme. */
 export function builtinExtras(theme: Theme = themes.aurora!): Extras {
-  return { theme, fonts: [], renderers: {}, effects: {}, keys: {}, dirs: [], diagnostics: [] }
+  return { theme, fonts: [], themeFiles: {}, extraCss: '', stylesheets: {}, renderers: {}, effects: {}, keys: {}, served: [], diagnostics: [] }
 }
 
 /**
@@ -64,7 +83,7 @@ export function builtinExtras(theme: Theme = themes.aurora!): Extras {
  * found, loaded or validated is an error diagnostic at its frontmatter key,
  * and a theme that fails falls back to aurora.
  */
-export async function loadExtras(deck: Deck, dir: string, keySpans: Record<string, SourceSpan>): Promise<Extras> {
+export async function loadExtras(deck: Deck, dir: string, keySpans: Record<string, SourceSpan>, importModule?: (file: string) => Promise<unknown>): Promise<Extras> {
   const origin = { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } }
   const x = builtinExtras()
   const error = (key: string, code: string, message: string) =>
@@ -81,8 +100,17 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
     const problems: string[] = []
     collectFonts(builtin.fonts ?? [], fileURLToPath(import.meta.resolve('@blitzstrahl/themes')), problems, x)
     if (problems.length) throw new Error(`built-in theme \`${themeName}\`: ${problems.join('; ')}`)
+  } else if (cssTheme(themeName, dir)) {
+    const file = cssTheme(themeName, dir)!
+    const sheet = stylesheet(file)
+    const { missing } = tokenProblems(sheet.tokens)
+    if (missing.length) error('theme', 'theme/invalid', `theme \`${themeName}\`: missing required token${missing.length > 1 ? 's' : ''} ${missing.map((t) => `\`--blitz-${t}\``).join(', ')} in \`:root\` (docs/themes.md)`)
+    if (!missing.length && !sheet.problems.some((p) => p.severity === 'error')) {
+      x.theme = defineTheme({ name: basename(file, '.css'), tokens: sheet.tokens, css: sheet.css })
+      addSheet(sheet)
+    }
   } else {
-    const loaded = await importFrom(themeCandidates(themeName), dir)
+    const loaded = await importFrom(themeCandidates(themeName), dir, importModule)
     if ('error' in loaded) error('theme', 'theme/load', `theme \`${themeName}\` ${loaded.error}; using aurora (built-in: ${Object.keys(themes).join(', ')})`)
     else {
       const problems: string[] = []
@@ -92,14 +120,31 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
         const { unknown } = tokenProblems(theme.tokens)
         if (unknown.length) warn('theme', 'theme/unknown-token', `theme \`${themeName}\` sets unknown token${unknown.length > 1 ? 's' : ''} ${unknown.map((t) => `\`${t}\``).join(', ')} (docs/themes.md lists them)`)
         if (!problems.length) x.theme = theme
-        else x.fonts = []
+        else {
+          x.fonts = []
+          x.themeFiles = {}
+        }
       }
     }
   }
 
+  // The deck's own stylesheets, after the theme's. Their tokens change the theme's.
+  for (const path of deck.meta.css ?? []) {
+    const file = resolve(dir, path)
+    if (!existsSync(file)) {
+      error('css', 'css/missing', `\`${path}\` not found (looked for ${file})`)
+      continue
+    }
+    const sheet = stylesheet(file)
+    if (sheet.problems.some((p) => p.severity === 'error')) continue
+    x.extraCss += `${x.extraCss ? '\n' : ''}${sheet.css}`
+    x.theme = { ...x.theme, tokens: { ...x.theme.tokens, ...sheet.tokens } }
+    addSheet(sheet)
+  }
+
   // Plugins, in order.
   for (const spec of deck.meta.plugins) {
-    const loaded = await importFrom([spec], dir)
+    const loaded = await importFrom([spec], dir, importModule)
     if ('error' in loaded) {
       error('plugins', 'plugin/load', `plugin \`${spec}\` ${loaded.error}`)
       continue
@@ -109,6 +154,49 @@ export async function loadExtras(deck: Deck, dir: string, keySpans: Record<strin
     for (const p of problems) error('plugins', 'plugin/invalid', `plugin \`${spec}\`: ${p}`)
   }
   return x
+
+  /** Read a stylesheet, reporting its problems where they are in it. */
+  function stylesheet(file: string): Stylesheet {
+    const sheet = readStylesheet(file)
+    for (const source of sheet.sources) x.stylesheets[showPath(source)] = source
+    for (const p of sheet.problems) {
+      const at = { line: p.line, column: p.column }
+      x.diagnostics.push({ severity: p.severity, code: p.code, message: p.message, file: showPath(p.file), span: { start: at, end: at } })
+    }
+    return sheet
+  }
+  /** A stylesheet file as diagnostics name it: beside the deck's own name. */
+  function showPath(file: string): string {
+    return join(dirname(deck.source), relative(dir, file))
+  }
+  function addSheet(sheet: Stylesheet) {
+    x.fonts.push(...sheet.fonts)
+    for (const f of sheet.fonts) x.served.push(f.file)
+    for (const f of sheet.files) {
+      x.themeFiles[f] = f
+      x.served.push(f)
+    }
+  }
+}
+
+/** A theme that's a CSS file: a `./path.css`, or a package whose entry is one (docs/plugins.md §1). */
+function cssTheme(name: string, dir: string): string | undefined {
+  if (isPath(name)) return name.endsWith('.css') ? resolve(dir, name) : undefined
+  const parent = pathToFileURL(resolve(dir) + '/').href
+  for (const spec of themeCandidates(name)) {
+    try {
+      const file = fileURLToPath(resolveModule(spec, parent))
+      return file.endsWith('.css') ? file : undefined
+    } catch {
+      continue
+    }
+  }
+  return undefined
+}
+
+/** The theme's CSS and the deck's `css:` after it, as one stylesheet: what the page carries, and what `check` reads. */
+export function allCss(x: Extras): string {
+  return x.extraCss ? `${x.theme.stylesheet}\n${x.extraCss}` : x.theme.stylesheet
 }
 
 /**
@@ -149,9 +237,16 @@ export async function fontCss(fonts: ThemeFontFile[], url: (file: string) => str
     const ext = f.file.split('.').pop()!.toLowerCase()
     const format = ({ woff2: 'woff2', woff: 'woff', ttf: 'truetype', otf: 'opentype' } as Record<string, string>)[ext]
     const src = `url("${await url(f.file)}")${format ? ` format("${format}")` : ''}`
-    faces.push(`@font-face { font-family: ${JSON.stringify(f.family)}; src: ${src}; font-weight: ${f.weight}; font-style: ${f.style}; font-display: block; }`)
+    faces.push(`@font-face { font-family: ${JSON.stringify(f.family)}; src: ${src}; font-weight: ${f.weight}; font-style: ${f.style};${f.unicodeRange ? ` unicode-range: ${f.unicodeRange};` : ''} font-display: block; }`)
   }
   return faces.join('\n')
+}
+
+/** The theme's stylesheet and the deck's `css:`, with each file they name at the URL `url` gives it (copied, served or inlined). */
+export async function themeStylesheet(x: Extras, url: (file: string) => string | Promise<string>): Promise<string> {
+  const urls = new Map<string, string>()
+  for (const [ref, file] of Object.entries(x.themeFiles)) urls.set(ref, await url(file))
+  return urls.size ? rewriteCss(allCss(x), (ref) => urls.get(ref)) : allCss(x)
 }
 
 /** CSS the page needs for the plugins' emphasis effects, after the theme's. */
@@ -178,14 +273,26 @@ function isPath(spec: string): boolean {
   return spec.startsWith('./') || spec.startsWith('../') || isAbsolute(spec)
 }
 
-/** Import the first candidate that resolves from `dir` (as if written in a module there). */
-async function importFrom(candidates: string[], dir: string): Promise<{ value: unknown; file: string } | { error: string }> {
+/**
+ * Import the first candidate that resolves from `dir` (as if written in a
+ * module there). Local files go through `importModule` when given; packages
+ * always load with Node's own `import()`.
+ */
+async function importFrom(candidates: string[], dir: string, importModule?: (file: string) => Promise<unknown>): Promise<{ value: unknown; file: string } | { error: string }> {
   const parent = pathToFileURL(resolve(dir) + '/').href
   for (const spec of candidates) {
     let url: string
     if (isPath(spec)) {
       const file = resolve(dir, spec)
       if (!existsSync(file)) continue
+      if (importModule) {
+        try {
+          const mod = (await importModule(file)) as { default?: unknown }
+          return { value: mod.default ?? mod, file }
+        } catch (err) {
+          return { error: `failed to load: ${(err as Error).message.split('\n')[0]}` }
+        }
+      }
       url = pathToFileURL(file).href
     } else {
       try {
@@ -235,6 +342,17 @@ function validateTheme(value: unknown, file: string, problems: string[], x: Extr
   if (missing.length) problems.push(`missing required token${missing.length > 1 ? 's' : ''} ${missing.map((t) => `\`${t}\``).join(', ')}`)
 
   collectFonts(value.fonts ?? [], file, problems, x)
+  // Relative url()s in the CSS and tokens are relative to the theme module, like `fonts`.
+  const css = typeof value.css === 'string' ? value.css : ''
+  for (const ref of cssRefs([css, ...Object.values(tokens)].join('\n'))) {
+    if (!isLocalRef(ref) || Object.hasOwn(x.themeFiles, ref)) continue
+    const path = resolve(dirname(file), decodeURI(ref.replace(/[?#].*$/, '')))
+    if (!existsSync(path)) problems.push(`file not found: ${ref} (${path})`)
+    else {
+      x.themeFiles[ref] = path
+      x.served.push(path)
+    }
+  }
   return defineTheme({ name: String(value.name), tokens, css: typeof value.css === 'string' ? value.css : '' })
 }
 
@@ -254,8 +372,13 @@ function collectFonts(fonts: unknown, from: string, problems: string[], x: Extra
       problems.push(`font file not found: ${path}`)
       continue
     }
-    x.fonts.push({ family: f.family, file: path, weight: String(f.weight ?? 400), style: typeof f.style === 'string' ? f.style : 'normal' })
-    x.dirs.push(dirname(path))
+    const font: ThemeFontFile = { family: f.family, file: path, weight: String(f.weight ?? 400), style: typeof f.style === 'string' ? f.style : 'normal' }
+    if (f.unicodeRange !== undefined) {
+      if (typeof f.unicodeRange === 'string' && /^\s*U\+[0-9A-F?]+(-[0-9A-F]+)?(\s*,\s*U\+[0-9A-F?]+(-[0-9A-F]+)?)*\s*$/i.test(f.unicodeRange)) font.unicodeRange = f.unicodeRange
+      else problems.push(`font \`${f.family}\`: \`unicodeRange\` must be a CSS unicode-range, e.g. "U+0000-00FF, U+0131"`)
+    }
+    x.fonts.push(font)
+    x.served.push(path)
   }
 }
 
@@ -300,7 +423,7 @@ function addPlugin(value: unknown, file: string, spec: string, x: Extras, proble
     const r: PluginRenderer = { plugin: name, body: def.body, browser }
     if (typeof def.check === 'function') r.check = def.check as PluginRenderer['check'] & object
     x.renderers[n] = r
-    x.dirs.push(dirname(browser))
+    x.served.push(browser)
   }
 
   for (const [n, def] of section('effects')) {
@@ -319,6 +442,10 @@ function addPlugin(value: unknown, file: string, spec: string, x: Extras, proble
   }
 
   for (const [n, def] of section('frontmatter')) {
+    if (RESERVED_DECK_KEYS.has(n)) {
+      problems.push(`frontmatter key \`${n}\` is reserved: blitzstrahl 1.1 uses it (docs/plugins.md §2.4)`)
+      continue
+    }
     if (taken('frontmatter key', n, DECK_KEYS.has(n), x.keys[n]?.plugin)) continue
     const extra = Object.keys(def).filter((k) => k !== 'check')
     if (extra.length) problems.push(`frontmatter key \`${n}\`: unknown field \`${extra[0]}\``)

@@ -6,6 +6,7 @@
  * (see `css.ts`) toggled by `data-blitz-active`, so they need no keyframes here.
  */
 import type { AnimSpec } from '@blitzstrahl/core'
+import { findNumeral, formatNumber, langNumerals, numberStyle, readNumber } from '@blitzstrahl/core/numbers'
 
 export const DEFAULT_DUR = 600
 
@@ -197,24 +198,25 @@ function driven(el: HTMLElement, timing: KeyframeAnimationOptions, frame: (t: nu
   }
 }
 
-const NUMBER = /-?\d[\d,]*(?:\.\d+)?/
-
-/** `count-up`: the element's own numeral is the target; `from=` the start (§6.3). */
+/**
+ * `count-up`: the element's own numeral is the target; `from=` the start
+ * (§6.3). The numeral is read the way the deck's (or the element's) `lang`
+ * writes numbers, and counted in its own style, so in `de` `4,2 %` counts
+ * through `2,1 %` and `1.234.567` keeps its dots (core/numbers.ts).
+ */
 function countUp(el: HTMLElement, anim: AnimSpec, timing: KeyframeAnimationOptions): Played {
   const text = el.dataset.blitzCountText ?? el.textContent ?? ''
   el.dataset.blitzCountText = text
-  const m = NUMBER.exec(text)
+  const m = findNumeral(text)
   if (!m) return done
-  const target = Number(m[0].replace(/,/g, ''))
+  const numerals = langNumerals(el.closest('[lang]')?.getAttribute('lang') ?? undefined)
+  const target = readNumber(m.text, numerals)
+  if (target === undefined) return done
   const from = Number(anim.options.from ?? 0)
-  const decimals = m[0].split('.')[1]?.length ?? 0
-  const grouped = m[0].includes(',')
-  const fmt = (n: number) => {
-    const s = n.toFixed(decimals)
-    return grouped ? Number(s).toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : s
-  }
+  const style = numberStyle(m.text, numerals)
+  const fmt = (n: number) => formatNumber(n, style)
   const before = text.slice(0, m.index)
-  const after = text.slice(m.index + m[0].length)
+  const after = text.slice(m.index + m.text.length)
   // Replace only the text, keep the element's width stable while counting.
   el.style.fontVariantNumeric = 'tabular-nums'
   return driven(

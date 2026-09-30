@@ -4,6 +4,7 @@
  * needs to drive it. Derived from the IR, never from markdown.
  */
 import type { AnimSpec, Deck, RenderBlock, TransitionSpec } from './ir.js'
+import type { Thousands } from './numbers.js'
 
 export interface PayloadSlide {
   id: string
@@ -17,7 +18,12 @@ export interface PayloadSlide {
 export interface DeckPayload {
   title: string
   lang: string
+  /** The deck's `thousands`, for `RenderCtx.number`. */
+  thousands?: Thousands
   canvas: { width: number; height: number }
+  /** `duration` and `pace-margin`, in ms: the presenter's pacing (1.1). */
+  duration?: number
+  paceMargin?: number
   slides: PayloadSlide[]
   /**
    * Text of data assets, keyed by deck-relative path, when the build inlines
@@ -25,8 +31,10 @@ export interface DeckPayload {
    */
   inline: Record<string, string>
   /**
-   * Page URL of every other local asset (images), keyed by deck-relative
-   * path, for renderers that show one (an embed's fallback, say).
+   * Page URL of each local file a render block's spec names (an embed's
+   * fallback image, say), keyed by deck-relative path: what
+   * `RenderCtx.assetUrl` hands renderers. Files only the page uses aren't
+   * here: a standalone file would carry each of them twice.
    */
   urls: Record<string, string>
   /** Plugin entrance effects by name: WAAPI keyframes (docs/plugins.md §2.3). */
@@ -39,11 +47,17 @@ export interface DeckPayload {
 export type PayloadPlugins = Pick<DeckPayload, 'effects' | 'meta'>
 
 export function toPayload(deck: Deck, inline: Record<string, string> = {}, assetUrl: (path: string) => string = (p) => p, plugins: PayloadPlugins = {}): DeckPayload {
+  const named = specStrings(deck)
+  // Data files reach renderers as text (`inline`, `loadAsset`), never as URLs.
+  const data = new Set(deck.assets.filter((a) => a.kind === 'data').map((a) => a.path))
   return {
     ...plugins,
     title: deck.meta.title,
     lang: deck.meta.lang,
+    ...(deck.meta.thousands ? { thousands: deck.meta.thousands } : {}),
     canvas: deck.meta.canvas,
+    ...(deck.meta.duration !== undefined ? { duration: deck.meta.duration } : {}),
+    ...(deck.meta.paceMargin !== undefined ? { paceMargin: deck.meta.paceMargin } : {}),
     slides: deck.slides.map((s) => {
       const slide: PayloadSlide = {
         id: s.id,
@@ -56,6 +70,18 @@ export function toPayload(deck: Deck, inline: Record<string, string> = {}, asset
       return slide
     }),
     inline,
-    urls: Object.fromEntries(deck.assets.filter((a) => a.kind !== 'data').map((a) => [a.path, assetUrl(a.path)])),
+    urls: Object.fromEntries(deck.assets.filter((a) => named.has(a.path) && !data.has(a.path)).map((a) => [a.path, assetUrl(a.path)])),
   }
+}
+
+/** Every string in the deck's block specs: the (rewritten) paths renderers may ask for. */
+function specStrings(deck: Deck): Set<string> {
+  const out = new Set<string>()
+  const walk = (v: unknown) => {
+    if (typeof v === 'string') out.add(v)
+    else if (Array.isArray(v)) v.forEach(walk)
+    else if (v && typeof v === 'object') Object.values(v).forEach(walk)
+  }
+  for (const s of deck.slides) for (const b of s.blocks) walk(b.spec)
+  return out
 }

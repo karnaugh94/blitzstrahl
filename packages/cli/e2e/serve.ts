@@ -1,8 +1,9 @@
-import { createReadStream, existsSync, mkdtempSync, statSync } from 'node:fs'
+import { existsSync, mkdtempSync, statSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
 import { tmpdir } from 'node:os'
 import { extname, join, normalize } from 'node:path'
 import { build, type BuildOptions, type BuildResult } from '../dist/index.js'
+import { sendFile } from '../dist/mime.js'
 
 const TYPES: Record<string, string> = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.png': 'image/png', '.svg': 'image/svg+xml' }
 
@@ -16,8 +17,7 @@ export async function serve(root: string): Promise<{ url: string; server: Server
       res.end()
       return
     }
-    res.setHeader('content-type', TYPES[extname(file)] ?? 'application/octet-stream')
-    createReadStream(file).pipe(res)
+    sendFile(req, res, file, TYPES[extname(file)])
   })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
   const addr = server.address()
@@ -32,6 +32,6 @@ export async function serve(root: string): Promise<{ url: string; server: Server
 export async function buildAndServe(deck: string, options: BuildOptions = {}): Promise<{ url: string; server: Server; result: BuildResult }> {
   const outDir = mkdtempSync(join(tmpdir(), 'blitz-e2e-'))
   const result = await build(deck, { outDir, quiet: true, overflowCheck: false, ...options })
-  if (!result.ok) throw new Error(`build of ${deck} failed`)
+  if (!result.ok) throw new Error(`build of ${deck} failed: ${JSON.stringify(result.diagnostics.map((d) => d.message))}`)
   return { ...(await serve(outDir)), result }
 }

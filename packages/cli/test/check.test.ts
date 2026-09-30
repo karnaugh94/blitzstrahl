@@ -19,6 +19,15 @@ describe('check: steps', () => {
     const s = deck.slides[0]!
     expect(stepGaps(s.content, s.steps)).toEqual([])
   })
+
+  it('counts each group of a lines= walk-through as a press', () => {
+    const { deck } = parseDeck('# S\n\n```js {lines="1|2|3"}\na\nb\nc\n```\n\nD {@3}\n')
+    const s = deck.slides[0]!
+    expect(s.steps).toBe(3)
+    expect(stepGaps(s.content, s.steps)).toEqual([])
+    const late = parseDeck('# S\n\n```js {lines="1|2" @2}\na\nb\n```\n').deck.slides[0]!
+    expect(stepGaps(late.content, late.steps)).toEqual([1])
+  })
 })
 
 describe('check: classes', () => {

@@ -12,6 +12,29 @@ relied on it will notice.
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-09-30
+
+Small and additive: no deck builds or looks any different.
+
+### Fixed (visible)
+
+- `check` no longer reports `step/gap` for the later groups of a
+  `lines="a|b"` code walk-through; each group is a press of its own. With
+  `--strict`, any deck with a walk-through failed.
+- `export` with no browser to print in exits with code 2 (setup), not 1
+  (the deck).
+
+### Fixed
+
+- `reveal/target` on a `{…}` that markdown joined to a list's last item or
+  a table's last row (no blank line before it) says to leave one.
+
+### Added
+
+- A top-level container named close to a slot the slide's layout leaves
+  empty (`::: lft` in `two-col`) is a warning, `layout/near-slot`: "did you
+  mean `left`?". It still stays an ordinary container.
+
 ## [1.1.0] — 2026-09-30
 
 The first release on npm. 1.0.0 was on GitHub only, and 1.0.1 was never

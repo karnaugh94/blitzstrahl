@@ -1,0 +1,447 @@
+{
+  "deck": {
+    "irVersion": 1,
+    "source": "reveal-target.md",
+    "meta": {
+      "lang": "en",
+      "theme": "aurora",
+      "canvas": {
+        "width": 1280,
+        "height": 720
+      },
+      "transition": {
+        "name": "fade"
+      },
+      "plugins": [],
+      "extra": {},
+      "title": "A reveal block that lost its blank line"
+    },
+    "slides": [
+      {
+        "id": "a-reveal-block-that-lost-its-blank-line",
+        "index": 0,
+        "layout": "title",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "A reveal block that lost its blank line"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "ul",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "li",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "one"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "li",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "two"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 1,
+            "column": 1
+          },
+          "end": {
+            "line": 6,
+            "column": 1
+          }
+        },
+        "title": "A reveal block that lost its blank line"
+      },
+      {
+        "id": "the-same-for-a-table",
+        "index": 1,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "The same for a table"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "table",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "thead",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "tr",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "th",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "a"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "th",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "b"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  },
+                  {
+                    "type": "element",
+                    "tagName": "tbody",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "tr",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "1"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": [
+                              {
+                                "type": "text",
+                                "value": "2"
+                              }
+                            ]
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "tr",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": []
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          },
+                          {
+                            "type": "element",
+                            "tagName": "td",
+                            "properties": {},
+                            "children": []
+                          },
+                          {
+                            "type": "text",
+                            "value": "\n"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": "\n"
+                      }
+                    ]
+                  },
+                  {
+                    "type": "text",
+                    "value": "\n"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 8,
+            "column": 1
+          },
+          "end": {
+            "line": 15,
+            "column": 1
+          }
+        },
+        "title": "The same for a table"
+      },
+      {
+        "id": "on-a-paragraphs-own-line-no-hint",
+        "index": 2,
+        "layout": "default",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "h1",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "On a paragraph's own line: no hint"
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Some text"
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 17,
+            "column": 1
+          },
+          "end": {
+            "line": 21,
+            "column": 1
+          }
+        },
+        "title": "On a paragraph's own line: no hint"
+      }
+    ],
+    "assets": []
+  },
+  "diagnostics": [
+    {
+      "severity": "error",
+      "code": "reveal/target",
+      "message": "`reveal=items` applies to a list or a container; for the list above, leave a blank line before this `{…}`",
+      "file": "reveal-target.md",
+      "span": {
+        "start": {
+          "line": 5,
+          "column": 1
+        },
+        "end": {
+          "line": 5,
+          "column": 2
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "reveal/target",
+      "message": "`reveal=rows` applies to a table; for the table above, leave a blank line before this `{…}`",
+      "file": "reveal-target.md",
+      "span": {
+        "start": {
+          "line": 14,
+          "column": 1
+        },
+        "end": {
+          "line": 14,
+          "column": 2
+        }
+      }
+    },
+    {
+      "severity": "error",
+      "code": "reveal/target",
+      "message": "`reveal=items` applies to a list or a container",
+      "file": "reveal-target.md",
+      "span": {
+        "start": {
+          "line": 20,
+          "column": 11
+        },
+        "end": {
+          "line": 20,
+          "column": 12
+        }
+      }
+    }
+  ]
+}

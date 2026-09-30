@@ -277,7 +277,8 @@ export function resolveSlide(
           diags.error(
             'reveal/target',
             revealMode === 'items' || revealMode === 'rows'
-              ? `\`reveal=${revealMode}\` applies to a ${revealMode === 'items' ? 'list or a container' : 'table'}`
+              ? `\`reveal=${revealMode}\` applies to a ${revealMode === 'items' ? 'list or a container' : 'table'}` +
+                  (blitz.ownLine ? `; for the ${revealMode === 'items' ? 'list' : 'table'} above, leave a blank line before this \`{…}\`` : '')
               : `unknown \`reveal=${revealMode}\`: use \`items\` (lists) or \`rows\` (tables)`,
             pointSpan(at),
           )
@@ -527,13 +528,21 @@ export function resolveSlide(
 /**
  * Mark top-level containers that fill a slot of `layout` (§10). A slot name
  * the layout doesn't have, or a slot filled twice, leaves an ordinary `<div>`.
+ * A name close to a slot the slide leaves empty (`::: lft`) is probably that
+ * slot misspelt, and is warned about.
  */
 function assignSlots(nodes: RootContent[], layout: string, diags: Diagnostics) {
   const slots = LAYOUTS[layout] ?? []
+  const named = new Set(nodes.flatMap((n) => (n.type === 'blitzContainer' && n.name ? [n.name] : [])))
   const filled = new Set<string>()
   for (const n of nodes) {
-    if (n.type !== 'blitzContainer' || !n.name || !SLOT_NAMES.has(n.name)) continue
+    if (n.type !== 'blitzContainer' || !n.name) continue
     const at = { start: n.position!.start, end: n.position!.start }
+    if (!SLOT_NAMES.has(n.name)) {
+      const near = slots.find((x) => !named.has(x) && distance(n.name!, x) <= Math.floor((x.length + 1) / 3))
+      if (near) diags.warn('layout/near-slot', `layout \`${layout}\` has no \`${n.name}\` slot, so this is an ordinary container: did you mean \`${near}\`?`, at)
+      continue
+    }
     if (!slots.includes(n.name)) {
       const has = slots.length ? `its slots are ${slots.map((x) => `\`${x}\``).join(', ')}` : 'it has no named slots'
       diags.warn('layout/unknown-slot', `layout \`${layout}\` has no \`${n.name}\` slot (${has}); this is an ordinary container`, at)

@@ -64,7 +64,9 @@ named by the deck's `public:` key is served too, as it is (syntax.md §3.5).
 Sublime Text and others), or else `VISUAL` or `EDITOR`. It only opens the
 deck and the files it uses, and only when asked from the machine running
 `dev`: with `--host`, another device can't open anything. Vite's own
-`/__open-in-editor`, which would open any file, is turned off.
+`/__open-in-editor`, which would open any file, is turned off. In the VS
+Code extension's preview, the extension opens the line itself, in its own
+window.
 
 **In VS Code** *(1.1)*: the blitzstrahl extension runs `dev` for its
 preview, beside the markdown, and `check` on every save for the Problems

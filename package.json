@@ -15,7 +15,9 @@
     "dev": "node packages/cli/dist/bin.js dev",
     "blitz": "node packages/cli/dist/bin.js",
     "pack:release": "node scripts/pack.mjs",
-    "site": "node scripts/site.mjs"
+    "site": "node scripts/site.mjs",
+    "vsix": "pnpm --dir packages/vscode vsix",
+    "test:vscode": "node packages/vscode/integration/run.mjs"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

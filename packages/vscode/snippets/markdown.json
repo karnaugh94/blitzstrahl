@@ -1,0 +1,77 @@
+{
+  "Slide": {
+    "prefix": "slide",
+    "description": "blitzstrahl: a separator and a new slide",
+    "body": ["", "---", "", "# ${1:Title}", "", "$0"]
+  },
+  "Chart": {
+    "prefix": "chart",
+    "description": "blitzstrahl: a chart (docs/renderers/chart.md)",
+    "body": ["```chart {alt=\"${1:What it shows}\"}", "type: ${2|bar,line,pie,scatter|}", "data: ${3:./data.csv}", "x: ${4:category}", "y: ${5:value}", "```", "$0"]
+  },
+  "Map": {
+    "prefix": "map",
+    "description": "blitzstrahl: a map (docs/renderers/map.md)",
+    "body": ["```map {alt=\"${1:What it shows}\"}", "center: [${2:48.85}, ${3:2.35}]", "zoom: ${4:5}", "markers: ${5:./places.geojson}", "```", "$0"]
+  },
+  "Embed": {
+    "prefix": "embed",
+    "description": "blitzstrahl: an embedded page (docs/renderers/embed.md)",
+    "body": ["```embed", "src: ${1:https://}", "fallback: ${2:./screenshot.png}", "```", "$0"]
+  },
+  "Mermaid": {
+    "prefix": "mermaid",
+    "description": "blitzstrahl: a Mermaid diagram",
+    "body": ["```mermaid", "flowchart LR", "  ${1:A} --> ${2:B}", "```", "$0"]
+  },
+  "Math": {
+    "prefix": "math",
+    "description": "blitzstrahl: display math (TeX)",
+    "body": ["$$", "${1:E = mc^2}", "$$", "$0"]
+  },
+  "Notes": {
+    "prefix": "notes",
+    "description": "blitzstrahl: presenter notes",
+    "body": ["::: notes", "${1:What to say}", ":::", "$0"]
+  },
+  "Two columns": {
+    "prefix": "two-col",
+    "description": "blitzstrahl: a two-column slide",
+    "body": ["---", "layout: two-col", "---", "", "# ${1:Title}", "", "::: left", "${2:Left}", ":::", "", "::: right", "${3:Right}", ":::", "$0"]
+  },
+  "Steps": {
+    "prefix": "steps",
+    "description": "blitzstrahl: a numbered process (as=steps)",
+    "body": ["1. **${1:First}**", "", "   ${2:What happens}", "2. **${3:Second}**", "", "   ${4:What happens}", "3. **${5:Third}**", "", "   ${6:What happens}", "", "{as=steps}", "$0"]
+  },
+  "Timeline": {
+    "prefix": "timeline",
+    "description": "blitzstrahl: stops on a line (as=timeline)",
+    "body": ["- **${1:2024}**", "", "  ${2:What happened}", "- **${3:2025}**", "", "  ${4:What happened}", "- **${5:2026}**", "", "  ${6:What happens}", "", "{as=timeline}", "$0"]
+  },
+  "Cards": {
+    "prefix": "cards",
+    "description": "blitzstrahl: a grid of cards (as=cards)",
+    "body": ["- **${1:One}**", "", "  ${2:Text}", "- **${3:Two}**", "", "  ${4:Text}", "- **${5:Three}**", "", "  ${6:Text}", "", "{as=cards}", "$0"]
+  },
+  "Flow": {
+    "prefix": "flow",
+    "description": "blitzstrahl: boxes with arrows between them (as=flow)",
+    "body": ["- ${1:Definition}", "- ${2:Generator}", "- ${3:Report}", "", "{as=flow}", "$0"]
+  },
+  "Compare": {
+    "prefix": "compare",
+    "description": "blitzstrahl: before → after (as=compare)",
+    "body": ["| ${1:Before} | ${2:After} |", "|---|---|", "| ${3:Manual} | ${4:Automatic} |", "", "{as=compare}", "$0"]
+  },
+  "Stats": {
+    "prefix": "stats",
+    "description": "blitzstrahl: figures with captions (as=stats)",
+    "body": [":::: {as=stats}", "::: stat", "${1:42 %}", "", "${2:What it measures}", ":::", "", "::: stat", "${3:3×}", "", "${4:What it measures}", ":::", "::::", "$0"]
+  },
+  "Callout": {
+    "prefix": "callout",
+    "description": "blitzstrahl: a boxed aside",
+    "body": ["::: callout", "${1:Text}", ":::", "$0"]
+  }
+}

@@ -12,11 +12,20 @@ const deck = start({
   onOverflow: (found) => import.meta.hot?.send('blitz:overflow', found),
 })
 
-// The deck's problems on the page. Its links: the dev server opens the file (only for this machine).
+// An editor's preview (packages/vscode) frames the page and says so: then
+// the editor opens files itself, in its own window.
+let editor
+window.addEventListener('message', (e) => {
+  if (e.source === window.parent && window.parent !== window && e.data?.blitzEditor === 1) editor = e.source
+})
+
+// The deck's problems on the page. Its links: the editor framing the page, or
+// the dev server (only for this machine).
 const panel = import.meta.hot
   ? startDevPanel(document, (d) => {
-      const q = new URLSearchParams({ file: d.file, line: String(d.span.start.line), column: String(d.span.start.column) })
-      void fetch(`/_blitz/open?${q}`)
+      const at = { file: d.file, line: d.span.start.line, column: d.span.start.column }
+      if (editor) return editor.postMessage({ blitzOpen: at }, '*')
+      void fetch(`/_blitz/open?${new URLSearchParams({ file: at.file, line: String(at.line), column: String(at.column) })}`)
     })
   : undefined
 

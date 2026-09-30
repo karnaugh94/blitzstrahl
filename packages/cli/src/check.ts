@@ -95,11 +95,11 @@ function dedupe(list: Diagnostic[]): Diagnostic[] {
   })
 }
 
-/** Elements with build steps, from the IR's hast. */
+/** Elements with build steps (or a `lines=` walk-through), from the IR's hast. */
 function* stepped(nodes: HastNode[]): Generator<Record<string, unknown>> {
   for (const n of nodes) {
     if (n.type !== 'element') continue
-    if (n.properties.dataBlitzStepIn !== undefined) yield n.properties
+    if (n.properties.dataBlitzStepIn !== undefined || n.properties.dataBlitzLines !== undefined) yield n.properties
     yield* stepped(n.children)
   }
 }
@@ -111,8 +111,10 @@ function* stepped(nodes: HastNode[]): Generator<Record<string, unknown>> {
 export function stepGaps(content: HastNode[], steps: number): number[] {
   const busy = new Set<number>()
   for (const p of stepped(content)) {
-    busy.add(Number(p.dataBlitzStepIn))
+    if (p.dataBlitzStepIn !== undefined) busy.add(Number(p.dataBlitzStepIn))
     if (p.dataBlitzStepOut !== undefined) busy.add(Number(p.dataBlitzStepOut) + 1)
+    // `lines="a|b"`: each later group of lines is a press of its own.
+    if (typeof p.dataBlitzLines === 'string') for (const g of JSON.parse(p.dataBlitzLines) as { in: number }[]) busy.add(g.in)
   }
   return Array.from({ length: steps }, (_, i) => i + 1).filter((s) => !busy.has(s))
 }

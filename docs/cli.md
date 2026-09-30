@@ -18,7 +18,8 @@ command (`build --steps`) is an error, not something quietly ignored.
 **Exit codes:** `0` all is well; `1` the deck has problems (errors, or with
 `--strict`, overflow or warnings); `2` the command line asked for something
 blitzstrahl won't do (an unknown option, a deck that isn't there, an output
-path that would overwrite something), said in one line.
+path that would overwrite something), or can't do on this machine (`export`
+with no browser to print in), said in one line.
 
 ## `new`
 
@@ -204,7 +205,8 @@ there is replaced.
 
 `export` builds the deck into a temporary folder, serves it on the loopback
 interface for as long as it prints, and deletes it afterwards. `export`
-needs a Chromium-based browser, just like the overflow check.
+needs a Chromium-based browser, just like the overflow check; without one
+it says how to install one and exits with code 2.
 
 To print from the browser instead, or to save a PDF without the command
 line, see presenting.md, *Reading and printing*. `export`'s PDF is the one

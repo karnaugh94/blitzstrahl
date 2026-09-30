@@ -54,6 +54,15 @@ describe('the command line (M6.12)', () => {
     const r = run('build', 'broken.md')
     expect(r.code).toBe(1)
   })
+
+  // Playwright finds no Chromium in an empty folder; an installed Chrome or Edge it would still find.
+  const systemBrowser = ['/opt/google/chrome/chrome', '/opt/microsoft/msedge/msedge'].some((f) => existsSync(f))
+  it.skipIf(systemBrowser)('export with no browser exits 2: setup, not the deck, is the problem', () => {
+    const empty = mkdtempSync(join(tmpdir(), 'blitz-no-browser-'))
+    const r = spawnSync(process.execPath, [BIN, 'export', 'talk.md'], { cwd: dir, encoding: 'utf8', env: { ...process.env, PLAYWRIGHT_BROWSERS_PATH: empty } })
+    expect(r.stderr).toContain("can't export: no browser to run it in")
+    expect(r.status).toBe(2)
+  })
 })
 
 describe('blitzstrahl new (M8.2)', () => {

@@ -41,6 +41,8 @@ export interface ExportResult {
   pages?: number
   /** Why it failed, when it did. */
   error?: string
+  /** It failed for want of setup (no browser), not because of the deck: exit code 2. */
+  setup?: boolean
   /** Blocks that weren't ready in time and were printed as they were. */
   warnings: string[]
 }
@@ -58,7 +60,7 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
     if (!built.ok) return { ok: false, error: 'the deck has errors (use --force to export anyway)', warnings: [] }
 
     const browser = await launchBrowser()
-    if (!browser) return { ok: false, error: `can't export: ${NO_BROWSER}`, warnings: [] }
+    if (!browser) return { ok: false, error: `can't export: ${NO_BROWSER}`, setup: true, warnings: [] }
     const { server, url } = await serveFolder(outDir)
     try {
       // 2x, for sharp screenshots of embedded pages; text and charts stay vector.

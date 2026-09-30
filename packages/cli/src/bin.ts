@@ -306,7 +306,7 @@ async function main(argv: string[]): Promise<number> {
       for (const w of r.warnings) process.stderr.write(`blitzstrahl: ${w}\n`)
       if (!r.ok) {
         process.stderr.write(`blitzstrahl: ${r.error}\n`)
-        return 1
+        return r.setup ? 2 : 1
       }
       process.stdout.write(`exported ${r.file} (${r.pages} page${r.pages === 1 ? '' : 's'})\n`)
       return 0

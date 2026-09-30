@@ -111,7 +111,11 @@ const CSS_PATH: Schema = { type: 'string', pattern: '^\\.\\.?/.*\\.css$' }
 const TRANSITION: KeyRule = { schema: { enum: [...TRANSITIONS] }, message: `must be a transition: ${[...TRANSITIONS].join(', ')}` }
 
 /** Deck frontmatter (syntax.md §3.1). */
+/** `blitzstrahl: 1.1`: major.minor, as written. */
+export const VERSION_PATTERN = '^\\d+\\.\\d+$'
+
 export const DECK_SCHEMA: KeyTable = {
+  blitzstrahl: { schema: { anyOf: [{ type: 'string', pattern: VERSION_PATTERN }, { type: 'number', minimum: 0, not: { type: 'integer' } }] }, message: 'must be the blitzstrahl version the deck is written for, as major.minor: `1.1`' },
   title: { schema: SCALAR, message: 'should be a string' },
   author: { schema: SCALAR, message: 'should be a string' },
   date: { schema: SCALAR, message: 'should be a string' },

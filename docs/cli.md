@@ -6,7 +6,7 @@ blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
 blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
 blitzstrahl export <deck.md> [--out deck.pdf] [--steps | --notes] [--force]
 blitzstrahl present <deck.md> [--port 5180] [--no-open] [--force]
-blitzstrahl check <deck.md> [--offline] [--strict] [--format text]
+blitzstrahl check <deck.md> [--offline] [--strict] [--format text] [--stdin]
 blitzstrahl theme import <template.potx> [--out folder]
 blitzstrahl --version
 ```
@@ -28,6 +28,8 @@ folder if it isn't there. The deck is a short tour to edit or delete: a
 title slide, bullets that appear one at a time, a chart with its data file,
 two columns, and presenter notes. It prints the command that previews it.
 
+- The deck starts with `blitzstrahl: 1.1` (the version writing it), which marks
+  it as a deck for editors (syntax.md §3.1).
 - `--theme` sets the deck's `theme:` (default `aurora`), written as you
   give it: `broadsheet`, a package, or a `./path`.
 - It never overwrites anything. If the deck or its data file
@@ -63,6 +65,10 @@ Sublime Text and others), or else `VISUAL` or `EDITOR`. It only opens the
 deck and the files it uses, and only when asked from the machine running
 `dev`: with `--host`, another device can't open anything. Vite's own
 `/__open-in-editor`, which would open any file, is turned off.
+
+**In VS Code** *(1.1)*: the blitzstrahl extension runs `dev` for its
+preview, beside the markdown, and `check` on every save for the Problems
+panel (packages/vscode/README.md).
 
 Slides that overflow get a red badge, and the elements responsible get a
 dashed outline. The same overflow warnings print in the terminal at
@@ -263,6 +269,10 @@ at each problem as `deck.md:line:col`:
   one, `check` says it was skipped.
 - `--format json` or `--format github` writes the findings for a machine
   (below).
+- `--stdin` reads the deck's markdown from standard input instead of the
+  file, as if saved there: its images, data and theme are still found from
+  the file's folder. It's how an editor checks text you haven't saved.
+  *(1.1)*
 
 ## `theme import` *(1.1)*
 

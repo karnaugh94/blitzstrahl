@@ -20,6 +20,20 @@ describe('deck keys', () => {
     expect(diagnostics.map((x) => [x.severity, x.code])).toEqual([['error', 'frontmatter/thousands']])
   })
 
+  it('`blitzstrahl` is a version, major.minor, read as written (M13)', () => {
+    const read = (v: string) => {
+      const { deck: d, diagnostics } = deck(`blitzstrahl: ${v}`)
+      return [d.meta.blitzstrahl, diagnostics.map((x) => `${x.severity} ${x.code}@${x.span.start.line}`)]
+    }
+    expect(read('1.1')).toEqual(['1.1', []])
+    expect(read('"1.2"')).toEqual(['1.2', []])
+    // YAML alone would read these as the number 1.1.
+    expect(read('1.10')).toEqual(['1.10', []])
+    expect(read('1.100')).toEqual(['1.100', []])
+    for (const bad of ['1', 'yes', '1.1.0', '"v1.1"', '[1, 1]']) expect(read(bad), bad).toEqual([undefined, ['error frontmatter/blitzstrahl@2']])
+    expect(deck('title: x').deck.meta).not.toHaveProperty('blitzstrahl')
+  })
+
   it('a built key leaves the reserved list', () => {
     expect(RESERVED_DECK_KEYS.has('thousands')).toBe(false)
     expect(RESERVED_DECK_KEYS.has('decimal')).toBe(false)

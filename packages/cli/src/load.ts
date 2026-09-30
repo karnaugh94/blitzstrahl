@@ -11,6 +11,7 @@ import { mermaidProblem, specNotes, specProblem } from '@blitzstrahl/renderers/s
 import { allCss, loadExtras, pluginCss, pluginPayload, toExtensions, type Extras } from './extend.js'
 import { highlightDeck } from './highlight.js'
 import { renderMath } from './math.js'
+import { VERSION } from './version.js'
 
 export interface LoadedDeck {
   path: string
@@ -41,12 +42,14 @@ export interface LoadOptions {
    * `import()`. `dev` passes Vite's SSR loader, which picks up edits.
    */
   importModule?: (file: string) => Promise<unknown>
+  /** The markdown, instead of reading `path` (`check --stdin`: an editor's unsaved text). */
+  source?: string
 }
 
 export async function loadDeck(path: string, displayName = path, options: LoadOptions = {}): Promise<LoadedDeck> {
   const abs = resolve(path)
   const dir = dirname(abs)
-  const source = await readFile(abs, 'utf8')
+  const source = options.source ?? (await readFile(abs, 'utf8'))
   // Parse once to find the theme and plugins, then again knowing what they add.
   const first = parseDeck(source, { file: displayName })
   const extras = await loadExtras(first.deck, dir, first.keySpans, options.importModule)
@@ -55,6 +58,16 @@ export async function loadDeck(path: string, displayName = path, options: LoadOp
   if (css.length) extensions.effects = { ...Object.fromEntries(css.map((n) => [n, 'entrance' as const])), ...extensions.effects }
   const { deck, diagnostics, keySpans } = hasAny(extensions) ? parseDeck(source, { file: displayName, extensions }) : first
   diagnostics.push(...extras.diagnostics)
+  const wants = deck.meta.blitzstrahl
+  if (wants && newer(wants, VERSION)) {
+    diagnostics.push({
+      severity: 'warning',
+      code: 'deck/newer',
+      message: `the deck is written for blitzstrahl ${wants}, and this is ${VERSION}: what it adds since may be reported as errors. Update blitzstrahl`,
+      file: displayName,
+      span: keySpans.blitzstrahl ?? { start: { line: 1, column: 1 }, end: { line: 1, column: 1 } },
+    })
+  }
   const plugins = pluginPayload(extras, deck, keySpans)
   diagnostics.push(...plugins.diagnostics)
   const inline: Record<string, string> = {}
@@ -130,4 +143,11 @@ export function cssEffects(css: string): string[] {
 
 function hasAny(e: Extensions): boolean {
   return !!(Object.keys(e.renderers ?? {}).length || Object.keys(e.effects ?? {}).length || e.keys?.length)
+}
+
+/** Whether `wants` (`major.minor`) is a later release than `running` (`1.1.0`). */
+export function newer(wants: string, running: string): boolean {
+  const [a = 0, b = 0] = wants.split('.').map(Number)
+  const [x = 0, y = 0] = running.split('.').map(Number)
+  return a !== x ? a > x : b > y
 }

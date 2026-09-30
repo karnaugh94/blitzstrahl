@@ -129,3 +129,30 @@ test("only the deck's files open, only from this machine, and Vite's own route i
     await server?.close()
   }
 })
+
+// A slide starts on the line after the `---` above it (the deck's first, after the frontmatter's).
+test("an editor asks where each slide starts, and follows a save; only this machine may ask (M13)", async ({ request }) => {
+  const { deck } = folder()
+  writeFileSync(deck, '---\nblitzstrahl: 1.1\n---\n\n# One\n\n---\n\n# Two {#second}\n\n---\n\n# Three\n')
+  let server: ViteDevServer | undefined
+  try {
+    server = await dev(deck, { port: 0, host: true })
+    const base = server.resolvedUrls!.local[0]!
+    const slides = async () => ((await (await request.get(`${base}_blitz/slides`)).json()) as { slides: unknown }).slides
+    expect(await slides()).toEqual([
+      { id: 'one', line: 4 },
+      { id: 'second', line: 8 },
+      { id: 'three', line: 12 },
+    ])
+    writeFileSync(deck, '# One\n\n---\n\n# Two {#second}\n')
+    await expect.poll(slides).toEqual([
+      { id: 'one', line: 1 },
+      { id: 'second', line: 4 },
+    ])
+    const lan = Object.values(networkInterfaces()).flat().find((i) => i && i.family === 'IPv4' && !i.internal)
+    test.skip(!lan, 'no network address to ask from')
+    expect((await request.get(`http://${lan!.address}:${new URL(base).port}/_blitz/slides`)).status()).toBe(403)
+  } finally {
+    await server?.close()
+  }
+})

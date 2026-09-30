@@ -6,7 +6,7 @@ import type { Diagnostics } from './diagnostics.js'
 import { keySpan, type Frontmatter } from './split.js'
 import type { Thousands } from './numbers.js'
 import { normalizeRelative } from './assets.js'
-import { DECK_SCHEMA, keyProblem, matches, MS, TIME_PATTERN } from './schema.js'
+import { DECK_SCHEMA, keyProblem, matches, MS, TIME_PATTERN, VERSION_PATTERN } from './schema.js'
 import { LAYOUTS, SLIDE_KEYS, SUPPORTED_MILESTONES, TRANSITIONS } from './vocab.js'
 
 export const DECK_KEYS: ReadonlySet<string> = new Set(Object.keys(DECK_SCHEMA))
@@ -29,6 +29,13 @@ export function resolveDeckMeta(fm: Frontmatter | undefined, diags: Diagnostics,
   for (const [key, value] of Object.entries(data)) {
     const span = keySpan(fm, key, none)
     switch (key) {
+      case 'blitzstrahl': {
+        // Read as written: YAML reads `1.10` as the number 1.1.
+        const v = (fm?.written?.[key] ?? String(value)).trim()
+        if (!new RegExp(VERSION_PATTERN).test(v)) diags.error('frontmatter/blitzstrahl', `\`blitzstrahl\` ${DECK_SCHEMA.blitzstrahl!.message}`, span)
+        else meta.blitzstrahl = v
+        break
+      }
       case 'title':
       case 'author':
       case 'date':

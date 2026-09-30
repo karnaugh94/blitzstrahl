@@ -4,13 +4,18 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
+import { newer } from '../src/load.js'
 
 const BIN = fileURLToPath(new URL('../dist/bin.js', import.meta.url))
 const dir = mkdtempSync(join(tmpdir(), 'blitz-cli-'))
 writeFileSync(join(dir, 'talk.md'), '# Hello\n')
 
 function run(...args: string[]) {
-  const r = spawnSync(process.execPath, [BIN, ...args], { cwd: dir, encoding: 'utf8', env: { ...process.env, BLITZSTRAHL_SKIP_OVERFLOW_CHECK: '1' } })
+  return runWith(undefined, ...args)
+}
+
+function runWith(input: string | undefined, ...args: string[]) {
+  const r = spawnSync(process.execPath, [BIN, ...args], { cwd: dir, input, encoding: 'utf8', env: { ...process.env, BLITZSTRAHL_SKIP_OVERFLOW_CHECK: '1' } })
   return { code: r.status, out: r.stdout, err: r.stderr }
 }
 
@@ -58,6 +63,7 @@ describe('blitzstrahl new (M8.2)', () => {
     expect(r.out).toContain('npx blitzstrahl dev intro/start.md')
     const deck = readFileSync(join(dir, 'intro/start.md'), 'utf8')
     expect(deck).toContain('theme: broadsheet\n')
+    expect(deck).toMatch(/^---\nblitzstrahl: \d+\.\d+\n/)
     expect(deck).toContain('data: ./start-data.csv\n')
     expect(existsSync(join(dir, 'intro/start-data.csv'))).toBe(true)
     const c = run('check', 'intro/start.md', '--offline')
@@ -116,4 +122,38 @@ describe('--format (M8.3)', () => {
     expect(doc.summary.errors).toBeGreaterThan(0)
     expect(run('check', 'talk.md', '--format', 'xml').err).toContain('`--format` must be text, json, github')
   })
+})
+
+describe('for editors (M13)', () => {
+  it('check --stdin checks the text given, finding files from the deck\'s folder', () => {
+    writeFileSync(join(dir, 'unsaved.md'), '# Saved, and fine\n')
+    writeFileSync(join(dir, 'unsaved.csv'), 'a,b\nx,1\n')
+    const text = '# Unsaved\n\n```chart\ntype: bar\ndata: ./unsaved.csv\nx: a\ny: b\n```\n\n![](./nowhere.png)\n'
+    const r = runWith(text, 'check', 'unsaved.md', '--offline', '--stdin', '--format', 'json')
+    const doc = JSON.parse(r.out)
+    expect(doc.deck).toBe('unsaved.md')
+    // The data file is found beside the deck; the missing picture is reported at the unsaved text's line.
+    expect(doc.diagnostics.map((d: { code: string; line: number }) => [d.code, d.line])).toContainEqual(['asset/missing', 10])
+    expect(doc.diagnostics.filter((d: { severity: string }) => d.severity === 'error')).toEqual([])
+    // Without --stdin, the file on disk.
+    expect(JSON.parse(run('check', 'unsaved.md', '--offline', '--format', 'json').out).diagnostics).toEqual([])
+  })
+
+  it('`blitzstrahl:` later than the one running is a warning at the key', () => {
+    const [major, minor] = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version.split('.').map(Number)
+    writeFileSync(join(dir, 'marked.md'), `---\nblitzstrahl: ${major}.${minor}\n---\n\n# A\n`)
+    expect(JSON.parse(run('check', 'marked.md', '--offline', '--format', 'json').out).diagnostics).toEqual([])
+    writeFileSync(join(dir, 'marked.md'), `---\ntitle: T\nblitzstrahl: ${major}.${minor + 1}\n---\n\n# A\n`)
+    const d = JSON.parse(run('check', 'marked.md', '--offline', '--format', 'json').out).diagnostics
+    expect(d).toMatchObject([{ severity: 'warning', code: 'deck/newer', line: 3, column: 1 }])
+  })
+
+  it('newer(): major, then minor, numerically', () => {
+    expect(newer('1.2', '1.1.0')).toBe(true)
+    expect(newer('1.10', '1.9.3')).toBe(true)
+    expect(newer('1.1', '1.1.7')).toBe(false)
+    expect(newer('1.9', '2.0.0')).toBe(false)
+    expect(newer('2.0', '1.12.0')).toBe(true)
+  })
+
 })

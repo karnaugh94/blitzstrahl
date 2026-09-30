@@ -1,4 +1,5 @@
 ---
+blitzstrahl: {{version}}
 title: My talk
 author: Your Name
 theme: {{theme}}

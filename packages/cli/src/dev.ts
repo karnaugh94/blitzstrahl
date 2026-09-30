@@ -28,6 +28,8 @@ export interface DevOptions {
 
 const ASSET_PREFIX = '/_blitz/asset/'
 const OPEN = '/_blitz/open'
+/** Where each slide starts in the markdown, for an editor's preview to follow the cursor. */
+const SLIDES = '/_blitz/slides'
 /** Whoever asks is on this machine: `--host` shouldn't let a phone open files in the author's editor. */
 const isLoopback = (address: string | undefined) => !!address && /^(127\.|::1$|::ffff:127\.)/.test(address)
 const RENDERERS_ID = 'virtual:blitzstrahl-renderers'
@@ -78,6 +80,16 @@ export async function dev(deckPath: string, options: DevOptions = {}): Promise<V
         }
         if (url === OPEN) {
           res.statusCode = openInEditor(req.url!, req.socket.remoteAddress)
+          res.end()
+          return
+        }
+        if (url === SLIDES) {
+          if (!isLoopback(req.socket.remoteAddress)) res.statusCode = 403
+          else {
+            res.setHeader('content-type', 'application/json')
+            res.setHeader('cache-control', 'no-store')
+            res.write(JSON.stringify({ slides: loaded.deck.slides.map((s) => ({ id: s.id, line: s.span.start.line })) }))
+          }
           res.end()
           return
         }

@@ -3,7 +3,7 @@
  * (syntax.md §2), and cutting unclosed containers at the slide boundary (§5).
  */
 import type { Root, RootContent } from 'mdast'
-import { parseDocument, isMap } from 'yaml'
+import { parseDocument, isMap, isScalar } from 'yaml'
 import type { SourcePoint, SourceSpan } from './ir.js'
 import type { Diagnostics } from './diagnostics.js'
 import type { BlitzContainer } from './syntax/index.js'
@@ -18,6 +18,8 @@ export interface Frontmatter {
   span: SourceSpan
   /** Where each top-level key is written, for diagnostics. */
   keys: Record<string, SourceSpan>
+  /** Each top-level scalar as written, where YAML's reading loses it (`1.10` reads as 1.1). */
+  written?: Record<string, string>
 }
 
 /** Span of a frontmatter key, falling back to the whole block. */
@@ -53,6 +55,7 @@ export function splitSlides(root: Root, lines: string[], diags: Diagnostics): Sp
     deckFrontmatter = {
       data: parsed?.data ?? {},
       keys: parsed?.keys ?? {},
+      written: parsed?.written ?? {},
       span: lineSpan(lines, start, first.position!.end.line - 1),
     }
     boundary = first.position!.end.line
@@ -153,7 +156,7 @@ function cutUnclosedContainers(children: RootContent[], isSeparator: (n: RootCon
 }
 
 type YamlRead =
-  | { ok: true; data: Record<string, unknown>; keys: Record<string, SourceSpan> }
+  | { ok: true; data: Record<string, unknown>; keys: Record<string, SourceSpan>; written: Record<string, string> }
   | { ok: false; empty: boolean; message: string; at: SourcePoint }
 
 /** Parse YAML that must be a mapping, without reporting anything. */
@@ -168,15 +171,17 @@ function readYamlMapping(text: string, firstLine: number): YamlRead {
     return { ok: false, empty: doc.contents === null, message: 'it must be a YAML mapping (key: value)', at: { line: firstLine, column: 1 } }
   }
   const keys: Record<string, SourceSpan> = {}
+  const written: Record<string, string> = {}
   for (const pair of doc.contents.items) {
     const key = pair.key as { value?: unknown; range?: [number, number, number] } | null
     if (!key?.range) continue
+    if (isScalar(pair.value) && typeof pair.value.source === 'string') written[String(key.value)] = pair.value.source
     const before = text.slice(0, key.range[0]).split('\n')
     const line = firstLine + before.length - 1
     const column = before[before.length - 1]!.length + 1
     keys[String(key.value)] = { start: { line, column }, end: { line, column: column + (key.range[1] - key.range[0]) } }
   }
-  return { ok: true, data: doc.toJS() as Record<string, unknown>, keys }
+  return { ok: true, data: doc.toJS() as Record<string, unknown>, keys, written }
 }
 
 /** Parse YAML that must be a mapping. Reports and returns undefined otherwise. */
@@ -185,10 +190,10 @@ export function parseYamlMapping(
   firstLine: number,
   diags: Diagnostics,
   what: 'deck' | 'slide',
-): { data: Record<string, unknown>; keys: Record<string, SourceSpan> } | undefined {
+): { data: Record<string, unknown>; keys: Record<string, SourceSpan>; written: Record<string, string> } | undefined {
   const read = readYamlMapping(text, firstLine)
-  if (read.ok) return { data: read.data, keys: read.keys }
-  if (read.empty && what === 'deck') return { data: {}, keys: {} }
+  if (read.ok) return { data: read.data, keys: read.keys, written: read.written }
+  if (read.empty && what === 'deck') return { data: {}, keys: {}, written: {} }
   const code = read.message.startsWith('it must be') ? 'frontmatter/not-mapping' : 'frontmatter/yaml'
   const message = code === 'frontmatter/yaml' ? `${what} frontmatter is not valid YAML: ${read.message}` : `${what} frontmatter must be a YAML mapping (key: value)`
   diags.warn(code, message, { start: read.at, end: read.at })

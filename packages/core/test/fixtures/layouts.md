@@ -65,3 +65,19 @@ layout: magazine
 ---
 
 Unknown layout falls back to `default`.
+
+---
+layout: two-col
+---
+
+::: lft
+A misspelt slot: an ordinary container, and a "did you mean" warning.
+:::
+
+::: right
+Right.
+:::
+
+::: light
+Close to `right`, but `right` is filled: no warning.
+:::

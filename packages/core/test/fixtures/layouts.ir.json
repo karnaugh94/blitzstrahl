@@ -636,6 +636,147 @@
             "column": 1
           }
         }
+      },
+      {
+        "id": "slide-8",
+        "index": 7,
+        "layout": "two-col",
+        "transition": {
+          "name": "fade"
+        },
+        "attrs": {
+          "class": [],
+          "extra": {}
+        },
+        "steps": 0,
+        "notes": [],
+        "content": [
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "main"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "lft"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "A misspelt slot: an ordinary container, and a \"did you mean\" warning."
+                      }
+                    ]
+                  }
+                ]
+              },
+              {
+                "type": "element",
+                "tagName": "div",
+                "properties": {
+                  "className": [
+                    "light"
+                  ]
+                },
+                "children": [
+                  {
+                    "type": "element",
+                    "tagName": "p",
+                    "properties": {},
+                    "children": [
+                      {
+                        "type": "text",
+                        "value": "Close to "
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "code",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "right"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": ", but "
+                      },
+                      {
+                        "type": "element",
+                        "tagName": "code",
+                        "properties": {},
+                        "children": [
+                          {
+                            "type": "text",
+                            "value": "right"
+                          }
+                        ]
+                      },
+                      {
+                        "type": "text",
+                        "value": " is filled: no warning."
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "type": "text",
+            "value": "\n"
+          },
+          {
+            "type": "element",
+            "tagName": "div",
+            "properties": {
+              "className": [
+                "blitz-slot"
+              ],
+              "dataSlot": "right"
+            },
+            "children": [
+              {
+                "type": "element",
+                "tagName": "p",
+                "properties": {},
+                "children": [
+                  {
+                    "type": "text",
+                    "value": "Right."
+                  }
+                ]
+              }
+            ]
+          }
+        ],
+        "anims": [],
+        "blocks": [],
+        "span": {
+          "start": {
+            "line": 72,
+            "column": 1
+          },
+          "end": {
+            "line": 84,
+            "column": 1
+          }
+        }
       }
     ],
     "assets": [
@@ -706,6 +847,24 @@
         "end": {
           "line": 64,
           "column": 7
+        }
+      }
+    },
+    {
+      "severity": "warning",
+      "code": "layout/near-slot",
+      "message": "layout `two-col` has no `lft` slot, so this is an ordinary container: did you mean `left`?",
+      "file": "layouts.md",
+      "span": {
+        "start": {
+          "line": 73,
+          "column": 1,
+          "offset": 746
+        },
+        "end": {
+          "line": 73,
+          "column": 1,
+          "offset": 746
         }
       }
     }

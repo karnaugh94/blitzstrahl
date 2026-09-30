@@ -11,6 +11,12 @@ export interface Attached {
   attrs: Attrs
   /** Position of the block's `{`, for pointing at bad tokens. */
   at: Point
+  /**
+   * Written alone on the line after a block's text, with no blank line
+   * between: markdown made it part of that text (a list's last item, a
+   * table's last row), so errors can say to add the blank line.
+   */
+  ownLine?: boolean
 }
 
 declare module 'mdast' {
@@ -23,14 +29,14 @@ const BLOCK_PARENTS = new Set(['root', 'blockquote', 'listItem', 'list', 'blitzC
 const INLINE_TARGETS = new Set(['link', 'image', 'inlineCode', 'linkReference', 'imageReference', 'blitzMath'])
 
 export function attachAttributes(nodes: RootContent[], lines: string[], diags: Diagnostics): void {
-  const attach = (target: Nodes, raw: string, at: Point) => {
+  const attach = (target: Nodes, raw: string, at: Point, ownLine = false) => {
     const parsed = parseAttrs(raw)
     for (const e of parsed.errors) {
       diags.error(e.code, e.message, pointSpan({ line: at.line, column: at.column + 1 + e.offset }))
     }
     const data = (target.data ??= {})
     if (!data.blitz) {
-      data.blitz = { attrs: parsed.attrs, at }
+      data.blitz = ownLine ? { attrs: parsed.attrs, at, ownLine } : { attrs: parsed.attrs, at }
       return
     }
     diags.warn('attr/multiple', 'element has more than one attribute block; they are merged', pointSpan(at))
@@ -94,12 +100,14 @@ export function attachAttributes(nodes: RootContent[], lines: string[], diags: D
     const prev = kids[kids.length - 2]
     if (prev && prev.type !== 'text') return // directly attached inline; walkPhrasing handles it
     if (prev && !/\s$/.test(prev.value)) return // `word{...}`: an error, reported by walkPhrasing
+    const at = last.position!.start
+    const ownLine = (!prev || prev.value.endsWith('\n')) && /^[\s|>]*$/.test((lines[at.line - 1] ?? '').slice(0, at.column - 1))
     kids.pop()
     if (prev) {
       prev.value = prev.value.replace(/\s+$/, '')
       if (prev.value === '') kids.pop()
     }
-    attach(target, last.value, last.position!.start)
+    attach(target, last.value, at, ownLine)
   }
 
   const walkPhrasing = (parent: { children: PhrasingContent[] }) => {

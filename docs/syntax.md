@@ -1023,6 +1023,9 @@ columns.
 - A top-level container using a slot name the slide's layout doesn't have is a
   warning, and the container stays an ordinary `<div>`. So is filling the
   same slot twice: the second container stays a `<div>`.
+- A top-level container whose name is close to a slot the slide leaves
+  empty (`::: lft` in `two-col`) is probably that slot misspelt: a warning
+  says "did you mean `left`", and the container stays a `<div>`.
 - Build steps number in document order, regardless of where a slot puts the
   content.
 - Themes style the layouts. In the page, each slot is a

@@ -74,7 +74,7 @@ test('standalone file', async ({ page }) => {
   const r = await build(deck, { standalone: true, outFile, quiet: true, overflowCheck: false })
   expect(r.ok).toBe(true)
   // The runtime's licence notice travels with every page (EUPL-1.2).
-  expect(readFileSync(outFile, 'utf8')).toMatch(/^<!doctype html>\n<!--\n  Made with blitzstrahl \d+\.\d+\.\d+\. The slide runtime in this page is\n  \(c\) the blitzstrahl authors, licensed under the EUPL-1\.2/)
+  expect(readFileSync(outFile, 'utf8')).toMatch(/^<!doctype html>\n<!--\n  Made with blitzstrahl \d+\.\d+\.\d+(-[\w.]+)?\. The slide runtime in this page is\n  \(c\) the blitzstrahl authors, licensed under the EUPL-1\.2/)
   await page.goto(pathToFileURL(outFile).href)
   await exercise(page)
 })

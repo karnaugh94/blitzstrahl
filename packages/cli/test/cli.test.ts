@@ -42,7 +42,7 @@ describe('the command line (M6.12)', () => {
   })
 
   it('--version, and each command has its own --help', () => {
-    expect(run('--version')).toMatchObject({ code: 0, out: expect.stringMatching(/^blitzstrahl \d+\.\d+\.\d+\n$/) })
+    expect(run('--version')).toMatchObject({ code: 0, out: expect.stringMatching(/^blitzstrahl \d+\.\d+\.\d+(-[\w.]+)?\n$/) })
     const help = run('export', '--help')
     expect(help.code).toBe(0)
     expect(help.out).toContain('Usage: blitzstrahl export <deck.md>')

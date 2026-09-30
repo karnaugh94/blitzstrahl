@@ -54,8 +54,13 @@ exports.run = async () => {
     step('completion: chart types after `type:`')
 
     // The preview: a panel beside, on a dev server, following the cursor.
-    await vscode.commands.executeCommand('blitzstrahl.preview')
+    // Asked twice at once (a double click): one server.
+    await Promise.all([vscode.commands.executeCommand('blitzstrahl.preview'), vscode.commands.executeCommand('blitzstrahl.preview')])
     const p = await until('the preview', () => api.previews().find((x) => x.visible))
+    await new Promise((r) => setTimeout(r, 1500))
+    const previewTabs = () => vscode.window.tabGroups.all.flatMap((g) => g.tabs).filter((t) => t.input instanceof vscode.TabInputWebview && t.input.viewType.endsWith('blitzstrahl.preview'))
+    assert.equal(previewTabs().length, 1, 'one preview tab')
+    assert.equal(api.previews().length, 1, 'one server')
     const tab = await until('the preview tab', () => vscode.window.tabGroups.all.flatMap((g) => g.tabs).find((t) => t.input instanceof vscode.TabInputWebview && t.input.viewType.endsWith('blitzstrahl.preview')), 10_000)
     assert.equal(tab.group.viewColumn, vscode.ViewColumn.Two, 'beside the markdown')
     assert.ok((await (await fetch(p.url)).text()).includes('blitz-payload'), 'the dev server serves the deck')

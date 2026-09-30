@@ -41,10 +41,21 @@ export class Preview implements vscode.Disposable {
     return [...Preview.open_.values()]
   }
 
-  /** The deck's preview: the one already running, or a new server. */
-  static async start(deck: string, s: Starting): Promise<Preview> {
+  private static starting = new Map<string, Promise<Preview>>()
+
+  /** The deck's preview: the one already running (or starting), or a new server. */
+  static start(deck: string, s: Starting): Promise<Preview> {
     const running = Preview.open_.get(deck)
-    if (running) return running
+    if (running) return Promise.resolve(running)
+    let p = Preview.starting.get(deck)
+    if (!p) {
+      p = Preview.launch(deck, s).finally(() => Preview.starting.delete(deck))
+      Preview.starting.set(deck, p)
+    }
+    return p
+  }
+
+  private static async launch(deck: string, s: Starting): Promise<Preview> {
     const port = await freePort()
     const args = [s.cli.bin, 'dev', deck, '--port', String(port)]
     const proc = spawn(s.node.command, args, { cwd: dirname(deck), env: s.node.env, stdio: ['ignore', 'pipe', 'pipe'] })

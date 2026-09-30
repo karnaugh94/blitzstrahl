@@ -73,6 +73,10 @@ const pkg = {
   description: 'Markdown in, a deck worth watching out: interactive HTML slide decks with real charts, maps, motion and a presenter view.',
   keywords: ['slides', 'presentation', 'markdown', 'deck', 'charts', 'echarts', 'presenter'],
   license: 'EUPL-1.2',
+  // EUPL: the package points to its source (decisions.md, licence).
+  repository: { type: 'git', url: 'git+https://github.com/karnaugh94/blitzstrahl.git' },
+  homepage: 'https://github.com/karnaugh94/blitzstrahl#readme',
+  bugs: { url: 'https://github.com/karnaugh94/blitzstrahl/issues' },
   type: 'module',
   engines: { node: '>=22' },
   bin: { blitzstrahl: './dist/bin.js' },

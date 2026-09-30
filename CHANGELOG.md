@@ -12,7 +12,7 @@ relied on it will notice.
 
 ## [Unreleased]
 
-## [1.1.0-rc.1] — 2026-09-30
+## [1.1.0] — 2026-09-30
 
 The first release on npm. 1.0.0 was on GitHub only, and 1.0.1 was never
 released: its fixes are listed here, against 1.0.0.

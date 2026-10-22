@@ -225,7 +225,8 @@ Keynote or Google Slides, or handed to someone who expects a `.pptx`.
 | Boxes with a plain fill or border (cards, stats, callouts) | Rectangles and rounded rectangles |
 | Tables | Tables, merged cells and all |
 | Charts | Native charts (bar, line, area, pie, doughnut, scatter, bubble), their values in the embedded workbook ("Edit Data") |
-| Images, maps, diagrams, maths, embedded pages | Pictures, at twice the canvas size |
+| Mermaid flowcharts | A group of shapes (the nodes, with their labels), connectors glued to them, and the edge labels: move a box and its arrows follow |
+| Images, maps, other diagrams, maths, embedded pages | Pictures, at twice the canvas size |
 | The theme's backdrop: gradients, glows, rules, the shapes behind numbered steps | The slide's background picture |
 | Presenter notes | **Speaker notes**, with their lists, bold, italic and code |
 

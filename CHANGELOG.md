@@ -28,6 +28,12 @@ relied on it will notice.
   with their data in an embedded workbook, the theme's backdrop as the
   slide's background, and the presenter notes as speaker notes
   (docs/cli.md, *`export`*). `--steps` gives a slide per step.
+- `export --pptx` redraws a Mermaid flowchart as PowerPoint shapes: each
+  node a shape of its kind (box, diamond, stadium, cylinder…) with its
+  label, each edge a connector glued to its nodes with its arrowheads and
+  dash, and subgraphs as boxes behind them, all in one group. An edge whose
+  route a connector can't take is drawn as Mermaid drew it. Other diagram
+  types are still pictures.
 
 ## [1.1.1] — 2026-09-30
 

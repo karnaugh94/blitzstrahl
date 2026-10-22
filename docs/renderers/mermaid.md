@@ -42,6 +42,15 @@ slide, and `blitzstrahl check` reports it at the block's line. (A few diagram
 types can only be checked in a browser; for those, the slide is where you'll
 see it.)
 
+**PowerPoint** *(1.2)*. `blitzstrahl export talk.md --pptx` redraws a
+flowchart as PowerPoint shapes you can edit: the nodes are shapes with
+their labels as text, the edges are connectors glued to them (move a box in
+PowerPoint and its arrows follow), and subgraphs are boxes behind them, all
+in one group. Mermaid's rounded elbows become square ones; an edge whose
+route a connector can't take (a curve, or more than three legs) is a line
+drawn as Mermaid drew it, not glued. Other diagram types are pictures of
+themselves (docs/cli.md, *`export`*).
+
 **Weight.** Mermaid is large. A static build loads it only when a slide with
 a diagram is shown, and then only the parts that diagram type needs. A
 standalone file has to carry all of it: expect about 5 MB.

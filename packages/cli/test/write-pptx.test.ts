@@ -2,7 +2,7 @@ import { unzipSync } from 'fflate'
 import { describe, expect, it } from 'vitest'
 import { parseDeck } from '@blitzstrahl/core'
 import { pptxToMarkdown } from '../src/pptx.js'
-import type { Cell, ChartData, Colour, Item, Paragraph, PictureItem, Run, ShapeItem, TableItem, TextItem } from '../src/pptx-read.js'
+import type { Cell, ChartData, Colour, DiagramItem, DiagramNode, Item, Paragraph, PictureItem, Run, ShapeItem, TableItem, TextItem } from '../src/pptx-read.js'
 import { type NoteParagraph, type PptxPage, noteParagraphs, writePptx } from '../src/write-pptx.js'
 
 /** A 1×1 PNG. */
@@ -130,6 +130,54 @@ describe('a deck as a PowerPoint presentation (export --pptx)', () => {
     expect(sheet).toContain('<is><t>Sales</t></is>')
     expect(sheet).toContain('<c r="B3"><v>5</v></c>')
     expect(xml(files, '[Content_Types].xml')).toContain('<Default Extension="xlsx"')
+  })
+
+  it('writes a flowchart as a group: shapes with their labels, and connectors glued to them', () => {
+    const node = (id: string, x: number, preset: string, extra: Partial<DiagramNode> = {}): DiagramNode => ({
+      id, rect: { x, y: 100, w: 100, h: 50 }, preset, paragraphs: [para(id)], insets: { l: 0, t: 0, r: 0, b: 0 }, nowrap: true, name: id, ...extra,
+    })
+    const line = { width: 2, colour: RED }
+    const diagram: DiagramItem = {
+      kind: 'diagram', rect: { x: 0, y: 0, w: 600, h: 300 }, alt: 'Flow', name: 'Diagram',
+      clusters: [],
+      nodes: [
+        node('A', 0, 'rect'),
+        node('B', 200, 'flowChartDecision'),
+        node('C', 400, 'ellipse'),
+        node('D', 400, 'custom', { rect: { x: 400, y: 200, w: 100, h: 50 }, path: [{ op: 'M', points: [[0, 0]] }, { op: 'L', points: [[100, 25]] }, { op: 'L', points: [[0, 50]] }, { op: 'Z', points: [] }] }),
+      ],
+      edges: [
+        // Straight, across.
+        { from: { node: 'A', side: 'r' }, to: { node: 'B', side: 'l' }, points: [[100, 125], [200, 125]], line, start: 'none', end: 'triangle', name: 'A → B' },
+        // Across, up, across: an elbow.
+        { from: { node: 'B', side: 'r' }, to: { node: 'C', side: 'l' }, points: [[300, 125], [350, 125], [350, 110], [400, 110]], line, start: 'oval', end: 'triangle', name: 'B → C' },
+        // Down, then across: an elbow turned a quarter.
+        { from: { node: 'C', side: 'b' }, to: { node: 'D', side: 'r' }, points: [[450, 150], [450, 225], [500, 225]], line: { ...line, dash: 'sysDot' }, start: 'none', end: 'none', name: 'C → D' },
+        // Curved: a line as drawn, glued to nothing.
+        { points: [], path: [{ op: 'M', points: [[0, 150]] }, { op: 'C', points: [[0, 250], [200, 250], [400, 225]] }], line, start: 'none', end: 'triangle', name: 'A → D' },
+      ],
+      labels: [{ ...text('yes'), rect: { x: 320, y: 90, w: 30, h: 20 }, fill: { colour: BLACK } }],
+    }
+    const slide = xml(unzipSync(writePptx([page([diagram])], { width: 1280, height: 720 }, META)), 'ppt/slides/slide1.xml')
+    expect(slide).toMatch(/<p:grpSp><p:nvGrpSpPr><p:cNvPr id="2" name="Diagram" descr="Flow"\/>/)
+    // The nodes get ids 3 to 6, in order.
+    expect(slide).toContain('<p:cNvPr id="3" name="A"/>')
+    expect(slide).toContain('<a:prstGeom prst="flowChartDecision">')
+    expect(slide).toContain('<a:t>B</a:t>')
+    expect(slide).toContain('<a:custGeom>')
+    expect(slide).toContain('<a:stCxn id="3" idx="3"/><a:endCxn id="4" idx="1"/>')
+    expect(slide).toContain('<a:prstGeom prst="straightConnector1">')
+    expect(slide).toContain('<a:tailEnd type="triangle"')
+    // An ellipse's left site is its third; the elbow turns at 50 of its 100 across.
+    expect(slide).toContain('<a:stCxn id="4" idx="3"/><a:endCxn id="5" idx="2"/>')
+    expect(slide).toMatch(/<a:xfrm flipV="1"><a:off x="2857500" y="1047750"\/><a:ext cx="952500" cy="142875"\/><\/a:xfrm><a:prstGeom prst="bentConnector3"><a:avLst><a:gd name="adj1" fmla="val 50000"\/>/)
+    expect(slide).toContain('<a:headEnd type="oval"')
+    // Down then right: turned a quarter and flipped, its box the route's turned about its middle.
+    expect(slide).toContain('<a:stCxn id="5" idx="4"/><a:endCxn id="6" idx="3"/>')
+    expect(slide).toMatch(/<a:xfrm rot="5400000" flipV="1"><a:off x="4167188" y="1547813"\/><a:ext cx="714375" cy="476250"\/><\/a:xfrm><a:prstGeom prst="bentConnector3"><a:avLst><a:gd name="adj1" fmla="val 100000"\/>/)
+    expect(slide).toContain('<a:prstDash val="sysDot"/>')
+    expect(slide).toContain('<a:cubicBezTo>')
+    expect(slide).toContain('<a:t>yes</a:t>')
   })
 
   it('escapes what XML would misread, and drops what it can\'t carry', () => {

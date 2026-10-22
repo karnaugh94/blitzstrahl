@@ -70,3 +70,32 @@ test('a slide per slide: editable text, a native table and chart, its notes and 
   expect(text(stepped, 'ppt/slides/slide3.xml')).not.toContain('<a:t>Fell</a:t>')
   expect(text(stepped, 'ppt/slides/slide4.xml')).toContain('<a:t>Fell</a:t>')
 })
+
+test('a Mermaid flowchart is shapes and connectors; other diagrams stay pictures', async () => {
+  const dir = mkdtempSync(join(tmpdir(), 'blitz-pptx-flow-'))
+  const deck = join(dir, 'deck.md')
+  writeFileSync(
+    deck,
+    [
+      '---\ntitle: Flows\ntransition: none\n---\n\n# Flow\n\n```mermaid\nflowchart LR\n  A[One] --> B{Two}\n  B -->|yes| C([Three])\n  B -.-> D[(Four)]\n```',
+      '# Sequence\n\n```mermaid\nsequenceDiagram\n  Ann->>Bo: Hello\n```',
+    ].join('\n\n---\n\n'),
+  )
+  const r = await exportPdf(deck, { pptx: true, quiet: true })
+  expect(r.ok).toBe(true)
+  const files = unzipSync(readFileSync(r.file!))
+  const flow = text(files, 'ppt/slides/slide1.xml')
+  expect(flow).toContain('<p:grpSp>')
+  expect(flow).toContain('<a:prstGeom prst="flowChartDecision">')
+  expect(flow).toContain('<a:prstGeom prst="flowChartTerminator">')
+  expect(flow).toContain('<a:prstGeom prst="can">')
+  for (const label of ['One', 'Two', 'Three', 'Four', 'yes']) expect(flow).toContain(`<a:t>${label}</a:t>`)
+  // Three edges, each glued at both ends.
+  expect(flow.match(/<p:cxnSp>/g)).toHaveLength(3)
+  expect(flow.match(/<a:stCxn id="\d+" idx="\d+"\/><a:endCxn id="\d+" idx="\d+"\/>/g)).toHaveLength(3)
+  expect(flow).toContain('<a:prstDash val="sysDot"/>')
+  expect(flow).toContain('<a:tailEnd type="triangle"')
+  // Only the background is a picture on that slide; the sequence diagram is one.
+  expect(text(files, 'ppt/slides/_rels/slide1.xml.rels').match(/relationships\/image"/g)).toHaveLength(1)
+  expect(text(files, 'ppt/slides/_rels/slide2.xml.rels').match(/relationships\/image"/g)).toHaveLength(2)
+})

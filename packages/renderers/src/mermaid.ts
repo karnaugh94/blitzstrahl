@@ -151,13 +151,44 @@ const mermaid: Renderer = {
     el.append(box)
     const drawing = box.querySelector('svg')!
     fit(drawing, box)
+    // For `export --pptx`, which redraws a diagram as PowerPoint shapes: what
+    // the drawing shows (each node's shape, which edge joins which nodes).
+    const structure = await describe(m, source)
+    if (structure) Object.defineProperty(el, 'blitzDiagram', { value: structure, configurable: true })
     if (!ctx.reducedMotion) drawing.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 450, easing: 'ease-out' })
     return {
       update() {},
       resize: () => fit(drawing, box),
-      destroy: () => box.remove(),
+      destroy: () => {
+        box.remove()
+        delete (el as { blitzDiagram?: unknown }).blitzDiagram
+      },
     }
   },
+}
+
+/** A diagram's nodes and edges, as Mermaid parsed them (flowcharts). */
+export interface DiagramStructure {
+  type: string
+  nodes: Array<{ id: string; domId: string | undefined; shape: string | undefined; label: string | undefined; isGroup: boolean; parentId: string | undefined }>
+  edges: Array<{ id: string; start: string | undefined; end: string | undefined; arrowTypeStart: string | undefined; arrowTypeEnd: string | undefined; thickness: string | undefined; pattern: string | undefined; label: string | undefined }>
+}
+
+type Parsed = { type: string; db: { getData?(): { nodes: Array<Partial<DiagramStructure['nodes'][number]> & { id: string }>; edges: Array<Partial<DiagramStructure['edges'][number]> & { id: string }> } } }
+
+/** Parses the source again for its structure; the rendered drawing has only the geometry. */
+async function describe(m: { mermaidAPI: { getDiagramFromText(text: string): Promise<unknown> } }, source: string): Promise<DiagramStructure | undefined> {
+  try {
+    const diagram = (await m.mermaidAPI.getDiagramFromText(source)) as Parsed
+    const data = diagram.db.getData?.()
+    return {
+      type: diagram.type,
+      nodes: (data?.nodes ?? []).map((n) => ({ id: n.id, domId: n.domId, shape: n.shape, label: n.label, isGroup: !!n.isGroup, parentId: n.parentId })),
+      edges: (data?.edges ?? []).map((e) => ({ id: e.id, start: e.start, end: e.end, arrowTypeStart: e.arrowTypeStart, arrowTypeEnd: e.arrowTypeEnd, thickness: e.thickness, pattern: e.pattern, label: e.label })),
+    }
+  } catch {
+    return undefined
+  }
 }
 
 /** Scale the drawing down to fit the block, keeping its aspect; never up. */

@@ -7,7 +7,7 @@
  * a pixel is 9525 EMU and three quarters of a point.
  */
 import { strToU8, zipSync } from 'fflate'
-import type { Cell, ChartData, Colour, Item, Line, Paragraph, Rect, Run, TableItem, TextItem } from './pptx-read.js'
+import type { Cell, ChartData, Colour, DiagramEdge, DiagramItem, DiagramNode, Item, Line, Paragraph, PathCommand, Rect, Run, ShapeItem, Side, TableItem, TextItem } from './pptx-read.js'
 
 export const EMU = 9525
 const emu = (px: number) => Math.round(px * EMU)
@@ -59,14 +59,15 @@ function geometry(r: Rect, radius: number | undefined): string {
 
 export function shapesXml(items: Item[], parts: SlideParts, canvas: { width: number; height: number }): string {
   let id = 2
+  const next = () => id++
   return items
     .map((item) => {
-      const n = id++
+      const n = next()
       switch (item.kind) {
         case 'shape':
-          return `<p:sp><p:nvSpPr><p:cNvPr id="${n}" name="${esc(item.name)}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>`
-            + `<p:spPr>${xfrm(item.rect)}${geometry(item.rect, item.radius)}${item.fill ? solid(item.fill.colour) : '<a:noFill/>'}${lineXml(item.line)}</p:spPr>`
-            + `<p:txBody><a:bodyPr rtlCol="0" anchor="ctr"/><a:lstStyle/><a:p><a:endParaRPr lang="${esc(parts.lang)}"/></a:p></p:txBody></p:sp>`
+          return shapeXml(item, n, parts)
+        case 'diagram':
+          return diagramXml(item, n, next, parts, canvas)
         case 'text':
           return textXml(item, n, parts, canvas)
         case 'table':
@@ -86,6 +87,147 @@ export function shapesXml(items: Item[], parts: SlideParts, canvas: { width: num
       }
     })
     .join('')
+}
+
+function shapeXml(item: ShapeItem, n: number, parts: SlideParts): string {
+  return `<p:sp><p:nvSpPr><p:cNvPr id="${n}" name="${esc(item.name)}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>`
+    + `<p:spPr>${xfrm(item.rect)}${geometry(item.rect, item.radius)}${item.fill ? solid(item.fill.colour) : '<a:noFill/>'}${lineXml(item.line)}</p:spPr>`
+    + `<p:txBody><a:bodyPr rtlCol="0" anchor="ctr"/><a:lstStyle/><a:p><a:endParaRPr lang="${esc(parts.lang)}"/></a:p></p:txBody></p:sp>`
+}
+
+/**
+ * Where a preset's connection sites are, by side: a connector attached to
+ * one follows the shape when it moves. Most of the shapes a flowchart uses
+ * have four (top, left, bottom, right); a traced shape gets those four too.
+ */
+const SITES: Record<string, Record<Side, number>> = {
+  ellipse: { t: 0, l: 2, b: 4, r: 6 },
+  can: { t: 1, l: 2, b: 3, r: 4 },
+  parallelogram: { t: 1, l: 5, b: 3, r: 2 },
+}
+const FOUR: Record<Side, number> = { t: 0, l: 1, b: 2, r: 3 }
+
+function site(node: DiagramNode, side: Side): number {
+  // A flipped shape's sites are mirrored with it.
+  const s = node.flipH && (side === 'l' || side === 'r') ? (side === 'l' ? 'r' : 'l') : node.flipV && (side === 't' || side === 'b') ? (side === 't' ? 'b' : 't') : side
+  return (SITES[node.preset] ?? FOUR)[s]
+}
+
+/** A Mermaid flowchart as a group: subgraph boxes, then edges, nodes and edge labels. */
+function diagramXml(d: DiagramItem, n: number, next: () => number, parts: SlideParts, canvas: { width: number; height: number }): string {
+  const ids = new Map<string, { id: number; node: DiagramNode }>()
+  for (const node of d.nodes) ids.set(node.id, { id: next(), node })
+  const clusters = d.clusters.map((c) => (c.kind === 'shape' ? shapeXml(c, next(), parts) : textXml(c, next(), parts, canvas))).join('')
+  const edges = d.edges.map((e) => edgeXml(e, next(), ids)).join('')
+  const nodes = d.nodes.map((node) => nodeXml(node, ids.get(node.id)!.id, parts)).join('')
+  const labels = d.labels.map((l) => textXml(l, next(), parts, canvas)).join('')
+  const all = [d.rect, ...d.nodes.map((x) => x.rect), ...d.labels.map((x) => x.rect), ...d.edges.map((e) => bounds(e.points))]
+  const x = Math.min(...all.map((r) => r.x))
+  const y = Math.min(...all.map((r) => r.y))
+  const r = { x, y, w: Math.max(...all.map((q) => q.x + q.w)) - x, h: Math.max(...all.map((q) => q.y + q.h)) - y }
+  const box = `<a:off x="${emu(r.x)}" y="${emu(r.y)}"/><a:ext cx="${Math.max(1, emu(r.w))}" cy="${Math.max(1, emu(r.h))}"/>`
+  return `<p:grpSp><p:nvGrpSpPr><p:cNvPr id="${n}" name="${esc(d.name)}" descr="${esc(d.alt)}"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr>`
+    + `<p:grpSpPr><a:xfrm>${box}${box.replace('<a:off', '<a:chOff').replace('<a:ext', '<a:chExt')}</a:xfrm></p:grpSpPr>`
+    + clusters + edges + nodes + labels + '</p:grpSp>'
+}
+
+function bounds(points: Array<[number, number]>): Rect {
+  if (!points.length) return { x: Infinity, y: Infinity, w: -Infinity, h: -Infinity }
+  const xs = points.map((p) => p[0])
+  const ys = points.map((p) => p[1])
+  const x = Math.min(...xs)
+  const y = Math.min(...ys)
+  return { x, y, w: Math.max(...xs) - x, h: Math.max(...ys) - y }
+}
+
+function nodeXml(node: DiagramNode, n: number, parts: SlideParts): string {
+  const flips = `${node.flipH ? ' flipH="1"' : ''}${node.flipV ? ' flipV="1"' : ''}`
+  const geom = node.preset === 'custom'
+    ? custGeom(node.path ?? [], node.rect, true)
+    : `<a:prstGeom prst="${node.preset}"><a:avLst>${node.adj === undefined ? '' : `<a:gd name="adj" fmla="val ${node.adj}"/>`}</a:avLst></a:prstGeom>`
+  // A preset with a text area of its own (a diamond's) keeps it; a box's
+  // label sits where the drawing has it, with some room to wrap in other fonts.
+  const room = node.nowrap ? 0 : node.rect.w * 0.08
+  const ins = /^(rect|roundRect|custom)$/.test(node.preset)
+    ? { ...node.insets, l: Math.max(0, node.insets.l - room), r: Math.max(0, node.insets.r - room) }
+    : { l: 0, t: 0, r: 0, b: 0 }
+  const shadow = node.shadow
+    ? `<a:effectLst><a:outerShdw blurRad="${emu(node.shadow.blur)}" dist="${emu(Math.hypot(node.shadow.dx, node.shadow.dy))}" dir="${Math.round(((((Math.atan2(node.shadow.dy, node.shadow.dx) * 180) / Math.PI) + 360) % 360) * 60000)}" algn="ctr" rotWithShape="0">${solid(node.shadow.colour).replace(/^<a:solidFill>|<\/a:solidFill>$/g, '')}</a:outerShdw></a:effectLst>`
+    : ''
+  return `<p:sp><p:nvSpPr><p:cNvPr id="${n}" name="${esc(node.name)}"/><p:cNvSpPr/><p:nvPr/></p:nvSpPr>`
+    + `<p:spPr><a:xfrm${flips}><a:off x="${emu(node.rect.x)}" y="${emu(node.rect.y)}"/><a:ext cx="${Math.max(1, emu(node.rect.w))}" cy="${Math.max(1, emu(node.rect.h))}"/></a:xfrm>${geom}${node.fill ? solid(node.fill.colour) : '<a:noFill/>'}${lineXml(node.line)}${shadow}</p:spPr>`
+    + `<p:txBody><a:bodyPr wrap="${node.nowrap ? 'none' : 'square'}" lIns="${emu(ins.l)}" tIns="${emu(ins.t)}" rIns="${emu(ins.r)}" bIns="${emu(ins.b)}" rtlCol="0" anchor="ctr"><a:noAutofit/></a:bodyPr><a:lstStyle/>${paragraphsXml(node.paragraphs, parts)}</p:txBody></p:sp>`
+}
+
+/** A traced outline, in the box it's drawn relative to; `sites` gives it four connection sites. */
+function custGeom(path: PathCommand[], r: Rect, sites: boolean, fill = true): string {
+  const pt = (p: [number, number]) => `<a:pt x="${emu(p[0])}" y="${emu(p[1])}"/>`
+  const body = path.map((c) => {
+    switch (c.op) {
+      case 'M': return `<a:moveTo>${pt(c.points[0]!)}</a:moveTo>`
+      case 'L': return `<a:lnTo>${pt(c.points[0]!)}</a:lnTo>`
+      case 'C': return `<a:cubicBezTo>${c.points.map(pt).join('')}</a:cubicBezTo>`
+      case 'Q': return `<a:quadBezTo>${c.points.map(pt).join('')}</a:quadBezTo>`
+      case 'Z': return '<a:close/>'
+    }
+  }).join('')
+  const cxn = sites
+    ? '<a:cxnLst><a:cxn ang="3cd4"><a:pos x="hc" y="t"/></a:cxn><a:cxn ang="cd2"><a:pos x="l" y="vc"/></a:cxn><a:cxn ang="cd4"><a:pos x="hc" y="b"/></a:cxn><a:cxn ang="0"><a:pos x="r" y="vc"/></a:cxn></a:cxnLst>'
+    : '<a:cxnLst/>'
+  return `<a:custGeom><a:avLst/><a:gdLst/><a:ahLst/>${cxn}<a:rect l="l" t="t" r="r" b="b"/><a:pathLst><a:path w="${Math.max(1, emu(r.w))}" h="${Math.max(1, emu(r.h))}"${fill ? '' : ' fill="none"'}>${body}</a:path></a:pathLst></a:custGeom>`
+}
+
+/** A line with its arrowheads. PowerPoint sizes them by the line's width, so thin lines get the bigger ones. */
+function edgeLine(e: DiagramEdge): string {
+  const size = e.line.width < 2.5 ? 'lg' : 'med'
+  const end = (tag: string, type: string) => (type === 'none' ? '' : `<a:${tag} type="${type}" w="${size}" len="${size}"/>`)
+  return `<a:ln w="${emu(e.line.width)}" cap="rnd">${solid(e.line.colour)}${e.line.dash ? `<a:prstDash val="${e.line.dash}"/>` : ''}<a:round/>${end('headEnd', e.start)}${end('tailEnd', e.end)}</a:ln>`
+}
+
+/**
+ * An edge: a connector glued to its nodes when its route is one a connector
+ * can take (straight, or across and down in up to three legs), otherwise a
+ * line drawn as the browser drew it.
+ */
+function edgeXml(e: DiagramEdge, n: number, ids: Map<string, { id: number; node: DiagramNode }>): string {
+  const name = `<p:cNvPr id="${n}" name="${esc(e.name)}"/>`
+  if (e.path) {
+    const r = bounds(e.path.flatMap((c) => c.points))
+    const local = e.path.map((c) => ({ op: c.op, points: c.points.map((p) => [p[0] - r.x, p[1] - r.y] as [number, number]) }))
+    return `<p:sp><p:nvSpPr>${name}<p:cNvSpPr/><p:nvPr/></p:nvSpPr><p:spPr>${xfrm(r)}${custGeom(local, r, false, false)}<a:noFill/>${edgeLine(e)}</p:spPr></p:sp>`
+  }
+  const pts = e.points
+  const s = pts[0]!
+  const t = pts[pts.length - 1]!
+  const [dx, dy] = [t[0] - s[0], t[1] - s[1]]
+  let prst = 'straightConnector1'
+  let rect: Rect = { x: Math.min(s[0], t[0]), y: Math.min(s[1], t[1]), w: Math.abs(dx), h: Math.abs(dy) }
+  let rot = 0
+  let flipH = dx < 0
+  let flipV = dy < 0
+  let adj: number | undefined
+  if (pts.length > 2) {
+    // An elbow: across, down, across (or down, across, down, turned a quarter).
+    prst = 'bentConnector3'
+    const across = Math.abs(pts[1]![1] - s[1]) < 1
+    if (across) adj = pts.length === 4 ? (dx ? (pts[1]![0] - s[0]) / dx : 0.5) : 1
+    else {
+      rot = 5400000
+      const c = [(s[0] + t[0]) / 2, (s[1] + t[1]) / 2]
+      rect = { x: c[0]! - Math.abs(dy) / 2, y: c[1]! - Math.abs(dx) / 2, w: Math.abs(dy), h: Math.abs(dx) }
+      flipH = dy < 0
+      flipV = dx > 0
+      adj = pts.length === 4 ? (dy ? (pts[1]![1] - s[1]) / dy : 0.5) : 1
+    }
+  }
+  const glue = (tag: string, end: DiagramEdge['from']) => {
+    const to = end && ids.get(end.node)
+    return to ? `<a:${tag} id="${to.id}" idx="${site(to.node, end.side)}"/>` : ''
+  }
+  const attrs = `${rot ? ` rot="${rot}"` : ''}${flipH ? ' flipH="1"' : ''}${flipV ? ' flipV="1"' : ''}`
+  return `<p:cxnSp><p:nvCxnSpPr>${name}<p:cNvCxnSpPr>${glue('stCxn', e.from)}${glue('endCxn', e.to)}</p:cNvCxnSpPr><p:nvPr/></p:nvCxnSpPr>`
+    + `<p:spPr><a:xfrm${attrs}><a:off x="${emu(rect.x)}" y="${emu(rect.y)}"/><a:ext cx="${emu(rect.w)}" cy="${emu(rect.h)}"/></a:xfrm>`
+    + `<a:prstGeom prst="${prst}"><a:avLst>${adj === undefined ? '' : `<a:gd name="adj1" fmla="val ${Math.round(adj * 100000)}"/>`}</a:avLst></a:prstGeom><a:noFill/>${edgeLine(e)}</p:spPr></p:cxnSp>`
 }
 
 /**

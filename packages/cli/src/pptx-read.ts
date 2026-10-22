@@ -7,8 +7,9 @@
  *
  * It turns what the browser laid out into what PowerPoint has: text boxes
  * (headings, paragraphs, lists, code), native tables, rectangles for boxes
- * with a plain fill or border, and pictures for whatever has no PowerPoint
- * equivalent (images, charts, maps, diagrams, math). Each picture element
+ * with a plain fill or border, native charts, Mermaid flowcharts as groups
+ * of shapes and connectors, and pictures for whatever has no PowerPoint
+ * equivalent (images, maps, other diagrams, math). Each picture element
  * is marked `data-pptx-pic="n"` so the exporter can photograph it.
  * Everything that is turned into something editable is marked too, so the
  * slide can then be photographed without it: what's left (the theme's
@@ -114,6 +115,13 @@ export interface PictureItem {
   chart?: ChartData
 }
 
+/** What the Mermaid renderer says a diagram is (renderers/src/mermaid.ts). */
+interface DiagramStructure {
+  type: string
+  nodes: Array<{ id: string; domId?: string; shape?: string; label?: string; isGroup: boolean }>
+  edges: Array<{ id: string; start?: string; end?: string; arrowTypeStart?: string; arrowTypeEnd?: string; thickness?: string; pattern?: string }>
+}
+
 /** The parts of the chart renderer's ECharts theme an export uses. */
 interface ChartTheme {
   color?: string[]
@@ -183,7 +191,65 @@ export interface TableItem {
   name: string
 }
 
-export type Item = TextItem | ShapeItem | PictureItem | TableItem
+/** A path, in CSS pixels: `M`ove, `L`ine, `C`ubic and `Q`uadratic curves, `Z` to close. */
+export type PathCommand = { op: 'M' | 'L' | 'C' | 'Q' | 'Z'; points: Array<[number, number]> }
+
+/** A flowchart's node: a PowerPoint shape with its label as its text. */
+export interface DiagramNode {
+  /** Mermaid's id, which edges refer to. */
+  id: string
+  rect: Rect
+  /** A preset shape, or `custom` for `path` (relative to `rect`). */
+  preset: string
+  adj?: number
+  flipH?: boolean
+  flipV?: boolean
+  path?: PathCommand[]
+  fill?: Fill
+  line?: Line
+  paragraphs: Paragraph[]
+  /** Where the label sits in the shape. */
+  insets: { l: number; t: number; r: number; b: number }
+  /** The label is a single line. */
+  nowrap?: boolean
+  /** A drop shadow (Mermaid's `neo` look has one): its offset and blur, in CSS pixels. */
+  shadow?: { colour: Colour; dx: number; dy: number; blur: number }
+  name: string
+}
+
+export type ArrowEnd = 'none' | 'triangle' | 'oval'
+
+/** A flowchart's edge: a connector between two nodes where its route allows, a line otherwise. */
+export interface DiagramEdge {
+  /** The node it leaves and the one it reaches, and the side of each it meets. */
+  from?: { node: string; side: Side }
+  to?: { node: string; side: Side }
+  /** Its route, from end to end (a connector's), or the drawn path (a line's). */
+  points: Array<[number, number]>
+  path?: PathCommand[]
+  line: Line
+  start: ArrowEnd
+  end: ArrowEnd
+  name: string
+}
+
+export type Side = 't' | 'l' | 'b' | 'r'
+
+/** A Mermaid flowchart, redrawn as a group of shapes, connectors and labels. */
+export interface DiagramItem {
+  kind: 'diagram'
+  rect: Rect
+  alt: string
+  name: string
+  /** Subgraphs: boxes behind the nodes, and their titles. */
+  clusters: Array<ShapeItem | TextItem>
+  edges: DiagramEdge[]
+  nodes: DiagramNode[]
+  /** Edge labels, over the edges. */
+  labels: TextItem[]
+}
+
+export type Item = TextItem | ShapeItem | PictureItem | TableItem | DiagramItem
 
 export interface SlideRead {
   items: Item[]
@@ -616,6 +682,11 @@ export function readSlide(page: Element): SlideRead {
   }
 
   function picture(el: Element) {
+    const diagram = diagramOf(el)
+    if (diagram) {
+      hide(el)
+      return void items.push(diagram)
+    }
     const id = pictures++
     el.setAttribute('data-pptx-pic', String(id))
     hide(el)
@@ -627,6 +698,366 @@ export function readSlide(page: Element): SlideRead {
       item.name = `Chart ${names}`
     }
     items.push(item)
+  }
+
+  // Diagrams --------------------------------------------------------------
+
+  /**
+   * A Mermaid flowchart as shapes and connectors. The drawing gives where
+   * everything is and how it looks; the renderer's `blitzDiagram` (what
+   * Mermaid parsed) gives each node's shape and which nodes an edge joins.
+   * Anything it can't place makes the whole diagram a picture, as before.
+   */
+  function diagramOf(el: Element): DiagramItem | undefined {
+    const structure = (el as { blitzDiagram?: DiagramStructure }).blitzDiagram
+    if (!structure || !structure.type.startsWith('flowchart') || !structure.nodes.length) return undefined
+    const svg = el.querySelector('svg')
+    if (!svg) return undefined
+    try {
+      const vb = (svg as SVGSVGElement).viewBox.baseVal
+      const box = svg.getBoundingClientRect()
+      // The drawing is scaled to fit its block: sizes inside it are in its own units.
+      const scale = vb && vb.width ? box.width / vb.width : 1
+      const item: DiagramItem = { kind: 'diagram', rect: rectOf(svg), alt: el.getAttribute('aria-label') ?? '', name: `Diagram ${++names}`, clusters: [], edges: [], nodes: [], labels: [] }
+      const byDom = new Map(structure.nodes.filter((n) => n.domId).map((n) => [n.domId!, n]))
+
+      for (const g of svg.querySelectorAll('g.cluster')) {
+        const frame = g.querySelector(':scope > rect')
+        if (!frame) continue
+        const cs = style(frame)
+        const shape: ShapeItem = { kind: 'shape', rect: rectOf(frame), name: `Group ${++names}` }
+        const fill = paint(cs.fill, cs.fillOpacity)
+        const stroke = svgLine(cs, scale)
+        if (fill) shape.fill = { colour: fill }
+        if (stroke) shape.line = stroke
+        item.clusters.push(shape)
+        const title = labelOf(g.querySelector(':scope > .cluster-label, :scope > g.label'), scale)
+        if (title) item.clusters.push(title)
+      }
+
+      for (const g of svg.querySelectorAll('g.node')) {
+        const node = byDom.get(Array.from(byDom.keys()).find((d) => g.id === d || g.id.endsWith(`-${d}`)) ?? '')
+        if (!node) return undefined
+        const drawn = Array.from(g.querySelectorAll('rect, polygon, path, circle, ellipse, line, polyline')).filter((s) => !s.closest('.label') && visible(s) && s.getBoundingClientRect().width > 0)
+        if (!drawn.length) return undefined
+        const container = g.querySelector(':scope > .label-container') ?? drawn[0]!
+        const rect = rectOf(container)
+        const painted = drawn.find((s) => paint(style(s).fill, style(s).fillOpacity)) ?? drawn[0]!
+        const cs = style(painted)
+        const label = g.querySelector(':scope > .label')
+        const text = label ? labelOf(label, scale) : undefined
+        const inset = (a: number) => Math.max(0, a)
+        const insets = text ? { l: inset(text.rect.x - rect.x), t: inset(text.rect.y - rect.y), r: inset(rect.x + rect.w - text.rect.x - text.rect.w), b: inset(rect.y + rect.h - text.rect.y - text.rect.h) } : { l: 0, t: 0, r: 0, b: 0 }
+        const out: DiagramNode = { id: node.id, rect, preset: 'custom', paragraphs: text?.paragraphs ?? [], insets, name: `${node.id}${node.label ? `: ${node.label.replace(/<[^>]+>/g, ' ').trim()}` : ''}` }
+        if (text?.nowrap) out.nowrap = true
+        const fill = paint(cs.fill, cs.fillOpacity)
+        const stroke = svgLine(style(drawn.find((s) => style(s).stroke !== 'none') ?? painted), scale)
+        if (fill) out.fill = { colour: fill }
+        if (stroke) out.line = stroke
+        const shadow = dropShadow(style(container.matches('g') ? painted : container).filter, scale)
+        if (shadow) out.shadow = shadow
+        Object.assign(out, preset(node.shape ?? '', container, drawn))
+        if (out.preset === 'custom') {
+          const path = pathOf(painted, rect)
+          if (!path) return undefined
+          out.path = path
+        }
+        item.nodes.push(out)
+      }
+
+      const known = new Set(item.nodes.map((n) => n.id))
+      const nodeRect = new Map(item.nodes.map((n) => [n.id, n.rect]))
+      for (const path of svg.querySelectorAll('path[data-id], path.flowchart-link')) {
+        const id = path.getAttribute('data-id') ?? path.id.replace(/^.*?(L_)/, '$1')
+        const edge = structure.edges.find((e) => e.id === id)
+        if (!edge || edge.thickness === 'invisible') continue
+        const cs = style(path)
+        const line = svgLine(cs, scale)
+        if (!line) continue
+        if (edge.pattern === 'dotted') line.dash = 'sysDot'
+        else if (edge.pattern === 'dashed') line.dash = 'dash'
+        else delete line.dash
+        const out: DiagramEdge = { points: [], line, start: arrow(edge.arrowTypeStart), end: arrow(edge.arrowTypeEnd), name: `${edge.start ?? '?'} → ${edge.end ?? '?'}` }
+        const route = routeOf(path)
+        const from = edge.start && known.has(edge.start) ? edge.start : undefined
+        const to = edge.end && known.has(edge.end) ? edge.end : undefined
+        if (route && from && to && connectable(route)) {
+          out.points = route
+          out.from = { node: from, side: sideOf(route[0]!, nodeRect.get(from)!) }
+          out.to = { node: to, side: sideOf(route[route.length - 1]!, nodeRect.get(to)!) }
+        } else {
+          const drawn = pathOf(path)
+          if (!drawn) continue
+          out.path = drawn
+          out.points = route ?? []
+        }
+        item.edges.push(out)
+      }
+
+      for (const g of svg.querySelectorAll('g.edgeLabel')) {
+        const label = labelOf(g.querySelector('.label') ?? g, scale, true)
+        if (label) item.labels.push(label)
+      }
+      return item
+    } catch {
+      return undefined
+    }
+  }
+
+  /** A fill or stroke paint, with its opacity. */
+  function paint(css: string, opacity: string): Colour | undefined {
+    if (!css || css === 'none' || css.startsWith('url(')) return undefined
+    const c = colour(css)
+    if (!c) return undefined
+    const o = Number.parseFloat(opacity)
+    return Number.isNaN(o) || o >= 1 ? c : o <= 0 ? undefined : { ...c, alpha: c.alpha * o }
+  }
+
+  function svgLine(cs: CSSStyleDeclaration, scale: number): Line | undefined {
+    const c = paint(cs.stroke, cs.strokeOpacity)
+    const w = Number.parseFloat(cs.strokeWidth)
+    if (!c || !w) return undefined
+    return { width: w * scale, colour: c }
+  }
+
+  /** A CSS `drop-shadow()` filter, as the computed style writes it: colour, x, y, blur. */
+  function dropShadow(filter: string, scale: number): DiagramNode['shadow'] {
+    const m = /drop-shadow\((rgba?\([^)]*\)|color\([^)]*\))\s+(-?[\d.]+)px\s+(-?[\d.]+)px(?:\s+([\d.]+)px)?\)/.exec(filter)
+    const c = m && colour(m[1])
+    if (!m || !c) return undefined
+    return { colour: c, dx: Number(m[2]) * scale, dy: Number(m[3]) * scale, blur: Number(m[4] ?? 0) * scale }
+  }
+
+  function arrow(type: string | undefined): ArrowEnd {
+    if (!type || type === 'none') return 'none'
+    if (type.includes('circle')) return 'oval'
+    if (type.includes('cross')) return 'none'
+    return 'triangle'
+  }
+
+  /** Mermaid's shapes as PowerPoint's, sized to the drawing; `custom` traces it. */
+  function preset(shape: string, container: Element, drawn: Element[]): Pick<DiagramNode, 'preset' | 'adj' | 'flipH' | 'flipV'> {
+    const s = shape.toLowerCase()
+    const one = (names: string[]) => names.includes(s)
+    if (one(['squarerect', 'rect', 'square', 'process', 'proc', 'rectangle'])) return { preset: 'rect' }
+    if (one(['roundedrect', 'rounded', 'event', 'round'])) {
+      const b = (container as SVGGraphicsElement).getBBox?.()
+      const rx = Number.parseFloat(container.getAttribute('rx') ?? '') || 5
+      return { preset: 'roundRect', adj: b ? Math.min(50000, Math.round((rx / Math.max(1, Math.min(b.width, b.height))) * 100000)) : 16667 }
+    }
+    if (one(['diamond', 'diam', 'decision', 'question'])) return { preset: 'flowChartDecision' }
+    if (one(['stadium', 'terminal', 'pill'])) return { preset: 'flowChartTerminator' }
+    if (one(['subroutine', 'fr-rect', 'subproc', 'subprocess', 'framed-rectangle'])) return { preset: 'flowChartPredefinedProcess' }
+    if (one(['circle', 'circ', 'doublecircle', 'dbl-circ', 'double-circle', 'ellipse', 'start'])) return { preset: 'ellipse' }
+    if (one(['hexagon', 'hex', 'prepare'])) return { preset: 'flowChartPreparation' }
+    if (one(['cylinder', 'cyl', 'db', 'database'])) {
+      const adj = canAdj(drawn)
+      return adj === undefined ? { preset: 'can' } : { preset: 'can', adj }
+    }
+    const lean = one(['lean_right', 'lean-r', 'in-out', 'lean_left', 'lean-l', 'out-in'])
+    // Upside down, a trapezoid's text would be too: that one is traced.
+    const trap = one(['trapezoid', 'trap-b', 'priority'])
+    if (lean || trap) {
+      const inset = slant(container, drawn)
+      const flip = one(['lean_left', 'lean-l', 'out-in']) ? { flipH: true } : {}
+      return { preset: lean ? 'parallelogram' : 'trapezoid', ...(inset === undefined ? {} : { adj: inset }), ...flip }
+    }
+    return { preset: 'custom' }
+  }
+
+  /** How far a parallelogram's or trapezoid's slanted sides lean in, as PowerPoint's `adj`. */
+  function slant(container: Element, drawn: Element[]): number | undefined {
+    // A parallelogram's top edge starts in from the left, or its bottom edge does (leaning left).
+    const poly = [container, ...drawn].find((e) => e.matches('polygon')) as SVGPolygonElement | undefined
+    if (!poly) return undefined
+    const pts = Array.from(poly.points).map((p) => [p.x, p.y] as [number, number])
+    const ys = pts.map((p) => p[1])
+    const xs = pts.map((p) => p[0])
+    const [minX, maxX, minY, maxY] = [Math.min(...xs), Math.max(...xs), Math.min(...ys), Math.max(...ys)]
+    const lefts = (y: number) => Math.min(...pts.filter((p) => Math.abs(p[1] - y) < 0.5).map((p) => p[0]))
+    const inset = Math.max(lefts(minY), lefts(maxY)) - minX
+    const ss = Math.min(maxX - minX, maxY - minY)
+    return ss > 0 ? Math.round((inset / ss) * 100000) : undefined
+  }
+
+  /** A cylinder's lid, as PowerPoint's `can` measures it (its height against the width). */
+  function canAdj(drawn: Element[]): number | undefined {
+    const b = (drawn[0] as SVGGraphicsElement).getBBox?.()
+    const d = drawn[0]!.getAttribute('d') ?? ''
+    const m = /a\s*([\d.]+)\s*[, ]\s*([\d.]+)/i.exec(d)
+    if (!b || !m) return undefined
+    return Math.round(((2 * Number(m[2])) / Math.max(1, Math.min(b.width, b.height))) * 100000)
+  }
+
+  /** A label: the HTML Mermaid draws it with, or its SVG text. */
+  function labelOf(g: Element | null, scale: number, boxed = false): TextItem | undefined {
+    if (!g) return undefined
+    const html = g.querySelector('foreignObject')
+    const host = html?.querySelector('div') ?? g.querySelector('text')
+    if (!host || !host.textContent?.trim()) return undefined
+    const blocks = host.querySelectorAll(':scope p, :scope tspan.row, :scope > tspan')
+    const paragraphs: Paragraph[] = (blocks.length ? Array.from(blocks) : [host]).map((b) => {
+      const cs = style(b)
+      const runs = runsOf(b, cs).map((r) => ({ ...r, size: r.size * scale, ...(r.spacing ? { spacing: r.spacing * scale } : {}) }))
+      const p: Paragraph = { runs, align: 'ctr', before: 0, left: 0, indent: 0, level: 0 }
+      const lh = lineHeight(style(host))
+      if (lh !== undefined) p.lineHeight = lh * scale
+      return p
+    }).filter((p) => p.runs.length)
+    if (!paragraphs.length) return undefined
+    const rect = rectOf(html ?? host)
+    const lh = paragraphs[0]!.lineHeight ?? paragraphs[0]!.runs[0]!.size * 1.2
+    const item: TextItem = { kind: 'text', rect, paragraphs, insets: { l: 0, t: 0, r: 0, b: 0 }, anchor: 'ctr', name: `Label ${++names}` }
+    if (paragraphs.length === 1 && rect.h < lh * 1.6) item.nowrap = true
+    if (boxed) {
+      const bg = paint(style(host).backgroundColor, '1')
+      if (bg) item.fill = { colour: bg }
+    }
+    return item
+  }
+
+  /** An edge's routed points, from Mermaid's `data-points`, on the slide. */
+  function routeOf(path: Element): Array<[number, number]> | undefined {
+    const raw = path.getAttribute('data-points')
+    const ctm = (path as SVGGraphicsElement).getScreenCTM()
+    if (!raw || !ctm) return undefined
+    const pts = JSON.parse(atob(raw)) as Array<{ x: number; y: number }>
+    const onSlide = pts.map((p) => {
+      const q = new DOMPoint(p.x, p.y).matrixTransform(ctm)
+      return [q.x - origin.left, q.y - origin.top] as [number, number]
+    })
+    // Without repeats, and without points along a straight run.
+    const out: Array<[number, number]> = []
+    for (const p of onSlide) {
+      const last = out[out.length - 1]
+      if (last && Math.hypot(p[0] - last[0], p[1] - last[1]) < 0.5) continue
+      const before = out[out.length - 2]
+      if (last && before) {
+        const cross = (last[0] - before[0]) * (p[1] - before[1]) - (last[1] - before[1]) * (p[0] - before[0])
+        if (Math.abs(cross) < 0.5 * Math.hypot(p[0] - before[0], p[1] - before[1])) out.pop()
+      }
+      out.push(p)
+    }
+    return out.length >= 2 ? out : undefined
+  }
+
+  /** A connector can take a route that's straight, or runs across and down in up to three legs. */
+  function connectable(route: Array<[number, number]>): boolean {
+    if (route.length === 2) return true
+    if (route.length > 4) return false
+    const legs = route.slice(1).map((p, k) => (Math.abs(p[1] - route[k]![1]) < 1 ? 'h' : Math.abs(p[0] - route[k]![0]) < 1 ? 'v' : 'd'))
+    return !legs.includes('d') && legs.every((l, k) => k === 0 || l !== legs[k - 1])
+  }
+
+  function sideOf(p: [number, number], r: Rect): Side {
+    const d: Array<[Side, number]> = [['t', Math.abs(p[1] - r.y)], ['l', Math.abs(p[0] - r.x)], ['b', Math.abs(p[1] - r.y - r.h)], ['r', Math.abs(p[0] - r.x - r.w)]]
+    return d.sort((a, b) => a[1] - b[1])[0]![0]
+  }
+
+  /** An SVG shape's outline as path commands on the slide, or relative to `box`. */
+  function pathOf(el: Element, box?: Rect): PathCommand[] | undefined {
+    const ctm = (el as SVGGraphicsElement).getScreenCTM()
+    if (!ctm) return undefined
+    const at = (x: number, y: number): [number, number] => {
+      const q = new DOMPoint(x, y).matrixTransform(ctm)
+      return [q.x - origin.left - (box?.x ?? 0), q.y - origin.top - (box?.y ?? 0)]
+    }
+    const n = (a: string | null) => Number.parseFloat(a ?? '') || 0
+    if (el.matches('rect')) {
+      const [x, y, w, h] = [n(el.getAttribute('x')), n(el.getAttribute('y')), n(el.getAttribute('width')), n(el.getAttribute('height'))]
+      return [{ op: 'M', points: [at(x, y)] }, { op: 'L', points: [at(x + w, y)] }, { op: 'L', points: [at(x + w, y + h)] }, { op: 'L', points: [at(x, y + h)] }, { op: 'Z', points: [] }]
+    }
+    if (el.matches('polygon, polyline')) {
+      const pts = Array.from((el as SVGPolygonElement).points)
+      if (pts.length < 2) return undefined
+      const cmds: PathCommand[] = pts.map((p, k) => ({ op: k ? 'L' : 'M', points: [at(p.x, p.y)] }))
+      if (el.matches('polygon')) cmds.push({ op: 'Z', points: [] })
+      return cmds
+    }
+    if (el.matches('circle, ellipse')) {
+      const [cx, cy] = [n(el.getAttribute('cx')), n(el.getAttribute('cy'))]
+      const rx = el.matches('circle') ? n(el.getAttribute('r')) : n(el.getAttribute('rx'))
+      const ry = el.matches('circle') ? rx : n(el.getAttribute('ry'))
+      const k = 0.5523
+      return [
+        { op: 'M', points: [at(cx + rx, cy)] },
+        { op: 'C', points: [at(cx + rx, cy + k * ry), at(cx + k * rx, cy + ry), at(cx, cy + ry)] },
+        { op: 'C', points: [at(cx - k * rx, cy + ry), at(cx - rx, cy + k * ry), at(cx - rx, cy)] },
+        { op: 'C', points: [at(cx - rx, cy - k * ry), at(cx - k * rx, cy - ry), at(cx, cy - ry)] },
+        { op: 'C', points: [at(cx + k * rx, cy - ry), at(cx + rx, cy - k * ry), at(cx + rx, cy)] },
+        { op: 'Z', points: [] },
+      ]
+    }
+    if (!el.matches('path')) return undefined
+    const tokens = (el.getAttribute('d') ?? '').match(/[MmLlHhVvCcSsQqTtAaZz]|-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/g) ?? []
+    const cmds: PathCommand[] = []
+    let k = 0
+    let cmd = ''
+    let [x, y, sx, sy] = [0, 0, 0, 0]
+    let control: [number, number] | undefined
+    const num = () => Number(tokens[k++])
+    while (k < tokens.length) {
+      if (/[a-z]/i.test(tokens[k]!)) cmd = tokens[k++]!
+      const rel = cmd === cmd.toLowerCase()
+      const ox = rel ? x : 0
+      const oy = rel ? y : 0
+      switch (cmd.toUpperCase()) {
+        case 'M':
+          x = ox + num(); y = oy + num(); sx = x; sy = y
+          cmds.push({ op: 'M', points: [at(x, y)] })
+          cmd = rel ? 'l' : 'L'
+          control = undefined
+          break
+        case 'L': x = ox + num(); y = oy + num(); cmds.push({ op: 'L', points: [at(x, y)] }); control = undefined; break
+        case 'H': x = ox + num(); cmds.push({ op: 'L', points: [at(x, y)] }); control = undefined; break
+        case 'V': y = oy + num(); cmds.push({ op: 'L', points: [at(x, y)] }); control = undefined; break
+        case 'C': {
+          const c1: [number, number] = [ox + num(), oy + num()]
+          const c2: [number, number] = [ox + num(), oy + num()]
+          x = ox + num(); y = oy + num()
+          cmds.push({ op: 'C', points: [at(...c1), at(...c2), at(x, y)] })
+          control = c2
+          break
+        }
+        case 'S': {
+          const c1: [number, number] = control ? [2 * x - control[0], 2 * y - control[1]] : [x, y]
+          const c2: [number, number] = [ox + num(), oy + num()]
+          x = ox + num(); y = oy + num()
+          cmds.push({ op: 'C', points: [at(...c1), at(...c2), at(x, y)] })
+          control = c2
+          break
+        }
+        case 'Q': {
+          const c: [number, number] = [ox + num(), oy + num()]
+          x = ox + num(); y = oy + num()
+          cmds.push({ op: 'Q', points: [at(...c), at(x, y)] })
+          control = c
+          break
+        }
+        case 'T': {
+          const c: [number, number] = control ? [2 * x - control[0], 2 * y - control[1]] : [x, y]
+          x = ox + num(); y = oy + num()
+          cmds.push({ op: 'Q', points: [at(...c), at(x, y)] })
+          control = c
+          break
+        }
+        case 'A':
+          // An arc, as the straight line to where it ends: rare in a flowchart's shapes.
+          k += 5
+          x = ox + num(); y = oy + num()
+          cmds.push({ op: 'L', points: [at(x, y)] })
+          control = undefined
+          break
+        case 'Z':
+          x = sx; y = sy
+          cmds.push({ op: 'Z', points: [] })
+          control = undefined
+          break
+        default:
+          return undefined
+      }
+    }
+    return cmds.length > 1 ? cmds : undefined
   }
 
   /** An ECharts chart's data and look, from the live instance. */

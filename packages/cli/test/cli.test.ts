@@ -3,8 +3,12 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { newer } from '../src/load.js'
+
+// Each test starts the command line several times: on a busy CI runner that
+// takes longer than vitest's default 5s.
+vi.setConfig({ testTimeout: 30_000 })
 
 const BIN = fileURLToPath(new URL('../dist/bin.js', import.meta.url))
 const dir = mkdtempSync(join(tmpdir(), 'blitz-cli-'))
@@ -30,6 +34,9 @@ describe('the command line (M6.12)', () => {
       [['dev', 'talk.md', '--port', 'abc'], '`--port` must be a number from 0 to 65535'],
       [['export', 'talk.md', '--out'], '`--out` needs a value'],
       [['export', 'talk.md', '--steps', '--notes'], "--steps and --notes don't go together"],
+      [['export', 'talk.md', '--pptx', '--notes'], '--notes makes a PDF handout: a PowerPoint export has the notes as its speaker notes already'],
+      [['export', 'talk.md', '--pptx', '--out', 'talk.pdf'], '--pptx writes a .pptx, not talk.pdf'],
+      [['export', 'talk.md', '--out', 'talk.ppt'], 'export writes a .pdf or a .pptx, not talk.ppt'],
       [['build'], 'which deck?'],
     ]
     for (const [args, message] of cases) {

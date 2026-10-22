@@ -12,6 +12,23 @@ relied on it will notice.
 
 ## [Unreleased]
 
+### Added
+
+- PowerPoint presentations are decks (docs/powerpoint.md): `dev`, `build`,
+  `export`, `present` and `check` take a `.pptx` and show its slides as
+  PowerPoint lays them out, without the animations. Text, bullets, shapes,
+  pictures, groups, tables, SmartArt and backgrounds carry over; charts are
+  drawn by the chart renderer from the values saved with them; speaker
+  notes are the presenter's notes. What doesn't carry over is an `info`,
+  `pptx/not-shown`. Legacy `.ppt` files and LibreOffice's `.odp` are read
+  through LibreOffice, when it's installed.
+- `blitzstrahl export talk.md --pptx` (or `--out talk.pptx`): the deck as a
+  PowerPoint presentation you can edit: text boxes in the deck's fonts and
+  colours, the heading as the slide's title, native tables, native charts
+  with their data in an embedded workbook, the theme's backdrop as the
+  slide's background, and the presenter notes as speaker notes
+  (docs/cli.md, *`export`*). `--steps` gives a slide per step.
+
 ## [1.1.1] — 2026-09-30
 
 Small and additive: no deck builds or looks any different.

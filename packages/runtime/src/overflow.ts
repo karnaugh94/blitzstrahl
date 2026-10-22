@@ -90,8 +90,9 @@ function measure(section: HTMLElement, els: HTMLElement[], canvas: { width: numb
     return false
   }
   els.forEach((el, k) => {
-    // Renderers size and clip their own output.
-    if (el.closest('[data-blitz-block]') && !el.hasAttribute('data-blitz-block')) return
+    // Renderers size and clip their own output. So does a PowerPoint slide
+    // (`data-blitz-clip`, docs/powerpoint.md): what's past its edge is hidden there too.
+    if (el.closest('[data-blitz-block], [data-blitz-clip]') && !el.hasAttribute('data-blitz-block') && !el.hasAttribute('data-blitz-clip')) return
     const hidden = insideClipper(el)
     if (hidden) return
     check(el.getBoundingClientRect(), k)
@@ -107,7 +108,7 @@ function measure(section: HTMLElement, els: HTMLElement[], canvas: { width: numb
         check(range.getBoundingClientRect(), k)
       }
     }
-    if (block) return
+    if (block || el.hasAttribute('data-blitz-clip')) return
     if (clipping) clippers.add(el)
     // Screen-reader-only content (KaTeX's MathML, say) is clipped to a pixel on purpose.
     if (clipping && el.clientWidth <= 1 && el.clientHeight <= 1) return

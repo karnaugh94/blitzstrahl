@@ -111,13 +111,13 @@ export async function writeManifest(outDir: string, files: Iterable<string>): Pr
  * deck, always the right extension, and an existing `.html` only if
  * blitzstrahl wrote it. An existing PDF is replaced, as exporters do.
  */
-export function checkOutFile(file: string, deck: string, kind: 'html' | 'pdf'): void {
+export function checkOutFile(file: string, deck: string, kind: 'html' | 'pdf' | 'pptx'): void {
   if (resolve(file) === resolve(deck)) throw new CliError(`won't write over the deck itself (${show(file)})`)
   const ext = extname(file).toLowerCase()
   if (kind === 'html' && ext !== '.html' && ext !== '.htm') {
     throw new CliError(`a standalone deck is an .html file, not ${show(file)}: use --out ${show(file.slice(0, file.length - ext.length))}.html`)
   }
-  if (kind === 'pdf' && ext !== '.pdf') throw new CliError(`export writes a .pdf, not ${show(file)}`)
+  if (kind === 'pdf' && ext !== '.pdf') throw new CliError(`export writes a .pdf or a .pptx, not ${show(file)}`)
   if (!existsSync(file)) return
   if (statSync(file).isDirectory()) throw new CliError(`can't write ${show(file)}: it's a folder`)
   if (kind === 'html' && !madeByUs(file)) {

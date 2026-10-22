@@ -11,6 +11,10 @@ blitzstrahl theme import <template.potx> [--out folder]
 blitzstrahl --version
 ```
 
+A deck is a Markdown file, or a PowerPoint presentation (`.pptx`; `.ppt`
+and `.odp` with LibreOffice installed), shown as its slides look in
+PowerPoint, without the animations (docs/powerpoint.md). *(1.2)*
+
 `blitzstrahl <command> --help` shows one command's options. Each option
 belongs to the commands above that list it, and giving one to another
 command (`build --steps`) is an error, not something quietly ignored.
@@ -168,8 +172,8 @@ standalone file:
 ## `export`
 
 Writes the deck as a **PDF**: `talk.md` → `talk.pdf` next to it, or
-`--out` to choose. The path must end in `.pdf`, and a PDF that's already
-there is replaced.
+`--out` to choose. The path must end in `.pdf` (or `.pptx`, below), and a
+file that's already there is replaced.
 
 - One page per slide, showing the slide at its **final step**, with
   everything revealed.
@@ -200,13 +204,42 @@ there is replaced.
   another site's page inside a frame.
 - Video and audio print their poster, or the video's frame at `start`
   (syntax.md §13).
-- Presenter notes are only in the `--notes` handout.
+- In a PDF, presenter notes are only in the `--notes` handout.
 - Like `build`, a deck with errors isn't exported unless you pass `--force`.
 
 `export` builds the deck into a temporary folder, serves it on the loopback
 interface for as long as it prints, and deletes it afterwards. `export`
 needs a Chromium-based browser, just like the overflow check; without one
 it says how to install one and exits with code 2.
+
+**As a PowerPoint presentation** *(1.2)*: `--pptx` writes `talk.pptx`
+instead, as does an `--out` ending in `.pptx`. The slides are **editable**:
+each is laid out as the PDF's page is, then rebuilt from what PowerPoint
+has, so the presentation can be reworked there, given from PowerPoint,
+Keynote or Google Slides, or handed to someone who expects a `.pptx`.
+
+| On the slide | In PowerPoint |
+|---|---|
+| The slide's heading | The slide's title (its title placeholder) |
+| Paragraphs, lists, quotes, code | Text boxes, in the deck's fonts, sizes and colours: bold, italic, links, highlights and bullets carry over |
+| Boxes with a plain fill or border (cards, stats, callouts) | Rectangles and rounded rectangles |
+| Tables | Tables, merged cells and all |
+| Charts | Native charts (bar, line, area, pie, doughnut, scatter, bubble), their values in the embedded workbook ("Edit Data") |
+| Images, maps, diagrams, maths, embedded pages | Pictures, at twice the canvas size |
+| The theme's backdrop: gradients, glows, rules, the shapes behind numbered steps | The slide's background picture |
+| Presenter notes | **Speaker notes**, with their lists, bold, italic and code |
+
+- `--steps` works as for the PDF: a slide for every step, each with its
+  slide's notes and only what that step shows. Pressing through them in
+  PowerPoint replays the builds.
+- `--notes` doesn't apply: the notes are already in the presentation.
+- Fonts aren't embedded: PowerPoint uses the deck's fonts when they're
+  installed, and its own otherwise, so text may wrap differently. Text
+  boxes are a little wider than the text they hold, to give it room.
+- Gradient text is a gradient in PowerPoint; LibreOffice shows one colour.
+- The presentation's theme takes the deck's fonts and colours, and its
+  properties carry the deck's `title`, `author` and `lang`.
+- There are no transitions or animations: each step is its own slide.
 
 To print from the browser instead, or to save a PDF without the command
 line, see presenting.md, *Reading and printing*. `export`'s PDF is the one

@@ -88,11 +88,35 @@ const chart: Renderer = {
     // Bars and lines: a point is (category, value), or (value, category) lying down.
     const category = spec.type === 'bar' || spec.type === 'line' ? (spec.type === 'bar' && spec.horizontal ? 1 : 0) : undefined
     instance.setOption({ ...option, aria: chartAria(ariaWords(ctx.lang), spec.type, alt, category) })
+    // For `export --pptx`, which redraws the chart as a native PowerPoint chart.
+    Object.defineProperty(el, 'blitzChart', {
+      value: {
+        option: () => instance.getOption(),
+        theme: themeFrom(ctx),
+        spec: { format: spec.format, prefix: spec.prefix, suffix: spec.suffix, labels: spec.labels },
+        // An axis as drawn (the value axis unless asked), from ECharts' model (not public API, hence the guard).
+        axis: (dim?: 'x' | 'y') => {
+          try {
+            type Scale = { getExtent(): number[]; getTicks?(): Array<{ value: number }> }
+            const model = (instance as unknown as { getModel(): { getComponent(t: string, i: number): { axis?: { scale?: Scale } } | undefined } }).getModel()
+            const scale = model.getComponent(`${dim ?? (category === 1 ? 'x' : 'y')}Axis`, 0)?.axis?.scale
+            const [min, max] = scale?.getExtent() ?? []
+            const ticks = scale?.getTicks?.() ?? []
+            const interval = ticks.length > 2 ? ticks[2]!.value - ticks[1]!.value : undefined
+            return min === undefined || max === undefined ? undefined : { min, max, interval }
+          } catch {
+            return undefined
+          }
+        },
+      },
+      configurable: true,
+    })
     return {
       update() {},
       resize: () => instance.resize(),
       destroy: () => {
         instance.dispose()
+        delete (el as { blitzChart?: unknown }).blitzChart
         restore()
       },
       ready,

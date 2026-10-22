@@ -12,6 +12,17 @@ relied on it will notice.
 
 ## [Unreleased]
 
+### Added
+
+- PowerPoint presentations are decks (docs/powerpoint.md): `dev`, `build`,
+  `export`, `present` and `check` take a `.pptx` and show its slides as
+  PowerPoint lays them out, without the animations. Text, bullets, shapes,
+  pictures, groups, tables, SmartArt and backgrounds carry over; charts are
+  drawn by the chart renderer from the values saved with them; speaker
+  notes are the presenter's notes. What doesn't carry over is an `info`,
+  `pptx/not-shown`. Legacy `.ppt` files and LibreOffice's `.odp` are read
+  through LibreOffice, when it's installed.
+
 ## [1.1.1] — 2026-09-30
 
 Small and additive: no deck builds or looks any different.

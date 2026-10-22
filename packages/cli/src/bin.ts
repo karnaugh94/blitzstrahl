@@ -10,6 +10,7 @@ import { exportPdf } from './export.js'
 import { present } from './present.js'
 import { importTheme } from './import.js'
 import { newDeck } from './new.js'
+import { PRESENTATION } from './pptx.js'
 import { VERSION } from './version.js'
 import { FORMATS, formatReport, hasErrors, printDiagnostics, summary, type Format } from './report.js'
 
@@ -23,6 +24,9 @@ Usage:
   blitzstrahl present <deck.md> [--port 5180] [--no-open] [--force]
   blitzstrahl check <deck.md> [--offline] [--strict] [--format text] [--stdin]
   blitzstrahl theme import <template.potx> [--out folder]
+
+A deck is a Markdown file, or a PowerPoint presentation (.pptx; .ppt and .odp
+with LibreOffice installed), shown without its animations.
 
 Commands:
   new     Start a deck: a short tour to edit, with a chart and its data
@@ -64,6 +68,8 @@ Exit codes: 0 fine, 1 the deck has problems, 2 the command line is wrong.
 Environment:
   BLITZSTRAHL_SKIP_OVERFLOW_CHECK=1   build: skip the overflow check (needs no
                                       browser); --strict still checks
+  BLITZSTRAHL_SOFFICE=<path>          LibreOffice's soffice, to read .ppt and
+                                      .odp decks, if it isn't found by itself
 `
 
 /** Each command's usage, and the options it takes. */
@@ -211,7 +217,7 @@ function deckFile(deck: string): string {
   const file = resolve(deck)
   if (!existsSync(file)) {
     const dir = dirname(file)
-    const near = existsSync(dir) ? closest(basename(file), readdirSync(dir).filter((f) => /\.(md|markdown)$/i.test(f))) : undefined
+    const near = existsSync(dir) ? closest(basename(file), readdirSync(dir).filter((f) => /\.(md|markdown)$/i.test(f) || PRESENTATION.test(f))) : undefined
     throw new CliError(`can't find ${deck}${near ? `: did you mean ${join(dirname(deck), near)}?` : ''}`)
   }
   if (statSync(file).isDirectory()) {

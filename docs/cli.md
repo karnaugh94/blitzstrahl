@@ -11,6 +11,10 @@ blitzstrahl theme import <template.potx> [--out folder]
 blitzstrahl --version
 ```
 
+A deck is a Markdown file, or a PowerPoint presentation (`.pptx`; `.ppt`
+and `.odp` with LibreOffice installed), shown as its slides look in
+PowerPoint, without the animations (docs/powerpoint.md). *(1.2)*
+
 `blitzstrahl <command> --help` shows one command's options. Each option
 belongs to the commands above that list it, and giving one to another
 command (`build --steps`) is an error, not something quietly ignored.

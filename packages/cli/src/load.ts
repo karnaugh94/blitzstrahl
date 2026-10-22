@@ -11,6 +11,7 @@ import { mermaidProblem, specNotes, specProblem } from '@blitzstrahl/renderers/s
 import { allCss, loadExtras, pluginCss, pluginPayload, toExtensions, type Extras } from './extend.js'
 import { highlightDeck } from './highlight.js'
 import { renderMath } from './math.js'
+import { PRESENTATION, readPresentation } from './pptx.js'
 import { VERSION } from './version.js'
 
 export interface LoadedDeck {
@@ -49,7 +50,9 @@ export interface LoadOptions {
 export async function loadDeck(path: string, displayName = path, options: LoadOptions = {}): Promise<LoadedDeck> {
   const abs = resolve(path)
   const dir = dirname(abs)
-  const source = options.source ?? (await readFile(abs, 'utf8'))
+  // A PowerPoint presentation is read as the deck it converts to (docs/powerpoint.md).
+  const presentation = options.source === undefined && PRESENTATION.test(abs) ? readPresentation(abs) : undefined
+  const source = options.source ?? presentation?.source ?? (await readFile(abs, 'utf8'))
   // Parse once to find the theme and plugins, then again knowing what they add.
   const first = parseDeck(source, { file: displayName })
   const extras = await loadExtras(first.deck, dir, first.keySpans, options.importModule)
@@ -58,6 +61,7 @@ export async function loadDeck(path: string, displayName = path, options: LoadOp
   if (css.length) extensions.effects = { ...Object.fromEntries(css.map((n) => [n, 'entrance' as const])), ...extensions.effects }
   const { deck, diagnostics, keySpans } = hasAny(extensions) ? parseDeck(source, { file: displayName, extensions }) : first
   diagnostics.push(...extras.diagnostics)
+  for (const what of presentation?.notCarried ?? []) diagnostics.push({ severity: 'info', code: 'pptx/not-shown', message: what, file: displayName, span: spanOfDeck })
   const wants = deck.meta.blitzstrahl
   if (wants && newer(wants, VERSION)) {
     diagnostics.push({

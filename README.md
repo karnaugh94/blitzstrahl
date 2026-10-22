@@ -84,7 +84,8 @@ view only.
 - **PowerPoint decks too**: `blitzstrahl dev talk.pptx` shows a
   presentation as PowerPoint lays it out (no animations), with its notes,
   the presenter view and PDF export. Legacy `.ppt` works through
-  LibreOffice.
+  LibreOffice. And the other way: `blitzstrahl export talk.md --pptx`
+  writes a PowerPoint presentation, its notes as speaker notes.
 
 ## Documentation
 
@@ -96,7 +97,7 @@ view only.
 | [docs/renderers/](docs/renderers/) | Charts, maps, embeds, tables, Mermaid |
 | [docs/themes.md](docs/themes.md) | The themes and their tokens |
 | [docs/plugins.md](docs/plugins.md) | Writing plugins and themes |
-| [docs/powerpoint.md](docs/powerpoint.md) | Showing PowerPoint presentations |
+| [docs/powerpoint.md](docs/powerpoint.md) | Showing PowerPoint presentations, and exporting to one |
 
 ## Licence
 

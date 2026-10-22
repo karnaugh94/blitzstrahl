@@ -74,3 +74,11 @@ file are licensed for that file and aren't extracted.
 To change a slide, change the presentation. To make it a Markdown deck you
 edit, start from `blitzstrahl theme import` (docs/cli.md), which turns its
 template into a theme.
+
+## The other way: a deck as a PowerPoint *(1.2)*
+
+`blitzstrahl export talk.md --pptx` writes `talk.pptx`: each slide a
+picture of the slide, with its presenter notes as speaker notes, to give
+the talk from PowerPoint, Keynote or Google Slides, or to hand it to
+someone who expects a `.pptx`. With `--steps`, every step is a slide of
+its own. See docs/cli.md, *`export`*.

@@ -8,24 +8,35 @@
  * browser prints at canvas size, so text stays text. The PDF is tagged, its
  * outline is the slides' headings, and pdf-lib then writes what Chromium
  * doesn't: author, language and date (M11.1).
+ *
+ * To a `.pptx` (`--out talk.pptx`, or `--pptx`), the same pages are
+ * screenshots instead, one full-slide picture per PowerPoint slide, with
+ * the presenter notes as its speaker notes (write-pptx.ts).
  */
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { basename, extname, join, relative, resolve } from 'node:path'
-import type { DeckMeta } from '@blitzstrahl/core'
+import type { Deck, DeckMeta } from '@blitzstrahl/core'
 import type { PrintResult } from '@blitzstrahl/runtime'
 import { PDFDocument } from 'pdf-lib'
 import { NO_BROWSER, launchBrowser } from './browser.js'
 import { build } from './build.js'
 import { loadDeck } from './load.js'
+import { CliError } from './errors.js'
 import { checkOutFile } from './output.js'
 import { printDiagnostics } from './report.js'
 import { serveFolder } from './serve.js'
 import { VERSION } from './version.js'
+import { noteParagraphs, writePptx, type PptxPage } from './write-pptx.js'
 
 export interface ExportOptions {
-  /** The PDF to write. Default: the deck's name with `.pdf`, next to it. */
+  /**
+   * The file to write: a `.pdf`, or a `.pptx` for PowerPoint. Default: the
+   * deck's name with `.pdf` (`.pptx` with `pptx`), next to it.
+   */
   outFile?: string
+  /** A PowerPoint presentation, not a PDF. Implied by an `outFile` ending in `.pptx`. */
+  pptx?: boolean
   /** One page per build step. */
   steps?: boolean
   /** A handout: document mode with notes, printed (M11.2). */
@@ -49,8 +60,10 @@ export interface ExportResult {
 
 export async function exportPdf(deckPath: string, options: ExportOptions = {}): Promise<ExportResult> {
   const deck = resolve(deckPath)
-  const file = resolve(options.outFile ?? join(resolve(deck, '..'), `${basename(deck, extname(deck))}.pdf`))
-  checkOutFile(file, deck, 'pdf')
+  const pptx = options.pptx || (options.outFile !== undefined && extname(options.outFile).toLowerCase() === '.pptx')
+  const file = resolve(options.outFile ?? join(resolve(deck, '..'), `${basename(deck, extname(deck))}.${pptx ? 'pptx' : 'pdf'}`))
+  checkOutFile(file, deck, pptx ? 'pptx' : 'pdf')
+  if (pptx && options.notes) throw new CliError('--notes makes a PDF handout: a PowerPoint export has the notes as its speaker notes already')
   const tmp = await mkdtemp(join(tmpdir(), 'blitz-export-'))
   try {
     const loaded = await loadDeck(deck, relative(process.cwd(), deck) || deckPath)
@@ -75,6 +88,10 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
         options.steps ?? false,
       )
       const frames = await pictureFrames(tab)
+      if (pptx) {
+        await writeFile(file, writePptx(await screenshots(tab, loaded.deck, options.steps ?? false), canvas, loaded.deck.meta))
+        return { ok: true, file, pages: printed.pages, warnings: [...printed.warnings, ...frames] }
+      }
       const pdf = await tab.pdf({ width: `${canvas.width}px`, height: `${canvas.height}px`, printBackground: true, preferCSSPageSize: true, tagged: true, outline: true })
       await writeFile(file, await withMetadata(pdf, loaded.deck.meta))
       return { ok: true, file, pages: printed.pages, warnings: [...printed.warnings, ...frames] }
@@ -101,6 +118,22 @@ async function handout(tab: Tab, url: string, file: string, meta: DeckMeta): Pro
   await writeFile(file, pdf)
   const pages = (await PDFDocument.load(pdf, { updateMetadata: false })).getPageCount()
   return { ok: true, file, pages, warnings: [...printed.warnings, ...frames] }
+}
+
+/**
+ * Each printed page as a picture, with its slide's title and notes. With
+ * `steps`, a slide's pages are its steps, and each carries the slide's notes.
+ */
+async function screenshots(tab: Tab, deck: Deck, steps: boolean): Promise<PptxPage[]> {
+  const owners = deck.slides.flatMap((s) => Array.from({ length: steps ? s.steps + 1 : 1 }, () => s))
+  const pages = await tab.locator('.blitz-print > .blitz-slide').elementHandles()
+  if (pages.length !== owners.length) throw new Error(`printed ${pages.length} pages for ${owners.length} slides`)
+  const out: PptxPage[] = []
+  for (const [k, page] of pages.entries()) {
+    const slide = owners[k]!
+    out.push({ png: await page.screenshot({ type: 'png' }), alt: slide.title ?? '', notes: noteParagraphs(slide.notes) })
+  }
+  return out
 }
 
 /**

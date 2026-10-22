@@ -34,6 +34,9 @@ describe('the command line (M6.12)', () => {
       [['dev', 'talk.md', '--port', 'abc'], '`--port` must be a number from 0 to 65535'],
       [['export', 'talk.md', '--out'], '`--out` needs a value'],
       [['export', 'talk.md', '--steps', '--notes'], "--steps and --notes don't go together"],
+      [['export', 'talk.md', '--pptx', '--notes'], '--notes makes a PDF handout: a PowerPoint export has the notes as its speaker notes already'],
+      [['export', 'talk.md', '--pptx', '--out', 'talk.pdf'], '--pptx writes a .pptx, not talk.pdf'],
+      [['export', 'talk.md', '--out', 'talk.ppt'], 'export writes a .pdf or a .pptx, not talk.ppt'],
       [['build'], 'which deck?'],
     ]
     for (const [args, message] of cases) {

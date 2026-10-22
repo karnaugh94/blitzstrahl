@@ -22,6 +22,10 @@ relied on it will notice.
   notes are the presenter's notes. What doesn't carry over is an `info`,
   `pptx/not-shown`. Legacy `.ppt` files and LibreOffice's `.odp` are read
   through LibreOffice, when it's installed.
+- `blitzstrahl export talk.md --pptx` (or `--out talk.pptx`): the deck as a
+  PowerPoint presentation, each slide a picture of the printed slide, its
+  presenter notes as speaker notes (docs/cli.md, *`export`*). `--steps`
+  gives a slide per step.
 
 ## [1.1.1] — 2026-09-30
 

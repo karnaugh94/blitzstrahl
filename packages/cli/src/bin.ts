@@ -20,7 +20,7 @@ Usage:
   blitzstrahl new [talk.md] [--theme aurora]
   blitzstrahl dev <deck.md> [--port 5173] [--host] [--open]
   blitzstrahl build <deck.md> [--out dist] [--standalone] [--force] [--strict] [--format text]
-  blitzstrahl export <deck.md> [--out deck.pdf] [--steps | --notes] [--force]
+  blitzstrahl export <deck.md> [--out deck.pdf | --pptx] [--steps | --notes] [--force]
   blitzstrahl present <deck.md> [--port 5180] [--no-open] [--force]
   blitzstrahl check <deck.md> [--offline] [--strict] [--format text] [--stdin]
   blitzstrahl theme import <template.potx> [--out folder]
@@ -34,7 +34,8 @@ Commands:
   build   Static site in dist/ (serve it over HTTP), or with --standalone,
           one .html file that opens straight from disk
   export  PDF: one page per slide at its final step (--steps: every step;
-          --notes: a handout with the presenter notes)
+          --notes: a handout with the presenter notes), or with --pptx (or
+          --out talk.pptx) a PowerPoint presentation, the notes as its notes
   present Give the talk with a phone as the remote: serves the deck, prints a
           QR code for the phone
   check   Find problems before the talk: errors, missing files, broken
@@ -44,11 +45,12 @@ Commands:
 Options:
   --out, -o      build: output folder (default: dist/ next to the deck);
                  with --standalone, the file (default: <deck>.html next to it)
-                 export: the PDF (default: <deck>.pdf next to the deck)
+                 export: the .pdf or .pptx (default: <deck>.pdf next to the deck)
                  theme import: the folder (default: next to the template)
   --standalone   build: everything in one self-contained .html file
   --steps        export: a page for every build step
   --notes        export: a handout, each slide with its notes (A4)
+  --pptx         export: a PowerPoint presentation (<deck>.pptx), not a PDF
   --force        Build even if the deck has errors
   --strict       build: fail if any slide overflows the canvas (or it can't be
                  checked); check: fail on warnings, not just errors
@@ -110,12 +112,14 @@ updates the open deck.
                  on stdout), github (GitHub Actions annotations)`,
   },
   export: {
-    usage: 'blitzstrahl export <deck.md> [--out deck.pdf] [--steps | --notes] [--force]',
-    options: ['out', 'steps', 'notes', 'force'],
-    help: `A PDF, one page per slide at its final step.
+    usage: 'blitzstrahl export <deck.md> [--out deck.pdf | --pptx] [--steps | --notes] [--force]',
+    options: ['out', 'pptx', 'steps', 'notes', 'force'],
+    help: `A PDF, one page per slide at its final step, or a PowerPoint presentation:
+each slide a picture, with the presenter notes as its speaker notes.
 
-  --out, -o      the .pdf (default <deck>.pdf next to the deck)
-  --steps        a page for every build step
+  --out, -o      the .pdf (default <deck>.pdf next to the deck), or a .pptx
+  --pptx         a PowerPoint presentation, <deck>.pptx next to the deck
+  --steps        a page (a slide, in PowerPoint) for every build step
   --notes        a handout: A4 pages, each slide with its presenter notes
   --force        export even if the deck has errors`,
   },
@@ -164,6 +168,7 @@ const OPTIONS = {
   standalone: { type: 'boolean' },
   steps: { type: 'boolean' },
   notes: { type: 'boolean' },
+  pptx: { type: 'boolean' },
   offline: { type: 'boolean' },
   stdin: { type: 'boolean' },
   theme: { type: 'string' },
@@ -305,6 +310,8 @@ async function main(argv: string[]): Promise<number> {
       const opts: Parameters<typeof exportPdf>[1] = {}
       if (values.out) opts.outFile = values.out
       if (values.steps && values.notes) throw new CliError('--steps and --notes don\'t go together: a handout shows each slide at its final step')
+      if (values.pptx && values.out && !/\.pptx$/i.test(values.out)) throw new CliError(`--pptx writes a .pptx, not ${values.out}`)
+      if (values.pptx) opts.pptx = true
       if (values.steps) opts.steps = true
       if (values.notes) opts.notes = true
       if (values.force) opts.force = true
@@ -314,7 +321,8 @@ async function main(argv: string[]): Promise<number> {
         process.stderr.write(`blitzstrahl: ${r.error}\n`)
         return r.setup ? 2 : 1
       }
-      process.stdout.write(`exported ${r.file} (${r.pages} page${r.pages === 1 ? '' : 's'})\n`)
+      const unit = /\.pptx$/i.test(r.file ?? '') ? 'slide' : 'page'
+      process.stdout.write(`exported ${r.file} (${r.pages} ${unit}${r.pages === 1 ? '' : 's'})\n`)
       return 0
     }
     case 'check': {

@@ -3,8 +3,12 @@ import { existsSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { newer } from '../src/load.js'
+
+// Each test starts the command line several times: on a busy CI runner that
+// takes longer than vitest's default 5s.
+vi.setConfig({ testTimeout: 30_000 })
 
 const BIN = fileURLToPath(new URL('../dist/bin.js', import.meta.url))
 const dir = mkdtempSync(join(tmpdir(), 'blitz-cli-'))

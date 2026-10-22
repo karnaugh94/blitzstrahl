@@ -9,9 +9,9 @@
  * outline is the slides' headings, and pdf-lib then writes what Chromium
  * doesn't: author, language and date (M11.1).
  *
- * To a `.pptx` (`--out talk.pptx`, or `--pptx`), the same pages are
- * screenshots instead, one full-slide picture per PowerPoint slide, with
- * the presenter notes as its speaker notes (write-pptx.ts).
+ * To a `.pptx` (`--out talk.pptx`, or `--pptx`), the same pages are read
+ * as PowerPoint shapes instead, which stay editable, with the presenter
+ * notes as speaker notes (write-pptx.ts).
  */
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
@@ -27,6 +27,7 @@ import { checkOutFile } from './output.js'
 import { printDiagnostics } from './report.js'
 import { serveFolder } from './serve.js'
 import { VERSION } from './version.js'
+import { BACKGROUND_CSS, readSlide } from './pptx-read.js'
 import { noteParagraphs, writePptx, type PptxPage } from './write-pptx.js'
 
 export interface ExportOptions {
@@ -89,7 +90,7 @@ export async function exportPdf(deckPath: string, options: ExportOptions = {}): 
       )
       const frames = await pictureFrames(tab)
       if (pptx) {
-        await writeFile(file, writePptx(await screenshots(tab, loaded.deck, options.steps ?? false), canvas, loaded.deck.meta))
+        await writeFile(file, writePptx(await slidesForPptx(tab, loaded.deck, options.steps ?? false), canvas, loaded.deck.meta))
         return { ok: true, file, pages: printed.pages, warnings: [...printed.warnings, ...frames] }
       }
       const pdf = await tab.pdf({ width: `${canvas.width}px`, height: `${canvas.height}px`, printBackground: true, preferCSSPageSize: true, tagged: true, outline: true })
@@ -121,17 +122,37 @@ async function handout(tab: Tab, url: string, file: string, meta: DeckMeta): Pro
 }
 
 /**
- * Each printed page as a picture, with its slide's title and notes. With
- * `steps`, a slide's pages are its steps, and each carries the slide's notes.
+ * Each printed page read as PowerPoint shapes (pptx-read.ts), with a picture
+ * of everything that has no PowerPoint equivalent, and of the page without
+ * what was read: its background. With `steps`, a slide's pages are its
+ * steps, and each carries the slide's notes.
  */
-async function screenshots(tab: Tab, deck: Deck, steps: boolean): Promise<PptxPage[]> {
+async function slidesForPptx(tab: Tab, deck: Deck, steps: boolean): Promise<PptxPage[]> {
   const owners = deck.slides.flatMap((s) => Array.from({ length: steps ? s.steps + 1 : 1 }, () => s))
-  const pages = await tab.locator('.blitz-print > .blitz-slide').elementHandles()
+  const pages = await tab.$$('.blitz-print > .blitz-slide')
   if (pages.length !== owners.length) throw new Error(`printed ${pages.length} pages for ${owners.length} slides`)
+  await tab.addStyleTag({ content: BACKGROUND_CSS })
   const out: PptxPage[] = []
   for (const [k, page] of pages.entries()) {
     const slide = owners[k]!
-    out.push({ png: await page.screenshot({ type: 'png' }), alt: slide.title ?? '', notes: noteParagraphs(slide.notes) })
+    await page.scrollIntoViewIfNeeded()
+    const read = await page.evaluate(readSlide)
+    const pictures = new Map<number, Uint8Array>()
+    await page.evaluate((el) => el.setAttribute('data-pptx-shot', ''))
+    for (const item of read.items) {
+      if (item.kind !== 'picture' || item.chart) continue
+      const el = await page.$(`[data-pptx-pic="${item.id}"]`)
+      if (el) pictures.set(item.id, await el.screenshot({ type: 'png' }))
+    }
+    await page.evaluate((el) => el.removeAttribute('data-pptx-shot'))
+    await page.evaluate((el) => el.setAttribute('data-pptx-bg', ''))
+    const background = await page.screenshot({ type: 'png' })
+    // Ids start again on every page.
+    await page.evaluate((el) => {
+      el.removeAttribute('data-pptx-bg')
+      for (const e of el.querySelectorAll('[data-pptx-pic]')) e.removeAttribute('data-pptx-pic')
+    })
+    out.push({ read, background, pictures, name: slide.title ?? '', notes: noteParagraphs(slide.notes) })
   }
   return out
 }
@@ -174,7 +195,7 @@ type Tab = Awaited<ReturnType<NonNullable<Awaited<ReturnType<typeof launchBrowse
  */
 async function pictureFrames(tab: Tab, frames = '.blitz-print iframe'): Promise<string[]> {
   const warnings: string[] = []
-  for (const handle of await tab.locator(frames).elementHandles()) {
+  for (const handle of await tab.$$(frames)) {
     // Chromium doesn't render cross-origin frames that are off screen, and
     // pages keep drawing after their `load` event (a map fetches its tiles):
     // bring each into view and let it settle, within reason.

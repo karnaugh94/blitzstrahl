@@ -23,9 +23,11 @@ relied on it will notice.
   `pptx/not-shown`. Legacy `.ppt` files and LibreOffice's `.odp` are read
   through LibreOffice, when it's installed.
 - `blitzstrahl export talk.md --pptx` (or `--out talk.pptx`): the deck as a
-  PowerPoint presentation, each slide a picture of the printed slide, its
-  presenter notes as speaker notes (docs/cli.md, *`export`*). `--steps`
-  gives a slide per step.
+  PowerPoint presentation you can edit: text boxes in the deck's fonts and
+  colours, the heading as the slide's title, native tables, native charts
+  with their data in an embedded workbook, the theme's backdrop as the
+  slide's background, and the presenter notes as speaker notes
+  (docs/cli.md, *`export`*). `--steps` gives a slide per step.
 
 ## [1.1.1] — 2026-09-30
 

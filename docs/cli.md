@@ -213,20 +213,32 @@ needs a Chromium-based browser, just like the overflow check; without one
 it says how to install one and exits with code 2.
 
 **As a PowerPoint presentation** *(1.2)*: `--pptx` writes `talk.pptx`
-instead, as does an `--out` ending in `.pptx`. Each slide is a picture of
-the page the PDF would have (at twice the canvas size, so it stays sharp
-on a projector), and the slide's presenter notes are its **speaker notes**,
-with their lists, bold, italic and code. So the talk can be given from
-PowerPoint, Keynote or Google Slides, with the notes in their presenter
-view, on a machine without blitzstrahl.
+instead, as does an `--out` ending in `.pptx`. The slides are **editable**:
+each is laid out as the PDF's page is, then rebuilt from what PowerPoint
+has, so the presentation can be reworked there, given from PowerPoint,
+Keynote or Google Slides, or handed to someone who expects a `.pptx`.
+
+| On the slide | In PowerPoint |
+|---|---|
+| The slide's heading | The slide's title (its title placeholder) |
+| Paragraphs, lists, quotes, code | Text boxes, in the deck's fonts, sizes and colours: bold, italic, links, highlights and bullets carry over |
+| Boxes with a plain fill or border (cards, stats, callouts) | Rectangles and rounded rectangles |
+| Tables | Tables, merged cells and all |
+| Charts | Native charts (bar, line, area, pie, doughnut, scatter, bubble), their values in the embedded workbook ("Edit Data") |
+| Images, maps, diagrams, maths, embedded pages | Pictures, at twice the canvas size |
+| The theme's backdrop: gradients, glows, rules, the shapes behind numbered steps | The slide's background picture |
+| Presenter notes | **Speaker notes**, with their lists, bold, italic and code |
 
 - `--steps` works as for the PDF: a slide for every step, each with its
-  slide's notes. Pressing through them in PowerPoint replays the builds.
+  slide's notes and only what that step shows. Pressing through them in
+  PowerPoint replays the builds.
 - `--notes` doesn't apply: the notes are already in the presentation.
-- The slides are pictures: their text can't be edited in PowerPoint, and
-  charts aren't interactive. Each picture's alternative text, and the
-  slide's name, is the slide's title. The presentation's properties carry
-  the deck's `title`, `author` and `lang`.
+- Fonts aren't embedded: PowerPoint uses the deck's fonts when they're
+  installed, and its own otherwise, so text may wrap differently. Text
+  boxes are a little wider than the text they hold, to give it room.
+- Gradient text is a gradient in PowerPoint; LibreOffice shows one colour.
+- The presentation's theme takes the deck's fonts and colours, and its
+  properties carry the deck's `title`, `author` and `lang`.
 - There are no transitions or animations: each step is its own slide.
 
 To print from the browser instead, or to save a PDF without the command

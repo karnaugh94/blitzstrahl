@@ -1,22 +1,34 @@
 /**
- * A deck as a PowerPoint presentation (`export --out talk.pptx`): each page
- * the runtime prints (a slide at its final step, or with `steps` each step)
- * is a full-slide picture, and the slide's presenter notes are its speaker
- * notes, so the talk can be given from PowerPoint, Keynote or Google Slides.
+ * A deck as a PowerPoint presentation you can edit (`export --pptx`). Each
+ * page the runtime prints (a slide at its final step, or with `steps` each
+ * step) becomes a slide of real PowerPoint shapes: text boxes for headings,
+ * paragraphs, lists and code, native tables, rectangles for plain boxes,
+ * native charts with their data in an embedded workbook, and pictures for
+ * the rest (images, maps, diagrams, math). They sit where the browser laid
+ * them out (pptx-read.ts reads that, pptx-shapes.ts writes them). The
+ * theme's own backgrounds and decorations are the slide's background
+ * picture, and the presenter notes are the speaker notes.
  *
  * The package is the smallest one PowerPoint opens without repairing: one
- * master, one blank layout, a theme, and a notes master for the notes.
+ * master, a "Title Only" layout, a theme made from the deck's fonts and
+ * colours, and a notes master for the notes.
  */
 import { zipSync, strToU8 } from 'fflate'
 import type { Element, ElementContent } from 'hast'
 import type { DeckMeta } from '@blitzstrahl/core'
+import type { Colour, SlideRead } from './pptx-read.js'
+import { EMU, OFFDOC, chartWorkbook, chartXml, esc, shapesXml, type SlideParts } from './pptx-shapes.js'
 import { VERSION } from './version.js'
 
 export interface PptxPage {
-  /** The page as a PNG, at any scale of the canvas. */
-  png: Uint8Array
-  /** What the picture shows, for screen readers: the slide's title. */
-  alt: string
+  /** What pptx-read.ts read from the page. */
+  read: SlideRead
+  /** The page without its text and shapes, as a PNG: the slide's background. */
+  background: Uint8Array
+  /** Each picture's PNG, by its `data-pptx-pic`. */
+  pictures: Map<number, Uint8Array>
+  /** The slide's name: its title. */
+  name: string
   /** The slide's presenter notes, as paragraphs. */
   notes: NoteParagraph[]
 }
@@ -34,19 +46,65 @@ export interface NoteRun {
   code?: boolean
 }
 
-/** Pixels to EMU, at 96 pixels to the inch. */
-const EMU = 9525
-
 /** Notes pages are portrait letter, as PowerPoint's own. */
 const NOTES = { cx: 6858000, cy: 9144000 }
+
+type Theme = SlideRead['theme']
 
 export function writePptx(pages: PptxPage[], canvas: { width: number; height: number }, meta: DeckMeta, now = new Date()): Uint8Array {
   const size = { cx: canvas.width * EMU, cy: canvas.height * EMU }
   const files: Record<string, Uint8Array> = {}
   const put = (path: string, xml: string) => (files[path] = strToU8(`<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n${xml}`))
+  const deckTheme: Theme = pages[0]?.read.theme ?? { heading: 'Calibri Light', body: 'Calibri', text: { hex: '000000', alpha: 1 }, background: { hex: 'ffffff', alpha: 1 }, accents: [] }
 
-  put('[Content_Types].xml', contentTypes(pages.length))
-  put('_rels/.rels', rels([
+  let media = 0
+  let charts = 0
+  const slideXml: string[] = []
+  pages.forEach((page, i) => {
+    const n = i + 1
+    const rels: Rel[] = [
+      ['rId1', `${OFFDOC}/slideLayout`, '../slideLayouts/slideLayout1.xml'],
+      ['rId2', `${OFFDOC}/notesSlide`, `../notesSlides/notesSlide${n}.xml`],
+    ]
+    const rel = (type: string, target: string, external = false) => {
+      const id = `rId${rels.length + 1}`
+      rels.push([id, type, target, external])
+      return id
+    }
+    const image = (png: Uint8Array) => {
+      files[`ppt/media/image${++media}.png`] = png
+      return rel(`${OFFDOC}/image`, `../media/image${media}.png`)
+    }
+    const background = image(page.background)
+    const links = new Map<string, string>()
+    const parts: SlideParts = {
+      lang: meta.lang,
+      link: (url) => links.get(url) ?? (links.set(url, rel(`${OFFDOC}/hyperlink`, url, true)), links.get(url)!),
+      picture: (id) => {
+        const png = page.pictures.get(id)
+        return png ? image(png) : undefined
+      },
+      chart: (data) => {
+        const c = ++charts
+        put(`ppt/charts/chart${c}.xml`, chartXml(data, meta.lang))
+        files[`ppt/embeddings/Microsoft_Excel_Worksheet${c}.xlsx`] = chartWorkbook(data)
+        put(`ppt/charts/_rels/chart${c}.xml.rels`, rels_([['rId1', `${OFFDOC}/package`, `../embeddings/Microsoft_Excel_Worksheet${c}.xlsx`]]))
+        return rel(`${OFFDOC}/chart`, `../charts/chart${c}.xml`)
+      },
+    }
+    const shapes = shapesXml(page.read.items, parts, canvas)
+    put(`ppt/slides/slide${n}.xml`, slide(page.name, background, shapes))
+    put(`ppt/slides/_rels/slide${n}.xml.rels`, rels_(rels))
+    put(`ppt/notesSlides/notesSlide${n}.xml`, notesSlide(page.notes, size, meta.lang))
+    put(`ppt/notesSlides/_rels/notesSlide${n}.xml.rels`, rels_([
+      ['rId1', `${OFFDOC}/notesMaster`, '../notesMasters/notesMaster1.xml'],
+      ['rId2', `${OFFDOC}/slide`, `../slides/slide${n}.xml`],
+    ]))
+    slideXml.push(`ppt/slides/slide${n}.xml`)
+  })
+
+  put('[Content_Types].xml', contentTypes(pages.length, charts))
+  put('_rels/.rels', rels_([
     ['rId1', `${OFFDOC}/officeDocument`, 'ppt/presentation.xml'],
     ['rId2', `${PKG}/metadata/core-properties`, 'docProps/core.xml'],
     ['rId3', `${OFFDOC}/extended-properties`, 'docProps/app.xml'],
@@ -55,7 +113,7 @@ export function writePptx(pages: PptxPage[], canvas: { width: number; height: nu
   put('docProps/app.xml', app(pages.length))
 
   put('ppt/presentation.xml', presentation(pages.length, size))
-  put('ppt/_rels/presentation.xml.rels', rels([
+  put('ppt/_rels/presentation.xml.rels', rels_([
     ['rId1', `${OFFDOC}/slideMaster`, 'slideMasters/slideMaster1.xml'],
     ['rId2', `${OFFDOC}/notesMaster`, 'notesMasters/notesMaster1.xml'],
     ['rId3', `${OFFDOC}/theme`, 'theme/theme1.xml'],
@@ -67,36 +125,21 @@ export function writePptx(pages: PptxPage[], canvas: { width: number; height: nu
   put('ppt/presProps.xml', `<p:presentationPr ${NS}/>`)
   put('ppt/viewProps.xml', `<p:viewPr ${NS}><p:normalViewPr><p:restoredLeft sz="15620"/><p:restoredTop sz="80000"/></p:normalViewPr><p:gridSpacing cx="76200" cy="76200"/></p:viewPr>`)
   put('ppt/tableStyles.xml', `<a:tblStyleLst xmlns:a="${A}" def="{5C22544A-7EE6-4342-B048-85BDC9FD1C3A}"/>`)
-  put('ppt/theme/theme1.xml', theme('blitzstrahl'))
-  put('ppt/theme/theme2.xml', theme('blitzstrahl notes'))
+  put('ppt/theme/theme1.xml', theme(meta.title || 'blitzstrahl', deckTheme))
+  put('ppt/theme/theme2.xml', theme('Notes', { heading: 'Calibri Light', body: 'Calibri', text: { hex: '000000', alpha: 1 }, background: { hex: 'ffffff', alpha: 1 }, accents: [] }))
 
-  put('ppt/slideMasters/slideMaster1.xml', master())
-  put('ppt/slideMasters/_rels/slideMaster1.xml.rels', rels([
+  put('ppt/slideMasters/slideMaster1.xml', master(size, luminance(deckTheme.background) < luminance(deckTheme.text)))
+  put('ppt/slideMasters/_rels/slideMaster1.xml.rels', rels_([
     ['rId1', `${OFFDOC}/slideLayout`, '../slideLayouts/slideLayout1.xml'],
     ['rId2', `${OFFDOC}/theme`, '../theme/theme1.xml'],
   ]))
   put('ppt/slideLayouts/slideLayout1.xml', layout())
-  put('ppt/slideLayouts/_rels/slideLayout1.xml.rels', rels([['rId1', `${OFFDOC}/slideMaster`, '../slideMasters/slideMaster1.xml']]))
+  put('ppt/slideLayouts/_rels/slideLayout1.xml.rels', rels_([['rId1', `${OFFDOC}/slideMaster`, '../slideMasters/slideMaster1.xml']]))
   put('ppt/notesMasters/notesMaster1.xml', notesMaster(size))
-  put('ppt/notesMasters/_rels/notesMaster1.xml.rels', rels([['rId1', `${OFFDOC}/theme`, '../theme/theme2.xml']]))
+  put('ppt/notesMasters/_rels/notesMaster1.xml.rels', rels_([['rId1', `${OFFDOC}/theme`, '../theme/theme2.xml']]))
 
-  pages.forEach((page, i) => {
-    const n = i + 1
-    files[`ppt/media/image${n}.png`] = page.png
-    put(`ppt/slides/slide${n}.xml`, slide(page, size))
-    put(`ppt/slides/_rels/slide${n}.xml.rels`, rels([
-      ['rId1', `${OFFDOC}/slideLayout`, '../slideLayouts/slideLayout1.xml'],
-      ['rId2', `${OFFDOC}/image`, `../media/image${n}.png`],
-      ['rId3', `${OFFDOC}/notesSlide`, `../notesSlides/notesSlide${n}.xml`],
-    ]))
-    put(`ppt/notesSlides/notesSlide${n}.xml`, notesSlide(page.notes, size, meta.lang))
-    put(`ppt/notesSlides/_rels/notesSlide${n}.xml.rels`, rels([
-      ['rId1', `${OFFDOC}/notesMaster`, '../notesMasters/notesMaster1.xml'],
-      ['rId2', `${OFFDOC}/slide`, `../slides/slide${n}.xml`],
-    ]))
-  })
-  // PNGs are already compressed.
-  return zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, k.endsWith('.png') ? [v, { level: 0 }] : v])), { level: 6 })
+  // Pictures and workbooks are already compressed.
+  return zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [k, /\.(png|xlsx)$/.test(k) ? [v, { level: 0 }] : v])), { level: 6 })
 }
 
 /**
@@ -161,32 +204,27 @@ export function noteParagraphs(nodes: ElementContent[]): NoteParagraph[] {
 const BLOCKS = /^(p|h[1-6]|ul|ol|li|pre|blockquote|div|section|table|thead|tbody|tr|figure|figcaption|dl|dt|dd|hr)$/
 const isBlock = (n: ElementContent): n is Element => n.type === 'element' && BLOCKS.test(n.tagName)
 
-type Rel = [id: string, type: string, target: string]
+type Rel = [id: string, type: string, target: string, external?: boolean]
 
 const A = 'http://schemas.openxmlformats.org/drawingml/2006/main'
 const R = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 const P = 'http://schemas.openxmlformats.org/presentationml/2006/main'
 const NS = `xmlns:a="${A}" xmlns:r="${R}" xmlns:p="${P}"`
-const OFFDOC = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
 const PKG = 'http://schemas.openxmlformats.org/package/2006/relationships'
 const CT = 'application/vnd.openxmlformats-officedocument'
 
-function esc(s: string): string {
-  return s.replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]!)
-    // Characters XML 1.0 can't carry at all.
-    .replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f￾￿]/g, '')
+
+function rels_(list: Rel[]): string {
+  return `<Relationships xmlns="${PKG}">${list.map(([id, type, target, external]) => `<Relationship Id="${id}" Type="${type}" Target="${esc(target)}"${external ? ' TargetMode="External"' : ''}/>`).join('')}</Relationships>`
 }
 
-function rels(list: Rel[]): string {
-  return `<Relationships xmlns="${PKG}">${list.map(([id, type, target]) => `<Relationship Id="${id}" Type="${type}" Target="${target}"/>`).join('')}</Relationships>`
-}
-
-function contentTypes(n: number): string {
+function contentTypes(n: number, charts: number): string {
   const over = (part: string, type: string) => `<Override PartName="/${part}" ContentType="${type}"/>`
   return `<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">`
     + `<Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>`
     + `<Default Extension="xml" ContentType="application/xml"/>`
     + `<Default Extension="png" ContentType="image/png"/>`
+    + `<Default Extension="xlsx" ContentType="${CT}.spreadsheetml.sheet"/>`
     + over('ppt/presentation.xml', `${CT}.presentationml.presentation.main+xml`)
     + over('ppt/presProps.xml', `${CT}.presentationml.presProps+xml`)
     + over('ppt/viewProps.xml', `${CT}.presentationml.viewProps+xml`)
@@ -197,6 +235,7 @@ function contentTypes(n: number): string {
     + over('ppt/slideLayouts/slideLayout1.xml', `${CT}.presentationml.slideLayout+xml`)
     + over('ppt/notesMasters/notesMaster1.xml', `${CT}.presentationml.notesMaster+xml`)
     + Array.from({ length: n }, (_, i) => over(`ppt/slides/slide${i + 1}.xml`, `${CT}.presentationml.slide+xml`) + over(`ppt/notesSlides/notesSlide${i + 1}.xml`, `${CT}.presentationml.notesSlide+xml`)).join('')
+    + Array.from({ length: charts }, (_, i) => over(`ppt/charts/chart${i + 1}.xml`, `${CT}.drawingml.chart+xml`)).join('')
     + over('docProps/core.xml', 'application/vnd.openxmlformats-package.core-properties+xml')
     + over('docProps/app.xml', `${CT}.extended-properties+xml`)
     + `</Types>`
@@ -234,27 +273,36 @@ function levels(size: number): string {
 }
 
 const GROUP = `<p:nvGrpSpPr><p:cNvPr id="1" name=""/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="0" cy="0"/><a:chOff x="0" y="0"/><a:chExt cx="0" cy="0"/></a:xfrm></p:grpSpPr>`
+/** A dark deck's slides: light text on the dark background. */
+const CLR_MAP_DARK = 'bg1="dk1" tx1="lt1" bg2="dk2" tx2="lt2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"'
 const CLR_MAP = 'bg1="lt1" tx1="dk1" bg2="lt2" tx2="dk2" accent1="accent1" accent2="accent2" accent3="accent3" accent4="accent4" accent5="accent5" accent6="accent6" hlink="hlink" folHlink="folHlink"'
 
-function master(): string {
-  return `<p:sldMaster ${NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree>${GROUP}</p:spTree></p:cSld>`
-    + `<p:clrMap ${CLR_MAP}/>`
+/** The title's place on the master, for slides whose title the browser didn't place. */
+function titleBox(size: { cx: number; cy: number }) {
+  return { x: Math.round(size.cx * 0.05), y: Math.round(size.cy * 0.05), cx: Math.round(size.cx * 0.9), cy: Math.round(size.cy * 0.15) }
+}
+
+function master(size: { cx: number; cy: number }, dark: boolean): string {
+  const title = `<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title Placeholder 1"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr>`
+    + `<p:spPr>${xfrm(titleBox(size))}<a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr>`
+    + `<p:txBody><a:bodyPr vert="horz" lIns="0" tIns="0" rIns="0" bIns="0" rtlCol="0" anchor="t"><a:normAutofit/></a:bodyPr><a:lstStyle/><a:p><a:r><a:rPr lang="en-US"/><a:t>Title</a:t></a:r></a:p></p:txBody></p:sp>`
+  const titleStyle = `<a:lvl1pPr algn="l" rtl="0"><a:lnSpc><a:spcPct val="90000"/></a:lnSpc><a:spcBef><a:spcPct val="0"/></a:spcBef><a:buNone/><a:defRPr sz="4400" kern="1200"><a:solidFill><a:schemeClr val="tx1"/></a:solidFill><a:latin typeface="+mj-lt"/><a:ea typeface="+mj-ea"/><a:cs typeface="+mj-cs"/></a:defRPr></a:lvl1pPr>`
+  return `<p:sldMaster ${NS}><p:cSld><p:bg><p:bgRef idx="1001"><a:schemeClr val="bg1"/></p:bgRef></p:bg><p:spTree>${GROUP}${title}</p:spTree></p:cSld>`
+    + `<p:clrMap ${dark ? CLR_MAP_DARK : CLR_MAP}/>`
     + `<p:sldLayoutIdLst><p:sldLayoutId id="2147483649" r:id="rId1"/></p:sldLayoutIdLst>`
-    + `<p:txStyles><p:titleStyle>${levels(4400)}</p:titleStyle><p:bodyStyle>${levels(2800)}</p:bodyStyle><p:otherStyle>${levels(1800)}</p:otherStyle></p:txStyles>`
+    + `<p:txStyles><p:titleStyle>${titleStyle}</p:titleStyle><p:bodyStyle>${levels(2800)}</p:bodyStyle><p:otherStyle>${levels(1800)}</p:otherStyle></p:txStyles>`
     + `</p:sldMaster>`
 }
 
 function layout(): string {
-  return `<p:sldLayout ${NS} type="blank" preserve="1"><p:cSld name="Blank"><p:spTree>${GROUP}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`
+  const title = `<p:sp><p:nvSpPr><p:cNvPr id="2" name="Title 1"/><p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr><p:nvPr><p:ph type="title"/></p:nvPr></p:nvSpPr><p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="en-US"/><a:t>Title</a:t></a:r></a:p></p:txBody></p:sp>`
+  return `<p:sldLayout ${NS} type="titleOnly" preserve="1"><p:cSld name="Title Only"><p:spTree>${GROUP}${title}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sldLayout>`
 }
 
-function slide(page: PptxPage, size: { cx: number; cy: number }): string {
-  const name = page.alt ? ` name="${esc(page.alt.slice(0, 200))}"` : ''
-  return `<p:sld ${NS}><p:cSld${name}><p:spTree>${GROUP}`
-    + `<p:pic><p:nvPicPr><p:cNvPr id="2" name="Slide" descr="${esc(page.alt)}"/><p:cNvPicPr><a:picLocks noGrp="1" noChangeAspect="1"/></p:cNvPicPr><p:nvPr/></p:nvPicPr>`
-    + `<p:blipFill><a:blip r:embed="rId2"/><a:stretch><a:fillRect/></a:stretch></p:blipFill>`
-    + `<p:spPr><a:xfrm><a:off x="0" y="0"/><a:ext cx="${size.cx}" cy="${size.cy}"/></a:xfrm><a:prstGeom prst="rect"><a:avLst/></a:prstGeom></p:spPr></p:pic>`
-    + `</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`
+/** A slide: the background picture, then the shapes, back to front. */
+function slide(name: string, background: string, shapes: string): string {
+  const bg = `<p:bg><p:bgPr><a:blipFill dpi="0" rotWithShape="1"><a:blip r:embed="${background}"/><a:srcRect/><a:stretch><a:fillRect/></a:stretch></a:blipFill><a:effectLst/></p:bgPr></p:bg>`
+  return `<p:sld ${NS}><p:cSld${name ? ` name="${esc(name.slice(0, 200))}"` : ''}>${bg}<p:spTree>${GROUP}${shapes}</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:sld>`
 }
 
 /** Where the slide's picture and the notes sit on a notes page, fitted to the slide's shape. */
@@ -270,7 +318,9 @@ function notesBoxes(size: { cx: number; cy: number }) {
   return { img, body }
 }
 
-const xfrm = (b: { x: number; y: number; cx: number; cy: number }) => `<a:xfrm><a:off x="${b.x}" y="${b.y}"/><a:ext cx="${b.cx}" cy="${b.cy}"/></a:xfrm>`
+function xfrm(b: { x: number; y: number; cx: number; cy: number }): string {
+  return `<a:xfrm><a:off x="${b.x}" y="${b.y}"/><a:ext cx="${b.cx}" cy="${b.cy}"/></a:xfrm>`
+}
 
 function notesMaster(size: { cx: number; cy: number }): string {
   const { img, body } = notesBoxes(size)
@@ -303,20 +353,33 @@ function notesSlide(notes: NoteParagraph[], size: { cx: number; cy: number }, la
     + `</p:spTree></p:cSld><p:clrMapOvr><a:masterClrMapping/></p:clrMapOvr></p:notes>`
 }
 
-/** Office's own theme, which every part of the package may name colours and fonts from. */
-function theme(name: string): string {
+/**
+ * The presentation's theme: the deck's heading and body fonts, its text and
+ * background colours, and its chart colours as the accents, so what's added
+ * in PowerPoint matches. Office's own fill for whatever the deck doesn't say.
+ */
+function theme(name: string, t: Theme): string {
   const fill = (k: number) => `<a:solidFill><a:schemeClr val="phClr">${k ? `<a:shade val="${100000 - k * 5000}"/>` : ''}</a:schemeClr></a:solidFill>`
   const line = (w: number) => `<a:ln w="${w}" cap="flat" cmpd="sng" algn="ctr"><a:solidFill><a:schemeClr val="phClr"/></a:solidFill><a:prstDash val="solid"/><a:miter lim="800000"/></a:ln>`
-  const srgb = (tag: string, v: string) => `<a:${tag}><a:srgbClr val="${v}"/></a:${tag}>`
+  const srgb = (tag: string, v: string) => `<a:${tag}><a:srgbClr val="${v.toUpperCase()}"/></a:${tag}>`
+  const OFFICE = ['4472C4', 'ED7D31', 'A5A5A5', 'FFC000', '5B9BD5', '70AD47']
+  const accents = OFFICE.map((hex, k) => srgb(`accent${k + 1}`, t.accents[k]?.hex ?? hex)).join('')
+  const dark = luminance(t.background) < luminance(t.text)
+  // A dark deck: PowerPoint's dk1 and lt1 still name the dark and light colours.
+  const [dk1, lt1] = dark ? [t.background.hex, t.text.hex] : [t.text.hex, t.background.hex]
   return `<a:theme xmlns:a="${A}" name="${esc(name)}"><a:themeElements>`
-    + `<a:clrScheme name="Office"><a:dk1><a:sysClr val="windowText" lastClr="000000"/></a:dk1><a:lt1><a:sysClr val="window" lastClr="FFFFFF"/></a:lt1>`
-    + srgb('dk2', '44546A') + srgb('lt2', 'E7E6E6') + srgb('accent1', '4472C4') + srgb('accent2', 'ED7D31') + srgb('accent3', 'A5A5A5')
-    + srgb('accent4', 'FFC000') + srgb('accent5', '5B9BD5') + srgb('accent6', '70AD47') + srgb('hlink', '0563C1') + srgb('folHlink', '954F72')
+    + `<a:clrScheme name="${esc(name)}">${srgb('dk1', dk1)}${srgb('lt1', lt1)}`
+    + srgb('dk2', '44546A') + srgb('lt2', 'E7E6E6') + accents + srgb('hlink', t.accents[0]?.hex ?? '0563C1') + srgb('folHlink', '954F72')
     + `</a:clrScheme>`
-    + `<a:fontScheme name="Office"><a:majorFont><a:latin typeface="Calibri Light"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="Calibri"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme>`
+    + `<a:fontScheme name="${esc(name)}"><a:majorFont><a:latin typeface="${esc(t.heading)}"/><a:ea typeface=""/><a:cs typeface=""/></a:majorFont><a:minorFont><a:latin typeface="${esc(t.body)}"/><a:ea typeface=""/><a:cs typeface=""/></a:minorFont></a:fontScheme>`
     + `<a:fmtScheme name="Office"><a:fillStyleLst>${fill(0)}${fill(1)}${fill(2)}</a:fillStyleLst>`
     + `<a:lnStyleLst>${line(6350)}${line(12700)}${line(19050)}</a:lnStyleLst>`
     + `<a:effectStyleLst><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle><a:effectStyle><a:effectLst/></a:effectStyle></a:effectStyleLst>`
     + `<a:bgFillStyleLst>${fill(0)}${fill(1)}${fill(2)}</a:bgFillStyleLst></a:fmtScheme>`
     + `</a:themeElements><a:objectDefaults/><a:extraClrSchemeLst/></a:theme>`
+}
+
+function luminance(c: Colour): number {
+  const [r, g, b] = [0, 2, 4].map((k) => Number.parseInt(c.hex.slice(k, k + 2), 16) / 255)
+  return 0.2126 * r! + 0.7152 * g! + 0.0722 * b!
 }

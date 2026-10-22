@@ -35,7 +35,8 @@ Commands:
           one .html file that opens straight from disk
   export  PDF: one page per slide at its final step (--steps: every step;
           --notes: a handout with the presenter notes), or with --pptx (or
-          --out talk.pptx) a PowerPoint presentation, the notes as its notes
+          --out talk.pptx) an editable PowerPoint presentation, the notes as
+          its speaker notes
   present Give the talk with a phone as the remote: serves the deck, prints a
           QR code for the phone
   check   Find problems before the talk: errors, missing files, broken
@@ -115,7 +116,7 @@ updates the open deck.
     usage: 'blitzstrahl export <deck.md> [--out deck.pdf | --pptx] [--steps | --notes] [--force]',
     options: ['out', 'pptx', 'steps', 'notes', 'force'],
     help: `A PDF, one page per slide at its final step, or a PowerPoint presentation:
-each slide a picture, with the presenter notes as its speaker notes.
+editable text, tables and charts, with the presenter notes as its speaker notes.
 
   --out, -o      the .pdf (default <deck>.pdf next to the deck), or a .pptx
   --pptx         a PowerPoint presentation, <deck>.pptx next to the deck

@@ -77,8 +77,10 @@ template into a theme.
 
 ## The other way: a deck as a PowerPoint *(1.2)*
 
-`blitzstrahl export talk.md --pptx` writes `talk.pptx`: each slide a
-picture of the slide, with its presenter notes as speaker notes, to give
-the talk from PowerPoint, Keynote or Google Slides, or to hand it to
-someone who expects a `.pptx`. With `--steps`, every step is a slide of
+`blitzstrahl export talk.md --pptx` writes `talk.pptx`, with slides you
+can edit: the text as text boxes, the heading as the slide's title,
+tables as tables, charts as native charts with their data, and the
+presenter notes as speaker notes. The theme's backdrop is each slide's
+background picture. Give the talk from PowerPoint, Keynote or Google
+Slides, rework it there, or hand it to someone who expects a `.pptx`. With `--steps`, every step is a slide of
 its own. See docs/cli.md, *`export`*.
